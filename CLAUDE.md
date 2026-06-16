@@ -22,9 +22,9 @@
 | フロントエンド | React |
 | データ形式 | JSON / Markdown |
 | API設計 | REST API / Swagger (OpenAPI 3.0) |
-| 永続化 | Google Cloud Storage（GCS） |
-| インフラ | GCP Cloud Run |
-| CI/CD | GitHub Actions（mainマージトリガー） |
+| 永続化 | {永続化} |
+| インフラ | {インフラ} |
+| CI/CD | {CI/CD} |
 
 ---
 
@@ -36,7 +36,7 @@
 │   ├── domain/          # エンティティ層: ビジネスエンティティ・ルール（依存なし）
 │   ├── usecase/         # ユースケース層: ビジネスロジック（domain のみ依存可）
 │   ├── interface/       # インターフェース層: ハンドラ・DTO・Repositoryインターフェース
-│   └── infrastructure/  # インフラ層: GCS・認証・ルーティングの具体実装
+│   └── infrastructure/  # インフラ層: 外部サービス・認証・ルーティングの具体実装
 ├── frontend/src/
 ├── api/openapi.yaml     # OpenAPI 3.0 仕様書（API定義の単一管理元）
 ├── tickets/             # チケット管理（backlog/ in-progress/ done/）
@@ -105,8 +105,7 @@
 
 ## CI/CD
 
-`main` マージをトリガーに、テスト → ビルド → Cloud Run デプロイ の順で実行。
-シークレットは GCP Secret Manager で管理。
+{CI/CD設定}
 
 ---
 

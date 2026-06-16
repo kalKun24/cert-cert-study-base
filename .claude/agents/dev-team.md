@@ -139,7 +139,7 @@ Agent(
 
     # レビュー観点
     - 入力バリデーション・XSS・SQLインジェクション・認証/認可の不備
-    - GCS や Cloud Run 固有のセキュリティリスク
+    - CLAUDE.md の技術スタック（インフラ・永続化）固有のセキュリティリスク
     - Critical / High / Medium / Low / Informational の重要度で指摘を返すこと
   """
 )
