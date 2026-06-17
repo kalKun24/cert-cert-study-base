@@ -67,6 +67,8 @@ var (
 	ErrInvalidCredentials = errors.New("usernameまたはパスワードが正しくありません")
 	// ErrInvalidRole はロールが無効な値の場合のエラーです。
 	ErrInvalidRole = errors.New("無効なロールです")
+	// ErrPermissionDenied は操作に必要な権限がない場合のエラーです。
+	ErrPermissionDenied = errors.New("この操作を行う権限がありません")
 )
 
 // UserRepository はユーザーの永続化操作を抽象化するインターフェースです。

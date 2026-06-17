@@ -96,11 +96,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	teamRepo := repository.NewGCSTeamRepository(sc, gcsBucket)
+
 	authUC := usecase.NewAuthUseCase(userRepo, bcryptHasher, jwtManager)
 	userUC := usecase.NewUserUseCase(userRepo, bcryptHasher)
+	teamUC := usecase.NewTeamUseCase(teamRepo, userRepo)
 
 	authHandler := handler.NewAuthHandler(authUC)
 	userHandler := handler.NewUserHandler(userUC)
+	teamHandler := handler.NewTeamHandler(teamUC)
 
 	// ルーティング設定
 	mux := http.NewServeMux()
@@ -134,6 +138,18 @@ func main() {
 	mux.Handle("PUT /api/v1/users/{id}", withAdmin(userHandler.HandleUpdateUser))
 	mux.Handle("DELETE /api/v1/users/{id}", withAdmin(userHandler.HandleDeleteUser))
 	mux.Handle("PATCH /api/v1/users/{id}/status", withAdmin(userHandler.HandleUpdateUserStatus))
+
+	// チーム管理（認証済み全ユーザー。各エンドポイントで認可チェックをユースケース層が実施）
+	withAuth := func(h http.HandlerFunc) http.Handler {
+		return authMiddleware(h)
+	}
+	mux.Handle("POST /api/v1/teams", withAuth(teamHandler.HandleCreateTeam))
+	mux.Handle("GET /api/v1/teams", withAuth(teamHandler.HandleListTeams))
+	mux.Handle("GET /api/v1/teams/{id}", withAuth(teamHandler.HandleGetTeam))
+	mux.Handle("PUT /api/v1/teams/{id}", withAuth(teamHandler.HandleUpdateTeam))
+	mux.Handle("DELETE /api/v1/teams/{id}", withAuth(teamHandler.HandleDeleteTeam))
+	mux.Handle("POST /api/v1/teams/{id}/members", withAuth(teamHandler.HandleAddTeamMember))
+	mux.Handle("DELETE /api/v1/teams/{id}/members/{user_id}", withAuth(teamHandler.HandleRemoveTeamMember))
 
 	srv := &http.Server{
 		Addr:         net.JoinHostPort("", port),
