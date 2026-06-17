@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 )
@@ -30,6 +31,12 @@ func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
+	}
+	// ポート番号として有効な範囲（1〜65535）を検証
+	portNum, err := strconv.Atoi(port)
+	if err != nil || portNum < 1 || portNum > 65535 {
+		slog.Error("PORT 環境変数が無効です", "port", port)
+		os.Exit(1)
 	}
 
 	mux := http.NewServeMux()
