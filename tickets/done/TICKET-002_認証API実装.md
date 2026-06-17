@@ -10,8 +10,8 @@
 | 着手日 | 2026-06-17 |
 | 完了日 | 2026-06-17 |
 | ブランチ名 | `feature/auth-api` |
-| PR番号 | - |
-| PRリンク | （PR作成後に記入） |
+| PR番号 | #2 |
+| PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/2 |
 
 ---
 
