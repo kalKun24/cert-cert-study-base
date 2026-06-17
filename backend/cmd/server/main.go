@@ -17,6 +17,7 @@ import (
 	"github.com/kalKun24/cert-study-base/backend/internal/domain"
 	"github.com/kalKun24/cert-study-base/backend/internal/infrastructure/auth"
 	"github.com/kalKun24/cert-study-base/backend/internal/infrastructure/repository"
+	"github.com/kalKun24/cert-study-base/backend/internal/infrastructure/seed"
 	gcsStorage "github.com/kalKun24/cert-study-base/backend/internal/infrastructure/storage"
 	"github.com/kalKun24/cert-study-base/backend/internal/interface/handler"
 	"github.com/kalKun24/cert-study-base/backend/internal/usecase"
@@ -81,6 +82,12 @@ func main() {
 	userRepo := repository.NewGCSUserRepository(sc, gcsBucket)
 	bcryptHasher := auth.NewBcryptHasher()
 	jwtManager := auth.NewJWTManager(jwtSecret)
+
+	// 初回起動時に admin ユーザーが存在しない場合のみ seed を実行
+	if err := seed.SeedAdminIfNeeded(ctx, userRepo, bcryptHasher); err != nil {
+		slog.Error("admin seed に失敗しました", "error", err)
+		os.Exit(1)
+	}
 
 	authUC := usecase.NewAuthUseCase(userRepo, bcryptHasher, jwtManager)
 	userUC := usecase.NewUserUseCase(userRepo, bcryptHasher)

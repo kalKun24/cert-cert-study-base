@@ -1,7 +1,7 @@
 # プロジェクト共通Makefile
 # バックエンド・フロントエンドをまとめて操作するコマンドを定義
 
-.PHONY: up down test lint swagger build
+.PHONY: up down test lint fmt hooks swagger build
 
 GOLANGCI_LINT_VERSION := v1.62.2
 BACKEND_DIR := ./backend
@@ -20,6 +20,17 @@ down:
 test:
 	@echo "テストを実行します..."
 	cd $(BACKEND_DIR) && go test ./... -v
+
+## hooks: git フックを有効化（初回クローン後に一度だけ実行）
+hooks:
+	@echo "git フックを設定します..."
+	git config core.hooksPath .githooks
+	@echo "完了: .githooks/ が git フックとして有効になりました"
+
+## fmt: gofmt でバックエンドのコードをフォーマット（コミット前に実行推奨）
+fmt:
+	@echo "コードをフォーマットします..."
+	cd $(BACKEND_DIR) && gofmt -w ./...
 
 ## lint: golangci-lintを実行
 lint:
