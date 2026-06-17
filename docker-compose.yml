@@ -1,6 +1,14 @@
 version: "3.9"
 
 services:
+  gcs-emulator:
+    image: fsouza/fake-gcs-server:latest
+    command: ["-scheme", "http", "-port", "4443", "-backend", "memory"]
+    ports:
+      - "4443:4443"
+    networks:
+      - app-network
+
   backend:
     build:
       context: ./backend
@@ -11,6 +19,10 @@ services:
       - .env
     environment:
       - PORT=8080
+      - GCS_EMULATOR_HOST=http://gcs-emulator:4443
+      - GCS_BUCKET=local-bucket
+    depends_on:
+      - gcs-emulator
     networks:
       - app-network
     healthcheck:

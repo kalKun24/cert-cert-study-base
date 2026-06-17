@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -53,7 +54,7 @@ func (c *GCSStorageClient) Delete(ctx context.Context, bucket, object string) er
 func (c *GCSStorageClient) Exists(ctx context.Context, bucket, object string) (bool, error) {
 	_, err := c.client.Bucket(bucket).Object(object).Attrs(ctx)
 	if err != nil {
-		if err == gcs.ErrObjectNotExist {
+		if errors.Is(err, gcs.ErrObjectNotExist) {
 			return false, nil
 		}
 		return false, fmt.Errorf("GCS オブジェクトの存在確認に失敗しました (bucket=%s, object=%s): %w", bucket, object, err)
