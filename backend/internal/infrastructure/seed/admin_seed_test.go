@@ -12,8 +12,8 @@ import (
 // --- モック定義 ---
 
 type mockUserRepo struct {
-	users  []*domain.User
-	saved  *domain.User
+	users   []*domain.User
+	saved   *domain.User
 	listErr error
 	saveErr error
 }

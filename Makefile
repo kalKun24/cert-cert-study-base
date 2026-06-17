@@ -1,7 +1,7 @@
 # プロジェクト共通Makefile
 # バックエンド・フロントエンドをまとめて操作するコマンドを定義
 
-.PHONY: up down test lint swagger build
+.PHONY: up down test lint fmt swagger build
 
 GOLANGCI_LINT_VERSION := v1.62.2
 BACKEND_DIR := ./backend
@@ -20,6 +20,11 @@ down:
 test:
 	@echo "テストを実行します..."
 	cd $(BACKEND_DIR) && go test ./... -v
+
+## fmt: gofmt でバックエンドのコードをフォーマット（コミット前に実行推奨）
+fmt:
+	@echo "コードをフォーマットします..."
+	cd $(BACKEND_DIR) && gofmt -w ./...
 
 ## lint: golangci-lintを実行
 lint:
