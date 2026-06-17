@@ -3,6 +3,7 @@
 package domain
 
 import (
+	"context"
 	"errors"
 	"time"
 )
@@ -70,26 +71,28 @@ var (
 
 // UserRepository はユーザーの永続化操作を抽象化するインターフェースです。
 // 具体的な実装はinfrastructure層に置きます。
+// 各メソッドはリクエストスコープの context.Context を受け取り、
+// キャンセル・タイムアウトをGCS操作に伝播させます。
 type UserRepository interface {
 	// FindByID はIDでユーザーを検索します。
 	// ユーザーが存在しない場合は ErrUserNotFound を返します。
-	FindByID(id string) (*User, error)
+	FindByID(ctx context.Context, id string) (*User, error)
 
 	// FindByUsername はusernameでユーザーを検索します。
 	// ユーザーが存在しない場合は ErrUserNotFound を返します。
-	FindByUsername(username string) (*User, error)
+	FindByUsername(ctx context.Context, username string) (*User, error)
 
 	// FindByEmail はメールアドレスでユーザーを検索します。
 	// ユーザーが存在しない場合は ErrUserNotFound を返します。
-	FindByEmail(email string) (*User, error)
+	FindByEmail(ctx context.Context, email string) (*User, error)
 
 	// List は全ユーザーの一覧を返します。
-	List() ([]*User, error)
+	List(ctx context.Context) ([]*User, error)
 
 	// Save はユーザーを新規作成または更新します。
-	Save(user *User) error
+	Save(ctx context.Context, user *User) error
 
 	// Delete はIDで指定したユーザーを削除します。
 	// ユーザーが存在しない場合は ErrUserNotFound を返します。
-	Delete(id string) error
+	Delete(ctx context.Context, id string) error
 }

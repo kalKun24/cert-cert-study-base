@@ -69,22 +69,20 @@ type GCSUserRepository struct {
 	mu      sync.RWMutex
 	storage storage.StorageClient
 	bucket  string
-	ctx     context.Context
 }
 
 // NewGCSUserRepository は GCSUserRepository を生成します。
-func NewGCSUserRepository(ctx context.Context, sc storage.StorageClient, bucket string) *GCSUserRepository {
+func NewGCSUserRepository(sc storage.StorageClient, bucket string) *GCSUserRepository {
 	return &GCSUserRepository{
 		storage: sc,
 		bucket:  bucket,
-		ctx:     ctx,
 	}
 }
 
 // load はGCSからユーザーデータを読み込みます。
 // オブジェクトが存在しない場合は空のスライスを返します。
-func (r *GCSUserRepository) load() ([]userRecord, error) {
-	exists, err := r.storage.Exists(r.ctx, r.bucket, usersObjectName)
+func (r *GCSUserRepository) load(ctx context.Context) ([]userRecord, error) {
+	exists, err := r.storage.Exists(ctx, r.bucket, usersObjectName)
 	if err != nil {
 		return nil, fmt.Errorf("GCS オブジェクト存在確認に失敗しました: %w", err)
 	}
@@ -93,7 +91,7 @@ func (r *GCSUserRepository) load() ([]userRecord, error) {
 		return []userRecord{}, nil
 	}
 
-	rc, err := r.storage.Read(r.ctx, r.bucket, usersObjectName)
+	rc, err := r.storage.Read(ctx, r.bucket, usersObjectName)
 	if err != nil {
 		return nil, fmt.Errorf("GCS からの読み込みに失敗しました: %w", err)
 	}
@@ -117,13 +115,13 @@ func (r *GCSUserRepository) load() ([]userRecord, error) {
 }
 
 // save はユーザーデータをGCSに書き込みます。
-func (r *GCSUserRepository) save(records []userRecord) error {
+func (r *GCSUserRepository) save(ctx context.Context, records []userRecord) error {
 	data, err := json.Marshal(records)
 	if err != nil {
 		return fmt.Errorf("ユーザーデータのJSONエンコードに失敗しました: %w", err)
 	}
 
-	if err := r.storage.Write(r.ctx, r.bucket, usersObjectName, bytes.NewReader(data)); err != nil {
+	if err := r.storage.Write(ctx, r.bucket, usersObjectName, bytes.NewReader(data)); err != nil {
 		return fmt.Errorf("GCS への書き込みに失敗しました: %w", err)
 	}
 
@@ -131,11 +129,11 @@ func (r *GCSUserRepository) save(records []userRecord) error {
 }
 
 // FindByID はIDでユーザーを検索します。
-func (r *GCSUserRepository) FindByID(id string) (*domain.User, error) {
+func (r *GCSUserRepository) FindByID(ctx context.Context, id string) (*domain.User, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	records, err := r.load()
+	records, err := r.load(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("ユーザーデータ読み込みに失敗しました: %w", err)
 	}
@@ -150,11 +148,11 @@ func (r *GCSUserRepository) FindByID(id string) (*domain.User, error) {
 }
 
 // FindByUsername はusernameでユーザーを検索します。
-func (r *GCSUserRepository) FindByUsername(username string) (*domain.User, error) {
+func (r *GCSUserRepository) FindByUsername(ctx context.Context, username string) (*domain.User, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	records, err := r.load()
+	records, err := r.load(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("ユーザーデータ読み込みに失敗しました: %w", err)
 	}
@@ -169,11 +167,11 @@ func (r *GCSUserRepository) FindByUsername(username string) (*domain.User, error
 }
 
 // FindByEmail はメールアドレスでユーザーを検索します。
-func (r *GCSUserRepository) FindByEmail(email string) (*domain.User, error) {
+func (r *GCSUserRepository) FindByEmail(ctx context.Context, email string) (*domain.User, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	records, err := r.load()
+	records, err := r.load(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("ユーザーデータ読み込みに失敗しました: %w", err)
 	}
@@ -188,11 +186,11 @@ func (r *GCSUserRepository) FindByEmail(email string) (*domain.User, error) {
 }
 
 // List は全ユーザーを返します。
-func (r *GCSUserRepository) List() ([]*domain.User, error) {
+func (r *GCSUserRepository) List(ctx context.Context) ([]*domain.User, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	records, err := r.load()
+	records, err := r.load(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("ユーザーデータ読み込みに失敗しました: %w", err)
 	}
@@ -207,11 +205,11 @@ func (r *GCSUserRepository) List() ([]*domain.User, error) {
 
 // Save はユーザーを新規作成または更新します。
 // IDが一致するレコードが存在する場合は更新、存在しない場合は追加します。
-func (r *GCSUserRepository) Save(user *domain.User) error {
+func (r *GCSUserRepository) Save(ctx context.Context, user *domain.User) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	records, err := r.load()
+	records, err := r.load(ctx)
 	if err != nil {
 		return fmt.Errorf("ユーザーデータ読み込みに失敗しました: %w", err)
 	}
@@ -230,7 +228,7 @@ func (r *GCSUserRepository) Save(user *domain.User) error {
 		records = append(records, rec)
 	}
 
-	if err := r.save(records); err != nil {
+	if err := r.save(ctx, records); err != nil {
 		return fmt.Errorf("ユーザーデータ保存に失敗しました: %w", err)
 	}
 
@@ -238,11 +236,11 @@ func (r *GCSUserRepository) Save(user *domain.User) error {
 }
 
 // Delete はIDで指定したユーザーを削除します。
-func (r *GCSUserRepository) Delete(id string) error {
+func (r *GCSUserRepository) Delete(ctx context.Context, id string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	records, err := r.load()
+	records, err := r.load(ctx)
 	if err != nil {
 		return fmt.Errorf("ユーザーデータ読み込みに失敗しました: %w", err)
 	}
@@ -261,7 +259,7 @@ func (r *GCSUserRepository) Delete(id string) error {
 		return domain.ErrUserNotFound
 	}
 
-	if err := r.save(newRecords); err != nil {
+	if err := r.save(ctx, newRecords); err != nil {
 		return fmt.Errorf("ユーザーデータ保存に失敗しました: %w", err)
 	}
 

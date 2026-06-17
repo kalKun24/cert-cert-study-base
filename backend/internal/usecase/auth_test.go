@@ -1,6 +1,7 @@
 package usecase_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -35,28 +36,28 @@ func (m *mockUserRepository) addUser(u *domain.User) {
 	m.byEmail[u.Email] = u
 }
 
-func (m *mockUserRepository) FindByID(id string) (*domain.User, error) {
+func (m *mockUserRepository) FindByID(_ context.Context, id string) (*domain.User, error) {
 	if u, ok := m.users[id]; ok {
 		return u, nil
 	}
 	return nil, domain.ErrUserNotFound
 }
 
-func (m *mockUserRepository) FindByUsername(username string) (*domain.User, error) {
+func (m *mockUserRepository) FindByUsername(_ context.Context, username string) (*domain.User, error) {
 	if u, ok := m.byUsername[username]; ok {
 		return u, nil
 	}
 	return nil, domain.ErrUserNotFound
 }
 
-func (m *mockUserRepository) FindByEmail(email string) (*domain.User, error) {
+func (m *mockUserRepository) FindByEmail(_ context.Context, email string) (*domain.User, error) {
 	if u, ok := m.byEmail[email]; ok {
 		return u, nil
 	}
 	return nil, domain.ErrUserNotFound
 }
 
-func (m *mockUserRepository) List() ([]*domain.User, error) {
+func (m *mockUserRepository) List(_ context.Context) ([]*domain.User, error) {
 	users := make([]*domain.User, 0, len(m.users))
 	for _, u := range m.users {
 		users = append(users, u)
@@ -64,7 +65,7 @@ func (m *mockUserRepository) List() ([]*domain.User, error) {
 	return users, nil
 }
 
-func (m *mockUserRepository) Save(user *domain.User) error {
+func (m *mockUserRepository) Save(_ context.Context, user *domain.User) error {
 	if m.saveErr != nil {
 		return m.saveErr
 	}
@@ -74,7 +75,7 @@ func (m *mockUserRepository) Save(user *domain.User) error {
 	return nil
 }
 
-func (m *mockUserRepository) Delete(id string) error {
+func (m *mockUserRepository) Delete(_ context.Context, id string) error {
 	if m.deleteErr != nil {
 		return m.deleteErr
 	}
@@ -464,7 +465,7 @@ func TestUserUseCase_DeleteUser_Success(t *testing.T) {
 	}
 
 	// 削除後に取得しようとすると NotFound になること
-	_, err := repo.FindByID("id-1")
+	_, err := repo.FindByID(context.Background(), "id-1")
 	if !errors.Is(err, domain.ErrUserNotFound) {
 		t.Errorf("削除後もユーザーが存在しています")
 	}

@@ -78,7 +78,7 @@ func main() {
 	sc := gcsStorage.NewGCSStorageClient(gcsClient)
 
 	// 依存関係を構築（コンポジションルート）
-	userRepo := repository.NewGCSUserRepository(ctx, sc, gcsBucket)
+	userRepo := repository.NewGCSUserRepository(sc, gcsBucket)
 	bcryptHasher := auth.NewBcryptHasher()
 	jwtManager := auth.NewJWTManager(jwtSecret)
 

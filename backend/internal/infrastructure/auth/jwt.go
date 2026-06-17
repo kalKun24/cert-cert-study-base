@@ -108,7 +108,8 @@ func (m *JWTManager) AuthMiddlewareWithRepo(repo domain.UserRepository) func(htt
 			// DBからユーザーの最新状態を取得して is_active を確認する。
 			// これにより、トークン発行後に管理者がユーザーを停止した場合も
 			// 既存トークンの有効期限内に即座に反映される。
-			user, err := repo.FindByID(claims.UserID)
+			// r.Context() を渡すことでリクエストのキャンセル・タイムアウトを伝播させる。
+			user, err := repo.FindByID(r.Context(), claims.UserID)
 			if err != nil {
 				slog.Warn("認証ミドルウェアでユーザー取得に失敗しました", "user_id", claims.UserID, "error", err)
 				writeJSONError(w, http.StatusUnauthorized, "トークンが無効または期限切れです")
