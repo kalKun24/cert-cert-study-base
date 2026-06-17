@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
+	"strings"
 
 	gcs "cloud.google.com/go/storage"
 	"google.golang.org/api/googleapi"
@@ -18,25 +18,15 @@ import (
 func NewClientFromEnv(ctx context.Context) (*gcs.Client, error) {
 	emulatorHost := os.Getenv("GCS_EMULATOR_HOST")
 	if emulatorHost != "" {
-		emulatorURL, err := url.Parse(emulatorHost)
-		if err != nil {
-			return nil, fmt.Errorf("GCS_EMULATOR_HOST のパースに失敗しました: %w", err)
+		// SDK 標準の STORAGE_EMULATOR_HOST 形式（http:// なし）に変換して設定する。
+		// こうすることで gcs.NewClient が内部で WithEndpoint と WithoutAuthentication を
+		// 適切に設定し、NewReader のダウンロードパスも含めて全リクエストをエミュレータへ向ける。
+		host := strings.TrimPrefix(emulatorHost, "https://")
+		host = strings.TrimPrefix(host, "http://")
+		if err := os.Setenv("STORAGE_EMULATOR_HOST", host); err != nil {
+			return nil, fmt.Errorf("STORAGE_EMULATOR_HOST の設定に失敗しました: %w", err)
 		}
-		// option.WithEndpoint / STORAGE_EMULATOR_HOST は JSON API のみ対象で
-		// NewReader が使うダウンロードパスがリダイレクトされない。
-		// カスタム RoundTripper でリクエストのホストを書き換えることで
-		// JSON API・ダウンロードを含む全リクエストをエミュレータへ向ける。
-		httpClient := &http.Client{
-			Transport: &emulatorRoundTripper{
-				base:   http.DefaultTransport,
-				scheme: emulatorURL.Scheme,
-				host:   emulatorURL.Host,
-			},
-		}
-		client, err := gcs.NewClient(ctx,
-			option.WithHTTPClient(httpClient),
-			option.WithoutAuthentication(),
-		)
+		client, err := gcs.NewClient(ctx, option.WithoutAuthentication())
 		if err != nil {
 			return nil, fmt.Errorf("GCS エミュレータクライアントの初期化に失敗しました: %w", err)
 		}
@@ -47,21 +37,6 @@ func NewClientFromEnv(ctx context.Context) (*gcs.Client, error) {
 		return nil, fmt.Errorf("GCS クライアントの初期化に失敗しました: %w", err)
 	}
 	return client, nil
-}
-
-// emulatorRoundTripper はすべての HTTP リクエストのホストをエミュレータへ書き換えます。
-type emulatorRoundTripper struct {
-	base   http.RoundTripper
-	scheme string
-	host   string
-}
-
-func (t *emulatorRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	cloned := req.Clone(req.Context())
-	cloned.URL.Scheme = t.scheme
-	cloned.URL.Host = t.host
-	cloned.Host = t.host
-	return t.base.RoundTrip(cloned)
 }
 
 // EnsureBucketExists はバケットが存在しない場合に作成します。

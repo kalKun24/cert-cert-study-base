@@ -5,13 +5,13 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-011 |
-| ステータス | 🔴 未着手 |
+| ステータス | 🟡 進行中 |
 | 作成日 | 2026-06-17 |
-| 着手日 | - |
+| 着手日 | 2026-06-18 |
 | 完了日 | - |
 | ブランチ名 | `feature/frontend-auth` |
-| PR番号 | - |
-| PRリンク | - |
+| PR番号 | #5 |
+| PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/5 |
 
 ---
 

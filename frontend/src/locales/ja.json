@@ -8,8 +8,21 @@
     "home": "ホーム",
     "questions": "問題一覧",
     "tags": "タグ一覧",
+    "users": "ユーザー管理",
     "login": "ログイン",
     "logout": "ログアウト"
+  },
+  "login": {
+    "username": "ユーザー名",
+    "password": "パスワード",
+    "error": {
+      "invalidCredentials": "ユーザー名またはパスワードが正しくありません"
+    },
+    "validation": {
+      "usernameRequired": "ユーザー名を入力してください",
+      "passwordRequired": "パスワードを入力してください",
+      "passwordTooShort": "パスワードは8文字以上で入力してください"
+    }
   },
   "common": {
     "loading": "読み込み中...",
