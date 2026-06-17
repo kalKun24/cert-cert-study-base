@@ -1,0 +1,201 @@
+package handler
+
+import (
+	"encoding/json"
+	"errors"
+	"log/slog"
+	"net/http"
+
+	"github.com/kalKun24/cert-study-base/backend/internal/domain"
+	"github.com/kalKun24/cert-study-base/backend/internal/usecase"
+)
+
+// UserHandler はユーザー管理に関するHTTPハンドラです。
+type UserHandler struct {
+	userUC *usecase.UserUseCase
+}
+
+// NewUserHandler は UserHandler を生成します。
+func NewUserHandler(userUC *usecase.UserUseCase) *UserHandler {
+	return &UserHandler{userUC: userUC}
+}
+
+// HandleListUsers は GET /api/v1/users を処理します（admin のみ）。
+func (h *UserHandler) HandleListUsers(w http.ResponseWriter, r *http.Request) {
+	users, err := h.userUC.ListUsers()
+	if err != nil {
+		slog.Error("ユーザー一覧取得でエラーが発生しました", "error", err)
+		writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
+		return
+	}
+
+	dtos := make([]UserDTO, 0, len(users))
+	for _, u := range users {
+		dtos = append(dtos, toUserDTO(u))
+	}
+
+	writeJSON(w, http.StatusOK, response{Data: dtos})
+}
+
+// HandleCreateUser は POST /api/v1/users を処理します（admin のみ）。
+func (h *UserHandler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
+	var req CreateUserRequestDTO
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
+		return
+	}
+
+	if req.Username == "" || req.DisplayName == "" || req.Email == "" || req.Password == "" || req.Role == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "username, display_name, email, password, role は必須です"})
+		return
+	}
+
+	if len(req.Password) < 8 {
+		writeJSON(w, http.StatusBadRequest, response{Error: "パスワードは8文字以上で入力してください"})
+		return
+	}
+
+	user, err := h.userUC.CreateUser(usecase.CreateUserInput{
+		Username:    req.Username,
+		DisplayName: req.DisplayName,
+		Email:       req.Email,
+		Password:    req.Password,
+		Role:        domain.Role(req.Role),
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, domain.ErrUsernameAlreadyExists):
+			writeJSON(w, http.StatusConflict, response{Error: err.Error()})
+		case errors.Is(err, domain.ErrEmailAlreadyExists):
+			writeJSON(w, http.StatusConflict, response{Error: err.Error()})
+		case errors.Is(err, domain.ErrInvalidRole):
+			writeJSON(w, http.StatusBadRequest, response{Error: err.Error()})
+		default:
+			slog.Error("ユーザー作成でエラーが発生しました", "error", err)
+			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, response{Data: toUserDTO(user)})
+}
+
+// HandleGetUser は GET /api/v1/users/{id} を処理します（admin のみ）。
+func (h *UserHandler) HandleGetUser(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "ユーザーIDは必須です"})
+		return
+	}
+
+	user, err := h.userUC.GetUser(id)
+	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			writeJSON(w, http.StatusNotFound, response{Error: "ユーザーが見つかりません"})
+			return
+		}
+		slog.Error("ユーザー取得でエラーが発生しました", "id", id, "error", err)
+		writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, response{Data: toUserDTO(user)})
+}
+
+// HandleUpdateUser は PUT /api/v1/users/{id} を処理します（admin のみ）。
+func (h *UserHandler) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "ユーザーIDは必須です"})
+		return
+	}
+
+	var req UpdateUserRequestDTO
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
+		return
+	}
+
+	// パスワードが指定されている場合は長さを検証
+	if req.Password != nil && len(*req.Password) < 8 {
+		writeJSON(w, http.StatusBadRequest, response{Error: "パスワードは8文字以上で入力してください"})
+		return
+	}
+
+	input := usecase.UpdateUserInput{
+		DisplayName: req.DisplayName,
+		Email:       req.Email,
+		Password:    req.Password,
+	}
+	if req.Role != nil {
+		r := domain.Role(*req.Role)
+		input.Role = &r
+	}
+
+	user, err := h.userUC.UpdateUser(id, input)
+	if err != nil {
+		switch {
+		case errors.Is(err, domain.ErrUserNotFound):
+			writeJSON(w, http.StatusNotFound, response{Error: "ユーザーが見つかりません"})
+		case errors.Is(err, domain.ErrEmailAlreadyExists):
+			writeJSON(w, http.StatusConflict, response{Error: err.Error()})
+		case errors.Is(err, domain.ErrInvalidRole):
+			writeJSON(w, http.StatusBadRequest, response{Error: err.Error()})
+		default:
+			slog.Error("ユーザー更新でエラーが発生しました", "id", id, "error", err)
+			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, response{Data: toUserDTO(user)})
+}
+
+// HandleDeleteUser は DELETE /api/v1/users/{id} を処理します（admin のみ）。
+func (h *UserHandler) HandleDeleteUser(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "ユーザーIDは必須です"})
+		return
+	}
+
+	if err := h.userUC.DeleteUser(id); err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			writeJSON(w, http.StatusNotFound, response{Error: "ユーザーが見つかりません"})
+			return
+		}
+		slog.Error("ユーザー削除でエラーが発生しました", "id", id, "error", err)
+		writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, response{Data: map[string]string{"message": "ユーザーを削除しました"}})
+}
+
+// HandleUpdateUserStatus は PATCH /api/v1/users/{id}/status を処理します（admin のみ）。
+func (h *UserHandler) HandleUpdateUserStatus(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "ユーザーIDは必須です"})
+		return
+	}
+
+	var req UpdateUserStatusRequestDTO
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
+		return
+	}
+
+	user, err := h.userUC.UpdateUserStatus(id, req.IsActive)
+	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			writeJSON(w, http.StatusNotFound, response{Error: "ユーザーが見つかりません"})
+			return
+		}
+		slog.Error("ユーザーステータス更新でエラーが発生しました", "id", id, "error", err)
+		writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, response{Data: toUserDTO(user)})
+}
