@@ -32,3 +32,509 @@ paths:
                   error:
                     type: string
                     nullable: true
+
+  /api/v1/auth/login:
+    post:
+      summary: ログイン
+      description: username とパスワードで認証し、JWTトークンを返す。
+      operationId: login
+      tags:
+        - auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: 認証成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/auth/logout:
+    post:
+      summary: ログアウト
+      description: |
+        ログアウトエンドポイント。
+        サーバーサイドのトークン無効化リストは保持しない。
+        クライアント側でトークンを削除することでセッションを終了する。
+        このエンドポイントは将来的なサーバーサイド無効化への拡張口として提供する。
+      operationId: logout
+      tags:
+        - auth
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: ログアウト成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                        example: ログアウトしました。クライアント側でトークンを削除してください。
+                  error:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/v1/users:
+    get:
+      summary: ユーザー一覧取得（admin のみ）
+      operationId: listUsers
+      tags:
+        - users
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: ユーザー一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+                  error:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      summary: ユーザー作成（admin のみ）
+      operationId: createUser
+      tags:
+        - users
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: ユーザー作成成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/User"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/users/{id}:
+    get:
+      summary: ユーザー取得（admin のみ）
+      operationId: getUser
+      tags:
+        - users
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserID"
+      responses:
+        "200":
+          description: ユーザー情報
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/User"
+                  error:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      summary: ユーザー更新（admin のみ）
+      operationId: updateUser
+      tags:
+        - users
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: ユーザー更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/User"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: ユーザー削除（admin のみ）
+      operationId: deleteUser
+      tags:
+        - users
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserID"
+      responses:
+        "200":
+          description: ユーザー削除成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                        example: ユーザーを削除しました
+                  error:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/users/{id}/status:
+    patch:
+      summary: ユーザー有効/停止切り替え（admin のみ）
+      description: is_active フラグを切り替えてユーザーを停止または再有効化する。
+      operationId: updateUserStatus
+      tags:
+        - users
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserStatusRequest"
+      responses:
+        "200":
+          description: ステータス更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/User"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    UserID:
+      name: id
+      in: path
+      required: true
+      description: ユーザーID（UUID形式）
+      schema:
+        type: string
+        format: uuid
+        example: "550e8400-e29b-41d4-a716-446655440000"
+
+  schemas:
+    User:
+      type: object
+      description: ユーザーエンティティ（パスワードハッシュは含まない）
+      required:
+        - id
+        - username
+        - display_name
+        - email
+        - role
+        - is_active
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ユーザーID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        username:
+          type: string
+          description: ログインID（一意）
+          example: "alice"
+        display_name:
+          type: string
+          description: UI表示名
+          example: "Alice Smith"
+        email:
+          type: string
+          format: email
+          description: メールアドレス（一意）
+          example: "alice@example.com"
+        role:
+          type: string
+          enum:
+            - admin
+            - teamowner
+            - user
+          description: ロール
+          example: "user"
+        is_active:
+          type: boolean
+          description: 有効ユーザーかどうか（false = 停止中）
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          description: 作成日時
+          example: "2024-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: 更新日時
+          example: "2024-01-01T00:00:00Z"
+
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          description: ログインID
+          example: "alice"
+        password:
+          type: string
+          description: パスワード（平文）
+          minLength: 8
+          example: "password123"
+
+    LoginResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            token:
+              type: string
+              description: JWTアクセストークン
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            user:
+              $ref: "#/components/schemas/User"
+        error:
+          type: string
+          nullable: true
+
+    CreateUserRequest:
+      type: object
+      required:
+        - username
+        - display_name
+        - email
+        - password
+        - role
+      properties:
+        username:
+          type: string
+          description: ログインID（一意）
+          example: "alice"
+        display_name:
+          type: string
+          description: UI表示名
+          example: "Alice Smith"
+        email:
+          type: string
+          format: email
+          description: メールアドレス（一意）
+          example: "alice@example.com"
+        password:
+          type: string
+          description: パスワード（平文。サーバー側でbcryptハッシュ化）
+          minLength: 8
+          example: "password123"
+        role:
+          type: string
+          enum:
+            - admin
+            - teamowner
+            - user
+          description: ロール
+          example: "user"
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        display_name:
+          type: string
+          description: UI表示名
+          example: "Alice Smith"
+        email:
+          type: string
+          format: email
+          description: メールアドレス（一意）
+          example: "alice@example.com"
+        role:
+          type: string
+          enum:
+            - admin
+            - teamowner
+            - user
+          description: ロール
+          example: "user"
+        password:
+          type: string
+          description: 新しいパスワード（省略時は変更しない）
+          minLength: 8
+          example: "newpassword123"
+
+    UpdateUserStatusRequest:
+      type: object
+      required:
+        - is_active
+      properties:
+        is_active:
+          type: boolean
+          description: 有効化する場合は true、停止する場合は false
+          example: false
+
+    ErrorResponse:
+      type: object
+      properties:
+        data:
+          nullable: true
+        error:
+          type: string
+          description: エラーメッセージ
+          example: "認証に失敗しました"
+
+  responses:
+    BadRequest:
+      description: リクエストが不正
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    Unauthorized:
+      description: 認証が必要、またはトークンが無効
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    Forbidden:
+      description: 権限がない
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    NotFound:
+      description: リソースが見つからない
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    Conflict:
+      description: リソースが競合（username・email の重複など）
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    InternalServerError:
+      description: サーバー内部エラー
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
