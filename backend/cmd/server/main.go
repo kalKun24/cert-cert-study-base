@@ -21,7 +21,6 @@ import (
 	gcsStorage "github.com/kalKun24/cert-study-base/backend/internal/infrastructure/storage"
 	"github.com/kalKun24/cert-study-base/backend/internal/interface/handler"
 	"github.com/kalKun24/cert-study-base/backend/internal/usecase"
-
 )
 
 // response は統一レスポンスフォーマットです。
