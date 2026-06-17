@@ -23,19 +23,8 @@ jobs:
           go-version: "1.25"
           cache-dependency-path: backend/go.sum
 
-      - name: fake-gcs-server を起動
-        run: |
-          docker run -d --name fake-gcs \
-            -p 4443:4443 \
-            fsouza/fake-gcs-server:latest \
-            -scheme http -port 4443 -backend memory
-          timeout 15 sh -c 'until curl -sf http://localhost:4443/storage/v1/b; do sleep 1; done'
-
-      - name: テストを実行（統合テスト含む）
+      - name: テストを実行
         working-directory: backend
-        env:
-          GCS_EMULATOR_HOST: http://localhost:4443
-          GCS_BUCKET: test-bucket
         run: go test ./... -v
 
   lint-backend:

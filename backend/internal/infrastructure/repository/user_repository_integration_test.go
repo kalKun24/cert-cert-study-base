@@ -3,40 +3,33 @@ package repository_test
 import (
 	"context"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
+	"github.com/fsouza/fake-gcs-server/fakestorage"
 	"github.com/kalKun24/cert-study-base/backend/internal/domain"
 	"github.com/kalKun24/cert-study-base/backend/internal/infrastructure/repository"
 	"github.com/kalKun24/cert-study-base/backend/internal/infrastructure/storage"
 )
 
-// setupIntegrationTest はエミュレータへの接続とテスト用バケットの準備を行います。
-// GCS_EMULATOR_HOST が未設定の場合はテストをスキップします。
+// setupIntegrationTest はインプロセス fake-gcs-server を起動してテスト用リポジトリを返します。
+// 外部 Docker 不要で CI/ローカル問わず常に実行されます。
 func setupIntegrationTest(t *testing.T) *repository.GCSUserRepository {
 	t.Helper()
 
-	emulatorHost := os.Getenv("GCS_EMULATOR_HOST")
-	if emulatorHost == "" {
-		t.Skip("GCS_EMULATOR_HOST が未設定のためスキップします（エミュレータ起動後に再実行してください）")
-	}
-
-	ctx := context.Background()
-
-	gcsClient, err := storage.NewClientFromEnv(ctx)
+	svr, err := fakestorage.NewServerWithOptions(fakestorage.Options{
+		Scheme: "http",
+		Port:   0, // OS に空きポートを割り当てさせる
+	})
 	if err != nil {
-		t.Fatalf("GCS クライアントの初期化に失敗しました: %v", err)
+		t.Fatalf("fake-gcs-server の起動に失敗しました: %v", err)
 	}
-	t.Cleanup(func() { _ = gcsClient.Close() })
+	t.Cleanup(svr.Stop)
 
-	// テストごとに独立したバケットを使用して競合を避ける
 	bucket := fmt.Sprintf("test-bucket-%d", time.Now().UnixNano())
-	if err := storage.EnsureBucketExists(ctx, gcsClient, bucket); err != nil {
-		t.Fatalf("テスト用バケットの作成に失敗しました: %v", err)
-	}
+	svr.CreateBucketWithOpts(fakestorage.CreateBucketOpts{Name: bucket})
 
-	sc := storage.NewGCSStorageClient(gcsClient)
+	sc := storage.NewGCSStorageClient(svr.Client())
 	return repository.NewGCSUserRepository(sc, bucket)
 }
 
