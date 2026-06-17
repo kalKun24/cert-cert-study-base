@@ -10,8 +10,8 @@
 | 着手日 | 2026-06-18 |
 | 完了日 | - |
 | ブランチ名 | `feature/team-management` |
-| PR番号 | - |
-| PRリンク | （PR作成後に記入） |
+| PR番号 | #6 |
+| PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/6 |
 
 ---
 
@@ -76,12 +76,12 @@
 
 ## サブチケット（コミット単位）
 
-- [ ] `docs(api): チーム管理エンドポイントをopenapi.yamlに追加`
-- [ ] `feat(domain): Team・TeamMemberエンティティとバリデーションを実装`
-- [ ] `feat(usecase): チームCRUD・メンバー管理ユースケースを実装`
-- [ ] `feat(interface): チームハンドラとDTOを実装`
-- [ ] `feat(infrastructure): Team・TeamMemberのGCSリポジトリ実装`
-- [ ] `test(usecase): チーム管理ユースケースのユニットテストを作成`
+- [x] `docs(api): チーム管理エンドポイントをopenapi.yamlに追加`
+- [x] `feat(domain): Team・TeamMemberエンティティとバリデーションを実装`
+- [x] `feat(usecase): チームCRUD・メンバー管理ユースケースを実装`
+- [x] `feat(interface): チームハンドラとDTOを実装`
+- [x] `feat(infrastructure): Team・TeamMemberのGCSリポジトリ実装`
+- [x] `test(usecase): チーム管理ユースケースのユニットテストを作成`
 
 ---
 
