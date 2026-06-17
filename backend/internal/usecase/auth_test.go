@@ -14,11 +14,11 @@ import (
 
 // mockUserRepository は domain.UserRepository のモックです。
 type mockUserRepository struct {
-	users       map[string]*domain.User
-	byUsername  map[string]*domain.User
-	byEmail     map[string]*domain.User
-	saveErr     error
-	deleteErr   error
+	users      map[string]*domain.User
+	byUsername map[string]*domain.User
+	byEmail    map[string]*domain.User
+	saveErr    error
+	deleteErr  error
 }
 
 func newMockUserRepository() *mockUserRepository {
@@ -90,8 +90,8 @@ func (m *mockUserRepository) Delete(_ context.Context, id string) error {
 
 // mockPasswordHasher は usecase.PasswordHasher のモックです。
 type mockPasswordHasher struct {
-	hashResult  string
-	hashErr     error
+	hashResult   string
+	hashErr      error
 	verifyResult bool
 }
 
