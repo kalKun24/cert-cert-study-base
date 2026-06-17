@@ -18,6 +18,7 @@ Thumbs.db
 
 # Go ビルド成果物
 backend/bin/
+backend/server
 
 # テストカバレッジ
 coverage/
