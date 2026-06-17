@@ -4,8 +4,8 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 # 依存関係のインストール（キャッシュ最適化のため package.json を先にコピー）
-COPY package.json ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 
 # ソースコードをコピーしてビルド
 COPY . .
