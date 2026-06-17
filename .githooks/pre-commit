@@ -1,0 +1,28 @@
+#!/bin/sh
+# pre-commit フック: Go ファイルの gofmt チェック
+# 未フォーマットのファイルを自動修正してステージングし直す
+
+BACKEND_DIR="backend"
+
+# ステージされている .go ファイルを取得
+STAGED_GO_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep "^${BACKEND_DIR}/.*\.go$")
+
+if [ -z "$STAGED_GO_FILES" ]; then
+  exit 0
+fi
+
+# gofmt が必要なファイルを検出
+UNFORMATTED=$(echo "$STAGED_GO_FILES" | xargs gofmt -l 2>/dev/null)
+
+if [ -z "$UNFORMATTED" ]; then
+  exit 0
+fi
+
+echo "gofmt: 以下のファイルを自動フォーマットしました:"
+echo "$UNFORMATTED" | sed 's/^/  /'
+
+# 自動修正して再ステージ
+echo "$UNFORMATTED" | xargs gofmt -w
+echo "$UNFORMATTED" | xargs git add
+
+echo "フォーマット済みファイルを再ステージしました。コミットを続行します。"
