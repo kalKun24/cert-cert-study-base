@@ -1,0 +1,24 @@
+# golangci-lintの設定ファイル
+# プロジェクト初期段階向けの基本的なlinter設定
+
+linters:
+  enable:
+    - errcheck      # エラーの未チェックを検出
+    - govet         # go vetと同等の静的解析
+    - staticcheck   # 静的解析（バグ・パフォーマンス・スタイル）
+    - gofmt         # コードフォーマットチェック
+    - unused        # 未使用コードの検出
+    - ineffassign   # 無効な代入の検出
+
+linters-settings:
+  errcheck:
+    # 明示的に無視するエラーチェックパターン
+    exclude-functions:
+      - (net/http.ResponseWriter).Write
+
+issues:
+  # テストファイルではerrcheckを緩和
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
