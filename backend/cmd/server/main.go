@@ -92,8 +92,12 @@ func main() {
 	authUC := usecase.NewAuthUseCase(userRepo, bcryptHasher, jwtManager)
 	userUC := usecase.NewUserUseCase(userRepo, bcryptHasher)
 
+	questionRepo := repository.NewGCSQuestionRepository(sc, gcsBucket)
+	questionUC := usecase.NewQuestionUseCase(questionRepo)
+
 	authHandler := handler.NewAuthHandler(authUC)
 	userHandler := handler.NewUserHandler(userUC)
+	questionHandler := handler.NewQuestionHandler(questionUC)
 
 	// ルーティング設定
 	mux := http.NewServeMux()
@@ -127,6 +131,18 @@ func main() {
 	mux.Handle("PUT /api/v1/users/{id}", withAdmin(userHandler.HandleUpdateUser))
 	mux.Handle("DELETE /api/v1/users/{id}", withAdmin(userHandler.HandleDeleteUser))
 	mux.Handle("PATCH /api/v1/users/{id}/status", withAdmin(userHandler.HandleUpdateUserStatus))
+
+	// 認証済みユーザーのみ許可するミドルウェアチェーンを組み立てるヘルパー
+	withAuth := func(h http.HandlerFunc) http.Handler {
+		return authMiddleware(h)
+	}
+
+	// 問題CRUD（認証済み全ユーザー。認可はユースケース層で実施）
+	mux.Handle("POST /api/v1/questions", withAuth(questionHandler.HandleCreateQuestion))
+	mux.Handle("GET /api/v1/questions", withAuth(questionHandler.HandleListQuestions))
+	mux.Handle("GET /api/v1/questions/{id}", withAuth(questionHandler.HandleGetQuestion))
+	mux.Handle("PUT /api/v1/questions/{id}", withAuth(questionHandler.HandleUpdateQuestion))
+	mux.Handle("DELETE /api/v1/questions/{id}", withAuth(questionHandler.HandleDeleteQuestion))
 
 	srv := &http.Server{
 		Addr:         net.JoinHostPort("", port),
