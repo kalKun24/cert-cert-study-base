@@ -6,7 +6,7 @@ FROM golang:1.23-alpine AS builder
 WORKDIR /app
 
 # 依存関係のキャッシュを活用するため、先にgo.mod/go.sumをコピー
-COPY go.mod go.sum ./
+COPY go.mod go.sum* ./
 RUN go mod download
 
 # ソースコードをコピーしてビルド
