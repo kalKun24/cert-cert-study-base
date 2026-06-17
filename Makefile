@@ -26,7 +26,7 @@ lint:
 	@echo "Lintを実行します..."
 	@if ! command -v golangci-lint &> /dev/null; then \
 		echo "golangci-lint をインストールします..."; \
-		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin $(GOLANGCI_LINT_VERSION); \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/$(GOLANGCI_LINT_VERSION)/install.sh | sh -s -- -b $$(go env GOPATH)/bin $(GOLANGCI_LINT_VERSION); \
 	fi
 	cd $(BACKEND_DIR) && golangci-lint run ./...
 
