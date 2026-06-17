@@ -1,8 +1,6 @@
 # golangci-lintの設定ファイル
 # プロジェクト初期段階向けの基本的なlinter設定
 
-version: "2"
-
 linters:
   enable:
     - errcheck      # エラーの未チェックを検出
