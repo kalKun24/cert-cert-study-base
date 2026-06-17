@@ -6,15 +6,15 @@
 GOLANGCI_LINT_VERSION := v1.62.2
 BACKEND_DIR := ./backend
 
-## up: バックエンド・フロントエンドをまとめて起動
+## up: バックエンド・フロントエンドをまとめて起動（Docker Compose）
 up:
 	@echo "サーバーを起動します..."
-	cd $(BACKEND_DIR) && go run ./cmd/server
+	docker-compose up -d
 
-## down: 全サービスを停止（将来Docker Compose導入時に拡張）
+## down: 全サービスを停止（Docker Compose）
 down:
 	@echo "サービスを停止します..."
-	@pkill -f "go run ./cmd/server" 2>/dev/null || true
+	docker-compose down
 
 ## test: 全テストを実行
 test:
@@ -35,7 +35,7 @@ swagger:
 	@echo "Swagger UIを起動します..."
 	@echo "TODO: swaggo/swagのセットアップ後に実装"
 
-## build: 本番用Dockerイメージをビルド
+## build: バックエンド・フロントエンドのDockerイメージをビルド
 build:
 	@echo "Dockerイメージをビルドします..."
-	docker build -t cert-study-base-backend:latest $(BACKEND_DIR)
+	docker-compose build
