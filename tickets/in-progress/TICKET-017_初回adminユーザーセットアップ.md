@@ -57,7 +57,7 @@ SEED_ADMIN_DISPLAY_NAME=Administrator
 
 ## サブチケット（コミット単位）
 
-- [ ] `feat(infrastructure): 起動時 admin seed 処理を実装`
+- [x] `feat(infrastructure): 起動時 admin seed 処理を実装`
 - [ ] `chore(config): SEED_ADMIN_* 環境変数を docker-compose.yml・.env.example に追加`
 - [ ] `docs(readme): 初回セットアップ手順（admin 作成）を記載`
 
