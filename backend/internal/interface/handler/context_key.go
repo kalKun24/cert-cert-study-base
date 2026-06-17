@@ -1,14 +1,15 @@
 package handler
 
-// contextKey はコンテキストキーの型です。
-// 文字列ではなく専用型を使うことで他パッケージとの衝突を防ぎます。
-type contextKey string
+import "github.com/kalKun24/cert-study-base/backend/internal/contextkey"
 
-const (
+// コンテキストキーの定数は contextkey パッケージで一元管理します。
+// infrastructure/auth パッケージと handler パッケージが同一キーを
+// 互いに依存せず参照できるようにするためです。
+var (
 	// ContextKeyUserID はコンテキストに格納するユーザーIDのキーです。
-	ContextKeyUserID contextKey = "user_id"
+	ContextKeyUserID = contextkey.UserID
 	// ContextKeyUserRole はコンテキストに格納するユーザーロールのキーです。
-	ContextKeyUserRole contextKey = "user_role"
+	ContextKeyUserRole = contextkey.UserRole
 	// ContextKeyIsActive はコンテキストに格納するユーザー有効状態のキーです。
-	ContextKeyIsActive contextKey = "is_active"
+	ContextKeyIsActive = contextkey.IsActive
 )

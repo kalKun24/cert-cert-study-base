@@ -97,14 +97,18 @@ func main() {
 	// 認証エンドポイント（認証不要）
 	mux.HandleFunc("POST /api/v1/auth/login", authHandler.HandleLogin)
 
+	// authMiddleware はDBからユーザーの最新 is_active を確認する認証ミドルウェアです。
+	// トークン発行後に管理者がユーザーを停止した場合も即座に反映されます。
+	authMiddleware := jwtManager.AuthMiddlewareWithRepo(userRepo)
+
 	// ログアウト（JWTの検証のみ、ロール不問）
 	mux.Handle("POST /api/v1/auth/logout",
-		jwtManager.AuthMiddleware(http.HandlerFunc(authHandler.HandleLogout)),
+		authMiddleware(http.HandlerFunc(authHandler.HandleLogout)),
 	)
 
 	// admin ロールのみ許可するミドルウェアチェーンを組み立てるヘルパー
 	withAdmin := func(h http.HandlerFunc) http.Handler {
-		return jwtManager.AuthMiddleware(
+		return authMiddleware(
 			auth.RequireRole(domain.RoleAdmin)(h),
 		)
 	}

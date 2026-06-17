@@ -41,11 +41,10 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		switch {
-		case errors.Is(err, domain.ErrInvalidCredentials):
-			writeJSON(w, http.StatusUnauthorized, response{Error: err.Error()})
-		case errors.Is(err, domain.ErrUserInactive):
-			// 停止中ユーザーは 401 を返す（仕様: is_active: false はログイン時に401）
-			writeJSON(w, http.StatusUnauthorized, response{Error: err.Error()})
+		case errors.Is(err, domain.ErrInvalidCredentials), errors.Is(err, domain.ErrUserInactive):
+			// ErrInvalidCredentials と ErrUserInactive を同一メッセージで返すことで
+			// username 列挙攻撃（ユーザー存在確認・停止状態の推測）を防ぎます。
+			writeJSON(w, http.StatusUnauthorized, response{Error: "usernameまたはパスワードが正しくありません"})
 		default:
 			slog.Error("ログイン処理でエラーが発生しました", "error", err)
 			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
