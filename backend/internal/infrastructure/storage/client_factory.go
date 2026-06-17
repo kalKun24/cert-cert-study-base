@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	gcs "cloud.google.com/go/storage"
 	"google.golang.org/api/googleapi"
@@ -17,10 +18,12 @@ import (
 func NewClientFromEnv(ctx context.Context) (*gcs.Client, error) {
 	emulatorHost := os.Getenv("GCS_EMULATOR_HOST")
 	if emulatorHost != "" {
-		client, err := gcs.NewClient(ctx,
-			option.WithEndpoint(emulatorHost+"/storage/v1/"),
-			option.WithoutAuthentication(),
-		)
+		// GCS SDK は STORAGE_EMULATOR_HOST（host:port 形式、スキームなし）を natively サポートする。
+		// option.WithEndpoint は JSON API のみ対象で NewReader が使う download path が
+		// リダイレクトされないため、SDK 標準の env var を経由して全 API をリダイレクトする。
+		hostPort := strings.TrimPrefix(strings.TrimPrefix(emulatorHost, "https://"), "http://")
+		os.Setenv("STORAGE_EMULATOR_HOST", hostPort) //nolint:errcheck
+		client, err := gcs.NewClient(ctx, option.WithoutAuthentication())
 		if err != nil {
 			return nil, fmt.Errorf("GCS エミュレータクライアントの初期化に失敗しました: %w", err)
 		}
