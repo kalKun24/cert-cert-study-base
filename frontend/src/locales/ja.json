@@ -54,7 +54,40 @@
       "empty": "問題がまだありません"
     },
     "error": {
-      "fetchFailed": "問題の読み込みに失敗しました。再試行してください"
+      "fetchFailed": "問題の読み込みに失敗しました。再試行してください",
+      "createFailed": "問題の作成に失敗しました。再試行してください",
+      "updateFailed": "問題の更新に失敗しました。再試行してください",
+      "deleteFailed": "問題の削除に失敗しました"
+    },
+    "new": "問題を作成",
+    "edit": "問題を編集",
+    "titleLabel": "タイトル",
+    "bodyLabel": "問題文",
+    "answerLabel": "解答",
+    "explanationLabel": "解説",
+    "memoLabel": "議論点・メモ",
+    "statusLabel": "公開ステータス",
+    "status": {
+      "draft": "下書き",
+      "private": "非公開",
+      "published": "公開"
+    },
+    "tagSelectLabel": "タグを選択",
+    "filter": {
+      "keywordPlaceholder": "キーワードで検索",
+      "tagPlaceholder": "タグで絞り込み"
+    },
+    "pagination": {
+      "prev": "前のページ",
+      "next": "次のページ",
+      "pageInfo": "{{page}} / {{total}} ページ"
+    },
+    "confirm": {
+      "delete": "この問題を削除しますか？削除すると元に戻せません。"
+    },
+    "validation": {
+      "titleRequired": "タイトルを入力してください",
+      "bodyRequired": "問題文を入力してください"
     }
   },
   "comment": {
