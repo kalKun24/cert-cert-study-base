@@ -29,27 +29,27 @@
 
 ## 受け入れ条件
 
-- [ ] `POST /api/v1/questions` で問題を作成し、GCSに保存できる
-- [ ] `GET /api/v1/questions` で問題一覧を取得できる（ページネーション対応はTICKET-009で行う）
-- [ ] `GET /api/v1/questions/{id}` で問題詳細（Markdownテキスト含む）を取得できる
-- [ ] `PUT /api/v1/questions/{id}` で問題を更新できる
-- [ ] `DELETE /api/v1/questions/{id}` で問題を削除できる（紐づくコメントもカスケード削除する）
-- [ ] 問題エンティティは `id` / `title` / `body`（Markdown） / `answer`（Markdown） / `explanation`（Markdown） / `memo`（Markdown） / `tags` / `status`（`draft` / `private` / `published`） / `visibility_scope`（`all` / `team`） / `published_team_ids`（チームIDの配列） / `created_by` / `created_at` / `updated_at` を持つ
-- [ ] 作成時のデフォルトは `status: draft`、`visibility_scope: all`（TICKET-006と連携）
-- [ ] 認証済みユーザー（`user`以上）のみ操作可能（TICKET-002の認証ミドルウェアを適用）
-- [ ] `openapi.yaml` に問題CRUDエンドポイントのSwagger定義が存在する
-- [ ] ユースケース層のユニットテストが作成されている
+- [x] `POST /api/v1/questions` で問題を作成し、GCSに保存できる
+- [x] `GET /api/v1/questions` で問題一覧を取得できる（ページネーション対応はTICKET-009で行う）
+- [x] `GET /api/v1/questions/{id}` で問題詳細（Markdownテキスト含む）を取得できる
+- [x] `PUT /api/v1/questions/{id}` で問題を更新できる
+- [x] `DELETE /api/v1/questions/{id}` で問題を削除できる（紐づくコメントもカスケード削除する）
+- [x] 問題エンティティは `id` / `title` / `body`（Markdown） / `answer`（Markdown） / `explanation`（Markdown） / `memo`（Markdown） / `tags` / `status`（`draft` / `private` / `published`） / `visibility_scope`（`all` / `team`） / `published_team_ids`（チームIDの配列） / `created_by` / `created_at` / `updated_at` を持つ
+- [x] 作成時のデフォルトは `status: draft`、`visibility_scope: all`（TICKET-006と連携）
+- [x] 認証済みユーザー（`user`以上）のみ操作可能（TICKET-002の認証ミドルウェアを適用）
+- [x] `openapi.yaml` に問題CRUDエンドポイントのSwagger定義が存在する
+- [x] ユースケース層のユニットテストが作成されている
 
 ---
 
 ## サブチケット（コミット単位）
 
-- [ ] `docs(api): 問題CRUDエンドポイントをopenapi.yamlに追加`
-- [ ] `feat(domain): Questionエンティティとバリデーションを実装`
-- [ ] `feat(usecase): 問題CRUDユースケースを実装`
-- [ ] `feat(interface): 問題CRUDハンドラとDTOを実装`
-- [ ] `feat(infrastructure): 問題のGCSリポジトリ実装`
-- [ ] `test(usecase): 問題CRUDユースケースのユニットテストを作成`
+- [x] `docs(api): 問題CRUDエンドポイントをopenapi.yamlに追加`
+- [x] `feat(domain): Questionエンティティとバリデーションを実装`
+- [x] `feat(usecase): 問題CRUDユースケースを実装`
+- [x] `feat(interface): 問題CRUDハンドラとDTOを実装`
+- [x] `feat(infrastructure): 問題のGCSリポジトリ実装`
+- [x] `test(usecase): 問題CRUDユースケースのユニットテストを作成`
 
 ---
 
