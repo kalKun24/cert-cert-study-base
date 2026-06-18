@@ -48,29 +48,29 @@ CLAUDE.mdに「Markdown形式でのテキストの共有」が主な機能とし
 
 ## 受け入れ条件
 
-- [ ] Questionエンティティに `status` / `visibility_scope` / `published_team_ids` フィールドが存在する
-- [ ] 作成時のデフォルトは `status: draft`
-- [ ] `PATCH /api/v1/questions/{id}/visibility` でステータス・公開範囲を変更できる
-- [ ] `GET /api/v1/questions` 一覧取得ルール:
+- [x] Questionエンティティに `status` / `visibility_scope` / `published_team_ids` フィールドが存在する
+- [x] 作成時のデフォルトは `status: draft`
+- [x] `PATCH /api/v1/questions/{id}/visibility` でステータス・公開範囲を変更できる
+- [x] `GET /api/v1/questions` 一覧取得ルール:
   - `status: published` かつ `visibility_scope: all` → 全ログインユーザに返す
   - `status: published` かつ `visibility_scope: team` → リクエストユーザが `published_team_ids` のいずれかに所属する場合のみ返す
   - `status: draft` / `private` → 作成者本人のみ返す（`admin` は全件取得可）
-- [ ] `GET /api/v1/questions/{id}` でも上記と同じ可視性ルールを適用し、閲覧不可の場合は404を返す
-- [ ] `published_team_ids` には複数のチームIDを指定できる
-- [ ] ステータス・公開範囲の変更は作成者本人のみ可能（`admin` は全件変更可）
-- [ ] `openapi.yaml` に公開設定変更エンドポイントおよび各フィールドのSwagger定義が存在する
-- [ ] ユースケース層のユニットテストが作成されている
+- [x] `GET /api/v1/questions/{id}` でも上記と同じ可視性ルールを適用し、閲覧不可の場合は404を返す
+- [x] `published_team_ids` には複数のチームIDを指定できる
+- [x] ステータス・公開範囲の変更は作成者本人のみ可能（`admin` は全件変更可）
+- [x] `openapi.yaml` に公開設定変更エンドポイントおよび各フィールドのSwagger定義が存在する
+- [x] ユースケース層のユニットテストが作成されている
 
 ---
 
 ## サブチケット（コミット単位）
 
-- [ ] `docs(api): 公開設定フィールドと変更エンドポイントをopenapi.yamlに追加`
-- [ ] `feat(domain): Questionエンティティにvisibility_scope・published_team_idsを追加`
-- [ ] `feat(usecase): 公開設定変更ユースケースと可視性フィルタロジックを実装`
-- [ ] `feat(interface): 公開設定変更ハンドラとDTOを実装`
-- [ ] `feat(infrastructure): GCSリポジトリの可視性フィルタ対応`
-- [ ] `test(usecase): 公開設定ユースケースのユニットテストを作成`
+- [x] `docs(api): 公開設定フィールドと変更エンドポイントをopenapi.yamlに追加`
+- [x] `feat(domain): Questionエンティティにvisibility_scope・published_team_idsを追加`
+- [x] `feat(usecase): 公開設定変更ユースケースと可視性フィルタロジックを実装`
+- [x] `feat(interface): 公開設定変更ハンドラとDTOを実装`
+- [x] `feat(infrastructure): GCSリポジトリの可視性フィルタ対応`
+- [x] `test(usecase): 公開設定ユースケースのユニットテストを作成`
 
 ---
 
