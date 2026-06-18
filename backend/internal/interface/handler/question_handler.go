@@ -5,6 +5,8 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/kalKun24/cert-study-base/backend/internal/domain"
 	"github.com/kalKun24/cert-study-base/backend/internal/usecase"
@@ -74,13 +76,59 @@ func (h *QuestionHandler) HandleCreateQuestion(w http.ResponseWriter, r *http.Re
 }
 
 // HandleListQuestions は GET /api/v1/questions を処理します（認証済みユーザー）。
-// 可視性ルールに基づいてフィルタリングした問題一覧を返します。
+// クエリパラメータによるタグフィルタリング・キーワード検索・ページネーションに対応しています。
+//
+// クエリパラメータ:
+//   - tag_ids: カンマ区切りのタグID一覧（複数指定時はAND絞り込み）
+//   - keyword: タイトル・問題文・解説・メモを対象とした部分一致検索
+//   - page: ページ番号（1始まり。省略時は1）
+//   - per_page: 1ページあたりの件数（省略時は20、最大100）
 func (h *QuestionHandler) HandleListQuestions(w http.ResponseWriter, r *http.Request) {
 	callerID, callerRole := callerInfo(r)
 
-	questions, err := h.questionUC.ListQuestions(r.Context(), usecase.ListQuestionsInput{
+	// tag_ids クエリパラメータのパース（カンマ区切り、空要素除去）
+	var tagIDs []string
+	if raw := r.URL.Query().Get("tag_ids"); raw != "" {
+		for _, tid := range strings.Split(raw, ",") {
+			tid = strings.TrimSpace(tid)
+			if tid != "" {
+				tagIDs = append(tagIDs, tid)
+			}
+		}
+	}
+
+	// keyword クエリパラメータのパース
+	keyword := strings.TrimSpace(r.URL.Query().Get("keyword"))
+
+	// page クエリパラメータのパース・バリデーション
+	page := 1
+	if rawPage := r.URL.Query().Get("page"); rawPage != "" {
+		parsed, err := strconv.Atoi(rawPage)
+		if err != nil || parsed < 1 {
+			writeJSON(w, http.StatusBadRequest, response{Error: "page は1以上の整数で指定してください"})
+			return
+		}
+		page = parsed
+	}
+
+	// per_page クエリパラメータのパース・バリデーション
+	perPage := 20
+	if rawPerPage := r.URL.Query().Get("per_page"); rawPerPage != "" {
+		parsed, err := strconv.Atoi(rawPerPage)
+		if err != nil || parsed < 1 || parsed > 100 {
+			writeJSON(w, http.StatusBadRequest, response{Error: "per_page は1〜100の整数で指定してください"})
+			return
+		}
+		perPage = parsed
+	}
+
+	result, err := h.questionUC.SearchQuestions(r.Context(), usecase.SearchQuestionsInput{
 		CallerID:   callerID,
 		CallerRole: callerRole,
+		TagIDs:     tagIDs,
+		Keyword:    keyword,
+		Page:       page,
+		PerPage:    perPage,
 	})
 	if err != nil {
 		slog.Error("問題一覧取得でエラーが発生しました", "error", err)
@@ -88,12 +136,18 @@ func (h *QuestionHandler) HandleListQuestions(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	dtos := make([]QuestionDTO, 0, len(questions))
-	for _, q := range questions {
-		dtos = append(dtos, toQuestionDTO(q))
+	items := make([]QuestionDTO, 0, len(result.Items))
+	for _, q := range result.Items {
+		items = append(items, toQuestionDTO(q))
 	}
 
-	writeJSON(w, http.StatusOK, response{Data: dtos})
+	writeJSON(w, http.StatusOK, response{Data: QuestionListResponseDTO{
+		Items:      items,
+		Total:      result.Total,
+		Page:       result.Page,
+		PerPage:    result.PerPage,
+		TotalPages: result.TotalPages,
+	}})
 }
 
 // HandleGetQuestion は GET /api/v1/questions/{id} を処理します（認証済みユーザー）。
