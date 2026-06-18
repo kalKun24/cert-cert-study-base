@@ -257,7 +257,7 @@ func TestQuestionUseCase_UpdateQuestion_ByAdmin(t *testing.T) {
 
 	newTitle := "adminが更新"
 	q, err := uc.UpdateQuestion(context.Background(), "q-1", usecase.UpdateQuestionInput{
-		CallerID:   "admin-1",           // 別ユーザーだが admin ロール
+		CallerID:   "admin-1", // 別ユーザーだが admin ロール
 		CallerRole: domain.RoleAdmin,
 		Title:      &newTitle,
 	})
@@ -279,7 +279,7 @@ func TestQuestionUseCase_UpdateQuestion_PermissionDenied(t *testing.T) {
 
 	newTitle := "不正な更新"
 	_, err := uc.UpdateQuestion(context.Background(), "q-1", usecase.UpdateQuestionInput{
-		CallerID:   "user-2",         // 作成者でも admin でもない
+		CallerID:   "user-2", // 作成者でも admin でもない
 		CallerRole: domain.RoleUser,
 		Title:      &newTitle,
 	})
