@@ -207,3 +207,30 @@ func toTeamMemberDTO(m *domain.TeamMember) TeamMemberDTO {
 		JoinedAt: m.JoinedAt,
 	}
 }
+
+// TagDTO はAPIレスポンス用のタグDTOです。
+type TagDTO struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// toTagDTO はドメインエンティティをAPIレスポンス用DTOに変換します。
+func toTagDTO(t *domain.Tag) TagDTO {
+	return TagDTO{
+		ID:        t.ID,
+		Name:      t.Name,
+		CreatedAt: t.CreatedAt,
+	}
+}
+
+// CreateTagRequestDTO はタグ作成リクエストのDTOです。
+type CreateTagRequestDTO struct {
+	Name string `json:"name"`
+}
+
+// UpdateTagRequestDTO はタグ更新リクエストのDTOです。
+// 各フィールドはポインタ型にしてゼロ値との区別を可能にします。
+type UpdateTagRequestDTO struct {
+	Name *string `json:"name"`
+}

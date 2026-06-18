@@ -5,13 +5,13 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-005 |
-| ステータス | 🔴 未着手 |
+| ステータス | 🟡 作業中 |
 | 作成日 | 2026-06-17 |
-| 着手日 | - |
+| 着手日 | 2026-06-18 |
 | 完了日 | - |
 | ブランチ名 | `feature/tag-api` |
-| PR番号 | - |
-| PRリンク | （PR作成後に記入） |
+| PR番号 | #8 |
+| PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/8 |
 
 ---
 
@@ -29,25 +29,25 @@ CISSP・情報処理安全確保支援士の問題を「暗号化」「アクセ
 
 ## 受け入れ条件
 
-- [ ] `GET /api/v1/tags` でタグ一覧を取得できる
-- [ ] `POST /api/v1/tags` で新しいタグを作成できる（`admin`のみ）
-- [ ] `PUT /api/v1/tags/{id}` でタグ名を更新できる（`admin`のみ）
-- [ ] `DELETE /api/v1/tags/{id}` でタグを削除できる（`admin`のみ、使用中タグは削除不可 or 問題から自動除去を明示）
-- [ ] タグエンティティは `id` / `name` / `created_at` を持つ
-- [ ] タグ名の重複登録はエラー（409 Conflict）を返す
-- [ ] `openapi.yaml` にタグ管理エンドポイントのSwagger定義が存在する
-- [ ] ユースケース層のユニットテストが作成されている
+- [x] `GET /api/v1/tags` でタグ一覧を取得できる
+- [x] `POST /api/v1/tags` で新しいタグを作成できる（`admin`のみ）
+- [x] `PUT /api/v1/tags/{id}` でタグ名を更新できる（`admin`のみ）
+- [x] `DELETE /api/v1/tags/{id}` でタグを削除できる（`admin`のみ、使用中タグは削除不可 or 問題から自動除去を明示）
+- [x] タグエンティティは `id` / `name` / `created_at` を持つ
+- [x] タグ名の重複登録はエラー（409 Conflict）を返す
+- [x] `openapi.yaml` にタグ管理エンドポイントのSwagger定義が存在する
+- [x] ユースケース層のユニットテストが作成されている
 
 ---
 
 ## サブチケット（コミット単位）
 
-- [ ] `docs(api): タグ管理エンドポイントをopenapi.yamlに追加`
-- [ ] `feat(domain): Tagエンティティを実装`
-- [ ] `feat(usecase): タグCRUDユースケースを実装`
-- [ ] `feat(interface): タグCRUDハンドラとDTOを実装`
-- [ ] `feat(infrastructure): タグのGCSリポジトリ実装`
-- [ ] `test(usecase): タグCRUDユースケースのユニットテストを作成`
+- [x] `docs(api): タグ管理エンドポイントをopenapi.yamlに追加`
+- [x] `feat(domain): Tagエンティティを実装`
+- [x] `feat(usecase): タグCRUDユースケースを実装`
+- [x] `feat(interface): タグCRUDハンドラとDTOを実装`
+- [x] `feat(infrastructure): タグのGCSリポジトリ実装`
+- [x] `test(usecase): タグCRUDユースケースのユニットテストを作成`
 
 ---
 
