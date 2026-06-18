@@ -484,6 +484,172 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /api/v1/questions/{id}/comments:
+    post:
+      summary: コメント投稿（閲覧権限を持つ認証済みユーザー）
+      description: |
+        指定IDの問題にコメントを投稿します。
+        その問題の閲覧権限を持つユーザーのみ投稿可能です。
+        - status=published かつ visibility_scope=all → 全ログインユーザー
+        - status=published かつ visibility_scope=team → 指定チームのメンバーのみ
+        - status=draft / private → 作成者本人のみ（実質コメント不可）
+      operationId: createComment
+      tags:
+        - comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/QuestionID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCommentRequest"
+      responses:
+        "201":
+          description: コメント投稿成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Comment"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    get:
+      summary: コメント一覧取得（閲覧権限を持つ認証済みユーザー）
+      description: |
+        指定IDの問題のコメント一覧を投稿日時の昇順で返します。
+        レスポンスには投稿者の display_name を含みます。
+        その問題の閲覧権限を持つユーザーのみ取得可能です。
+      operationId: listComments
+      tags:
+        - comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/QuestionID"
+      responses:
+        "200":
+          description: コメント一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Comment"
+                  error:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/questions/{id}/comments/{comment_id}:
+    put:
+      summary: コメント編集（投稿者本人のみ）
+      description: |
+        指定コメントを編集します。
+        投稿者本人のみ編集可能です。その問題の閲覧権限も必要です。
+      operationId: updateComment
+      tags:
+        - comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/QuestionID"
+        - $ref: "#/components/parameters/CommentID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCommentRequest"
+      responses:
+        "200":
+          description: コメント編集成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Comment"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: コメント削除（投稿者本人または admin）
+      description: |
+        指定コメントを削除します。
+        投稿者本人または admin ロールのみ削除可能です。その問題の閲覧権限も必要です。
+      operationId: deleteComment
+      tags:
+        - comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/QuestionID"
+        - $ref: "#/components/parameters/CommentID"
+      responses:
+        "200":
+          description: コメント削除成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                        example: コメントを削除しました
+                  error:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/v1/teams:
     post:
       summary: チーム作成（admin / teamowner のみ）
@@ -980,6 +1146,16 @@ components:
         format: uuid
         example: "7ba7b810-9dad-11d1-80b4-00c04fd430c8"
 
+    CommentID:
+      name: comment_id
+      in: path
+      required: true
+      description: コメントID（UUID形式）
+      schema:
+        type: string
+        format: uuid
+        example: "8ba7b810-9dad-11d1-80b4-00c04fd430c8"
+
   schemas:
     Team:
       type: object
@@ -1404,6 +1580,72 @@ components:
           type: string
           description: タグ名（省略時は変更しない）
           example: "CISSP 2024"
+
+    Comment:
+      type: object
+      description: コメントエンティティ
+      required:
+        - id
+        - question_id
+        - body
+        - created_by
+        - display_name
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: コメントID
+          example: "8ba7b810-9dad-11d1-80b4-00c04fd430c8"
+        question_id:
+          type: string
+          format: uuid
+          description: 対象の問題ID
+          example: "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+        body:
+          type: string
+          description: コメント本文（Markdown形式）
+          example: "この問題のポイントは CIA トライアドの定義です。"
+        created_by:
+          type: string
+          format: uuid
+          description: 投稿者のユーザーID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        display_name:
+          type: string
+          description: 投稿者の表示名
+          example: "Alice Smith"
+        created_at:
+          type: string
+          format: date-time
+          description: 投稿日時
+          example: "2024-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: 更新日時
+          example: "2024-01-01T00:00:00Z"
+
+    CreateCommentRequest:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: string
+          description: コメント本文（Markdown形式、必須）
+          example: "この問題のポイントは CIA トライアドの定義です。"
+
+    UpdateCommentRequest:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: string
+          description: コメント本文（Markdown形式、必須）
+          example: "この問題のポイントは CIA トライアドの定義です（修正）。"
 
     LoginRequest:
       type: object

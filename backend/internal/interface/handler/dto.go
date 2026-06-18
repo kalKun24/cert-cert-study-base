@@ -244,3 +244,38 @@ type CreateTagRequestDTO struct {
 type UpdateTagRequestDTO struct {
 	Name *string `json:"name"`
 }
+
+// CommentDTO はAPIレスポンス用のコメントDTOです。
+// 投稿者の display_name を含みます。
+type CommentDTO struct {
+	ID          string    `json:"id"`
+	QuestionID  string    `json:"question_id"`
+	Body        string    `json:"body"`
+	CreatedBy   string    `json:"created_by"`
+	DisplayName string    `json:"display_name"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// toCommentDTO はドメインエンティティと表示名をAPIレスポンス用DTOに変換します。
+func toCommentDTO(c *domain.Comment, displayName string) CommentDTO {
+	return CommentDTO{
+		ID:          c.ID,
+		QuestionID:  c.QuestionID,
+		Body:        c.Body,
+		CreatedBy:   c.CreatedBy,
+		DisplayName: displayName,
+		CreatedAt:   c.CreatedAt,
+		UpdatedAt:   c.UpdatedAt,
+	}
+}
+
+// CreateCommentRequestDTO はコメント投稿リクエストのDTOです。
+type CreateCommentRequestDTO struct {
+	Body string `json:"body"`
+}
+
+// UpdateCommentRequestDTO はコメント編集リクエストのDTOです。
+type UpdateCommentRequestDTO struct {
+	Body string `json:"body"`
+}

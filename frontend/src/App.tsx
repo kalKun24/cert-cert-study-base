@@ -4,6 +4,8 @@ import PrivateRoute from './components/PrivateRoute';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
+import QuestionListPage from './pages/QuestionListPage';
+import QuestionDetailPage from './pages/QuestionDetailPage';
 
 export default function App() {
   return (
@@ -15,6 +17,8 @@ export default function App() {
           <Route element={<PrivateRoute />}>
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />
+              <Route path="/questions" element={<QuestionListPage />} />
+              <Route path="/questions/:id" element={<QuestionDetailPage />} />
               {/* 今後の機能画面はここに追加 */}
             </Route>
           </Route>

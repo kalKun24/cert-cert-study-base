@@ -105,12 +105,16 @@ func main() {
 	questionRepo := repository.NewGCSQuestionRepository(sc, gcsBucket)
 	questionUC := usecase.NewQuestionUseCase(questionRepo, teamRepo)
 
+	commentRepo := repository.NewGCSCommentRepository(sc, gcsBucket)
+	commentUC := usecase.NewCommentUseCase(commentRepo, questionRepo, userRepo, teamRepo)
+
 	tagRepo := repository.NewGCSTagRepository(sc, gcsBucket, questionRepo)
 	tagUC := usecase.NewTagUseCase(tagRepo)
 
 	authHandler := handler.NewAuthHandler(authUC)
 	userHandler := handler.NewUserHandler(userUC)
 	questionHandler := handler.NewQuestionHandler(questionUC)
+	commentHandler := handler.NewCommentHandler(commentUC)
 	teamHandler := handler.NewTeamHandler(teamUC)
 	tagHandler := handler.NewTagHandler(tagUC)
 
@@ -160,6 +164,12 @@ func main() {
 	mux.Handle("DELETE /api/v1/questions/{id}", withAuth(questionHandler.HandleDeleteQuestion))
 	// 公開設定変更（作成者本人または admin のみ。認可はユースケース層で実施）
 	mux.Handle("PATCH /api/v1/questions/{id}/visibility", withAuth(questionHandler.HandleUpdateQuestionVisibility))
+
+	// コメントCRUD（認証済みかつ問題の閲覧権限を持つユーザー。認可はユースケース層で実施）
+	mux.Handle("POST /api/v1/questions/{id}/comments", withAuth(commentHandler.HandleCreateComment))
+	mux.Handle("GET /api/v1/questions/{id}/comments", withAuth(commentHandler.HandleListComments))
+	mux.Handle("PUT /api/v1/questions/{id}/comments/{comment_id}", withAuth(commentHandler.HandleUpdateComment))
+	mux.Handle("DELETE /api/v1/questions/{id}/comments/{comment_id}", withAuth(commentHandler.HandleDeleteComment))
 
 	// チーム管理（認証済み全ユーザー。各エンドポイントで認可チェックをユースケース層が実施）
 	mux.Handle("POST /api/v1/teams", withAuth(teamHandler.HandleCreateTeam))
