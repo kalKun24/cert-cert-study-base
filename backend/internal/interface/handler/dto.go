@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/kalKun24/cert-study-base/backend/internal/domain"
-	"github.com/kalKun24/cert-study-base/backend/internal/usecase"
 )
 
 // response は統一レスポンスフォーマットです。
@@ -258,14 +257,14 @@ type CommentDTO struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-// toCommentDTO はユースケース出力をAPIレスポンス用DTOに変換します。
-func toCommentDTO(c *usecase.CommentWithDisplayName) CommentDTO {
+// toCommentDTO はドメインエンティティと表示名をAPIレスポンス用DTOに変換します。
+func toCommentDTO(c *domain.Comment, displayName string) CommentDTO {
 	return CommentDTO{
 		ID:          c.ID,
 		QuestionID:  c.QuestionID,
 		Body:        c.Body,
 		CreatedBy:   c.CreatedBy,
-		DisplayName: c.DisplayName,
+		DisplayName: displayName,
 		CreatedAt:   c.CreatedAt,
 		UpdatedAt:   c.UpdatedAt,
 	}

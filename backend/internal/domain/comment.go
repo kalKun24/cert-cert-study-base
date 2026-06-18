@@ -25,12 +25,17 @@ type Comment struct {
 	UpdatedAt time.Time
 }
 
+// MaxCommentBodyLength はコメント本文の最大文字数（rune単位）です。
+const MaxCommentBodyLength = 10000
+
 // ドメインエラーの定義
 var (
 	// ErrCommentNotFound はコメントが見つからない場合のエラーです。
 	ErrCommentNotFound = errors.New("コメントが見つかりません")
 	// ErrCommentBodyEmpty はコメント本文が空の場合のエラーです。
 	ErrCommentBodyEmpty = errors.New("コメント本文は必須です")
+	// ErrCommentBodyTooLong はコメント本文が最大文字数を超えた場合のエラーです。
+	ErrCommentBodyTooLong = errors.New("コメント本文が長すぎます")
 )
 
 // CommentRepository はコメントの永続化操作を抽象化するインターフェースです。

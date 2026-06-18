@@ -4,8 +4,10 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -100,8 +102,11 @@ type CreateCommentInput struct {
 // CreateComment は指定した問題にコメントを投稿します。
 // その問題の閲覧権限を持つユーザーのみ投稿可能です。
 func (uc *CommentUseCase) CreateComment(ctx context.Context, input CreateCommentInput) (*CommentWithDisplayName, error) {
-	if input.Body == "" {
+	if strings.TrimSpace(input.Body) == "" {
 		return nil, domain.ErrCommentBodyEmpty
+	}
+	if len([]rune(input.Body)) > domain.MaxCommentBodyLength {
+		return nil, domain.ErrCommentBodyTooLong
 	}
 
 	// 閲覧権限チェック
@@ -193,8 +198,11 @@ type UpdateCommentInput struct {
 // UpdateComment は指定したコメントを編集します。
 // 投稿者本人のみ編集可能です。その問題の閲覧権限も必要です。
 func (uc *CommentUseCase) UpdateComment(ctx context.Context, input UpdateCommentInput) (*CommentWithDisplayName, error) {
-	if input.Body == "" {
+	if strings.TrimSpace(input.Body) == "" {
 		return nil, domain.ErrCommentBodyEmpty
+	}
+	if len([]rune(input.Body)) > domain.MaxCommentBodyLength {
+		return nil, domain.ErrCommentBodyTooLong
 	}
 
 	// 閲覧権限チェック
@@ -273,7 +281,7 @@ func (uc *CommentUseCase) resolveDisplayName(ctx context.Context, userID string)
 	user, err := uc.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		// ユーザーが見つからない場合もユーザーIDで代替（コメント一覧の取得を中断しない）
-		if err == domain.ErrUserNotFound {
+		if errors.Is(err, domain.ErrUserNotFound) {
 			return userID, nil
 		}
 		return "", fmt.Errorf("ユーザー情報の取得に失敗しました: %w", err)
