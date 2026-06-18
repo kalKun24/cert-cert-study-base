@@ -268,6 +268,176 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /api/v1/questions:
+    post:
+      summary: 問題作成（認証済みユーザー）
+      description: Markdown形式の問題・解答・解説・議論点メモを作成します。デフォルトは status=draft、visibility_scope=all です。
+      operationId: createQuestion
+      tags:
+        - questions
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateQuestionRequest"
+      responses:
+        "201":
+          description: 問題作成成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Question"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    get:
+      summary: 問題一覧取得（認証済みユーザー）
+      description: 登録されている全問題の一覧を返します。
+      operationId: listQuestions
+      tags:
+        - questions
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 問題一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Question"
+                  error:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/questions/{id}:
+    get:
+      summary: 問題詳細取得（認証済みユーザー）
+      description: 指定IDの問題を取得します。Markdownテキスト（body / answer / explanation / memo）を含みます。
+      operationId: getQuestion
+      tags:
+        - questions
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/QuestionID"
+      responses:
+        "200":
+          description: 問題詳細
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Question"
+                  error:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      summary: 問題更新（作成者本人または admin のみ）
+      description: 指定IDの問題を更新します。作成者本人または admin ロールのみ操作可能です。
+      operationId: updateQuestion
+      tags:
+        - questions
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/QuestionID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateQuestionRequest"
+      responses:
+        "200":
+          description: 問題更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Question"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: 問題削除（作成者本人または admin のみ）
+      description: 指定IDの問題を削除します。作成者本人または admin ロールのみ操作可能です。
+      operationId: deleteQuestion
+      tags:
+        - questions
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/QuestionID"
+      responses:
+        "200":
+          description: 問題削除成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                        example: 問題を削除しました
+                  error:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/v1/teams:
     post:
       summary: チーム作成（admin / teamowner のみ）
@@ -596,6 +766,16 @@ components:
         format: uuid
         example: "550e8400-e29b-41d4-a716-446655440000"
 
+    QuestionID:
+      name: id
+      in: path
+      required: true
+      description: 問題ID（UUID形式）
+      schema:
+        type: string
+        format: uuid
+        example: "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+
   schemas:
     Team:
       type: object
@@ -762,6 +942,196 @@ components:
           format: date-time
           description: 更新日時
           example: "2024-01-01T00:00:00Z"
+
+    Question:
+      type: object
+      description: 問題エンティティ
+      required:
+        - id
+        - title
+        - body
+        - answer
+        - explanation
+        - memo
+        - tags
+        - status
+        - visibility_scope
+        - published_team_ids
+        - created_by
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 問題ID
+          example: "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+        title:
+          type: string
+          description: 問題タイトル
+          example: "CISSPドメイン1: セキュリティとリスク管理"
+        body:
+          type: string
+          description: 問題文（Markdown形式）
+          example: "## 問題\n次のうち、情報セキュリティの三要素はどれか？"
+        answer:
+          type: string
+          description: 解答（Markdown形式）
+          example: "## 解答\nC: 機密性・完全性・可用性"
+        explanation:
+          type: string
+          description: 解説（Markdown形式）
+          example: "## 解説\nCIAトライアドとも呼ばれる..."
+        memo:
+          type: string
+          description: 議論点メモ（Markdown形式）
+          example: "## メモ\n- 可用性の定義について議論"
+        tags:
+          type: array
+          items:
+            type: string
+          description: タグ（フラット・複数付与可）
+          example: ["CISSP", "ドメイン1", "リスク管理"]
+        status:
+          type: string
+          enum:
+            - draft
+            - private
+            - published
+          description: 公開ステータス
+          example: "draft"
+        visibility_scope:
+          type: string
+          enum:
+            - all
+            - team
+          description: 公開範囲
+          example: "all"
+        published_team_ids:
+          type: array
+          items:
+            type: string
+          description: 公開対象チームIDの一覧（visibility_scope=team の場合に使用）
+          example: []
+        created_by:
+          type: string
+          description: 作成者のユーザーID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        created_at:
+          type: string
+          format: date-time
+          description: 作成日時
+          example: "2024-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: 更新日時
+          example: "2024-01-01T00:00:00Z"
+
+    CreateQuestionRequest:
+      type: object
+      required:
+        - title
+        - body
+      properties:
+        title:
+          type: string
+          description: 問題タイトル（必須）
+          example: "CISSPドメイン1: セキュリティとリスク管理"
+        body:
+          type: string
+          description: 問題文（Markdown形式、必須）
+          example: "## 問題\n次のうち、情報セキュリティの三要素はどれか？"
+        answer:
+          type: string
+          description: 解答（Markdown形式）
+          example: "## 解答\nC: 機密性・完全性・可用性"
+        explanation:
+          type: string
+          description: 解説（Markdown形式）
+          example: "## 解説\nCIAトライアドとも呼ばれる..."
+        memo:
+          type: string
+          description: 議論点メモ（Markdown形式）
+          example: "## メモ\n- 可用性の定義について議論"
+        tags:
+          type: array
+          items:
+            type: string
+          description: タグ（フラット・複数付与可）
+          example: ["CISSP", "ドメイン1"]
+        status:
+          type: string
+          enum:
+            - draft
+            - private
+            - published
+          description: 公開ステータス（省略時は draft）
+          example: "draft"
+        visibility_scope:
+          type: string
+          enum:
+            - all
+            - team
+          description: 公開範囲（省略時は all）
+          example: "all"
+        published_team_ids:
+          type: array
+          items:
+            type: string
+          description: 公開対象チームIDの一覧（visibility_scope=team の場合に使用）
+          example: []
+
+    UpdateQuestionRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          description: 問題タイトル
+          example: "更新後タイトル"
+        body:
+          type: string
+          description: 問題文（Markdown形式）
+          example: "## 問題\n更新後の問題文"
+        answer:
+          type: string
+          description: 解答（Markdown形式）
+          example: "## 解答\n更新後の解答"
+        explanation:
+          type: string
+          description: 解説（Markdown形式）
+          example: "## 解説\n更新後の解説"
+        memo:
+          type: string
+          description: 議論点メモ（Markdown形式）
+          example: "## メモ\n更新後のメモ"
+        tags:
+          type: array
+          items:
+            type: string
+          description: タグ
+          example: ["CISSP", "更新タグ"]
+        status:
+          type: string
+          enum:
+            - draft
+            - private
+            - published
+          description: 公開ステータス
+          example: "published"
+        visibility_scope:
+          type: string
+          enum:
+            - all
+            - team
+          description: 公開範囲
+          example: "team"
+        published_team_ids:
+          type: array
+          items:
+            type: string
+          description: 公開対象チームIDの一覧
+          example: ["team-id-1"]
 
     LoginRequest:
       type: object
