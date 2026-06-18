@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/kalKun24/cert-study-base/backend/internal/domain"
+	"github.com/kalKun24/cert-study-base/backend/internal/usecase"
 )
 
 // response は統一レスポンスフォーマットです。
@@ -243,4 +244,39 @@ type CreateTagRequestDTO struct {
 // 各フィールドはポインタ型にしてゼロ値との区別を可能にします。
 type UpdateTagRequestDTO struct {
 	Name *string `json:"name"`
+}
+
+// CommentDTO はAPIレスポンス用のコメントDTOです。
+// 投稿者の display_name を含みます。
+type CommentDTO struct {
+	ID          string    `json:"id"`
+	QuestionID  string    `json:"question_id"`
+	Body        string    `json:"body"`
+	CreatedBy   string    `json:"created_by"`
+	DisplayName string    `json:"display_name"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// toCommentDTO はユースケース出力をAPIレスポンス用DTOに変換します。
+func toCommentDTO(c *usecase.CommentWithDisplayName) CommentDTO {
+	return CommentDTO{
+		ID:          c.ID,
+		QuestionID:  c.QuestionID,
+		Body:        c.Body,
+		CreatedBy:   c.CreatedBy,
+		DisplayName: c.DisplayName,
+		CreatedAt:   c.CreatedAt,
+		UpdatedAt:   c.UpdatedAt,
+	}
+}
+
+// CreateCommentRequestDTO はコメント投稿リクエストのDTOです。
+type CreateCommentRequestDTO struct {
+	Body string `json:"body"`
+}
+
+// UpdateCommentRequestDTO はコメント編集リクエストのDTOです。
+type UpdateCommentRequestDTO struct {
+	Body string `json:"body"`
 }
