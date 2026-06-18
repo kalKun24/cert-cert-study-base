@@ -44,18 +44,18 @@
 
 ## 受け入れ条件
 
-- [ ] `POST /api/v1/questions/{id}/comments` でコメントを投稿できる
-- [ ] `GET /api/v1/questions/{id}/comments` でコメント一覧を投稿日時の昇順で取得できる
-- [ ] `PUT /api/v1/questions/{id}/comments/{comment_id}` で自分のコメントを編集できる
-- [ ] `DELETE /api/v1/questions/{id}/comments/{comment_id}` で自分のコメントを削除できる（`admin` は全コメント削除可）
-- [ ] コメントの投稿・閲覧・編集・削除は、その問題の閲覧権限を持つユーザのみ可能
+- [x] `POST /api/v1/questions/{id}/comments` でコメントを投稿できる
+- [x] `GET /api/v1/questions/{id}/comments` でコメント一覧を投稿日時の昇順で取得できる
+- [x] `PUT /api/v1/questions/{id}/comments/{comment_id}` で自分のコメントを編集できる
+- [x] `DELETE /api/v1/questions/{id}/comments/{comment_id}` で自分のコメントを削除できる（`admin` は全コメント削除可）
+- [x] コメントの投稿・閲覧・編集・削除は、その問題の閲覧権限を持つユーザのみ可能
   - `published + all`: 全ログインユーザ
   - `published + team`: 指定チームのメンバーのみ
   - `draft` / `private`: 作成者本人のみ（実質コメント不可）
-- [ ] コメント一覧のレスポンスに投稿者の `display_name` を含む
-- [ ] `openapi.yaml` にコメントエンドポイントのSwagger定義が存在する
-- [ ] ユースケース層のユニットテストが作成されている
-- [ ] フロントエンドの問題詳細ページにコメント欄を追加する
+- [x] コメント一覧のレスポンスに投稿者の `display_name` を含む
+- [x] `openapi.yaml` にコメントエンドポイントのSwagger定義が存在する
+- [x] ユースケース層のユニットテストが作成されている
+- [x] フロントエンドの問題詳細ページにコメント欄を追加する
   - コメント一覧（投稿者名・本文・投稿日時）を表示
   - コメント入力フォームを表示（Markdownプレビュー対応）
   - 自分のコメントに編集・削除ボタンを表示
@@ -64,13 +64,13 @@
 
 ## サブチケット（コミット単位）
 
-- [ ] `docs(api): コメントエンドポイントをopenapi.yamlに追加`
-- [ ] `feat(domain): Commentエンティティとバリデーションを実装`
-- [ ] `feat(usecase): コメントCRUDユースケースと閲覧権限チェックを実装`
-- [ ] `feat(interface): コメントハンドラとDTOを実装`
-- [ ] `feat(infrastructure): コメントのGCSリポジトリ実装`
-- [ ] `feat(frontend): 問題詳細ページにコメント欄を追加`
-- [ ] `test(usecase): コメントユースケースのユニットテストを作成`
+- [x] `docs(api): コメントエンドポイントをopenapi.yamlに追加`
+- [x] `feat(domain): Commentエンティティとバリデーションを実装`
+- [x] `feat(usecase): コメントCRUDユースケースと閲覧権限チェックを実装`
+- [x] `feat(interface): コメントハンドラとDTOを実装`
+- [x] `feat(infrastructure): コメントのGCSリポジトリ実装`
+- [x] `feat(frontend): 問題詳細ページにコメント欄を追加`
+- [x] `test(usecase): コメントユースケースのユニットテストを作成`
 
 ---
 
