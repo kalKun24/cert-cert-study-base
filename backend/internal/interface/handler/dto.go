@@ -147,6 +147,16 @@ type UpdateQuestionRequestDTO struct {
 	PublishedTeamIDs []string `json:"published_team_ids"`
 }
 
+// UpdateQuestionVisibilityRequestDTO は問題公開設定変更リクエストのDTOです。
+type UpdateQuestionVisibilityRequestDTO struct {
+	// Status は変更後の公開ステータス（必須）
+	Status string `json:"status"`
+	// VisibilityScope は変更後の公開範囲（省略時は変更しない）
+	VisibilityScope *string `json:"visibility_scope"`
+	// PublishedTeamIDs は変更後の公開対象チームIDの一覧（省略時は変更しない）
+	PublishedTeamIDs []string `json:"published_team_ids"`
+}
+
 // TeamDTO はAPIレスポンス用のチームDTOです。
 type TeamDTO struct {
 	ID          string    `json:"id"`

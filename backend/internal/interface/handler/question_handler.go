@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/kalKun24/cert-study-base/backend/internal/contextkey"
 	"github.com/kalKun24/cert-study-base/backend/internal/domain"
 	"github.com/kalKun24/cert-study-base/backend/internal/usecase"
 )
@@ -23,7 +22,7 @@ func NewQuestionHandler(questionUC *usecase.QuestionUseCase) *QuestionHandler {
 
 // HandleCreateQuestion は POST /api/v1/questions を処理します（認証済みユーザー）。
 func (h *QuestionHandler) HandleCreateQuestion(w http.ResponseWriter, r *http.Request) {
-	callerID, _ := r.Context().Value(contextkey.UserID).(string)
+	callerID, _ := callerInfo(r)
 	if callerID == "" {
 		writeJSON(w, http.StatusUnauthorized, response{Error: "認証情報が取得できません"})
 		return
@@ -75,8 +74,14 @@ func (h *QuestionHandler) HandleCreateQuestion(w http.ResponseWriter, r *http.Re
 }
 
 // HandleListQuestions は GET /api/v1/questions を処理します（認証済みユーザー）。
+// 可視性ルールに基づいてフィルタリングした問題一覧を返します。
 func (h *QuestionHandler) HandleListQuestions(w http.ResponseWriter, r *http.Request) {
-	questions, err := h.questionUC.ListQuestions(r.Context())
+	callerID, callerRole := callerInfo(r)
+
+	questions, err := h.questionUC.ListQuestions(r.Context(), usecase.ListQuestionsInput{
+		CallerID:   callerID,
+		CallerRole: callerRole,
+	})
 	if err != nil {
 		slog.Error("問題一覧取得でエラーが発生しました", "error", err)
 		writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
@@ -92,6 +97,7 @@ func (h *QuestionHandler) HandleListQuestions(w http.ResponseWriter, r *http.Req
 }
 
 // HandleGetQuestion は GET /api/v1/questions/{id} を処理します（認証済みユーザー）。
+// 可視性ルールに基づき、閲覧不可の場合は404を返します。
 func (h *QuestionHandler) HandleGetQuestion(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if id == "" {
@@ -99,7 +105,12 @@ func (h *QuestionHandler) HandleGetQuestion(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	question, err := h.questionUC.GetQuestion(r.Context(), id)
+	callerID, callerRole := callerInfo(r)
+
+	question, err := h.questionUC.GetQuestion(r.Context(), id, usecase.GetQuestionInput{
+		CallerID:   callerID,
+		CallerRole: callerRole,
+	})
 	if err != nil {
 		if errors.Is(err, domain.ErrQuestionNotFound) {
 			writeJSON(w, http.StatusNotFound, response{Error: "問題が見つかりません"})
@@ -121,8 +132,7 @@ func (h *QuestionHandler) HandleUpdateQuestion(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	callerID, _ := r.Context().Value(contextkey.UserID).(string)
-	callerRole, _ := r.Context().Value(contextkey.UserRole).(domain.Role)
+	callerID, callerRole := callerInfo(r)
 	if callerID == "" {
 		writeJSON(w, http.StatusUnauthorized, response{Error: "認証情報が取得できません"})
 		return
@@ -177,6 +187,64 @@ func (h *QuestionHandler) HandleUpdateQuestion(w http.ResponseWriter, r *http.Re
 	writeJSON(w, http.StatusOK, response{Data: toQuestionDTO(question)})
 }
 
+// HandleUpdateQuestionVisibility は PATCH /api/v1/questions/{id}/visibility を処理します（作成者本人または admin のみ）。
+func (h *QuestionHandler) HandleUpdateQuestionVisibility(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "問題IDは必須です"})
+		return
+	}
+
+	callerID, callerRole := callerInfo(r)
+	if callerID == "" {
+		writeJSON(w, http.StatusUnauthorized, response{Error: "認証情報が取得できません"})
+		return
+	}
+
+	var req UpdateQuestionVisibilityRequestDTO
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
+		return
+	}
+
+	if req.Status == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "status は必須です"})
+		return
+	}
+
+	input := usecase.UpdateQuestionVisibilityInput{
+		CallerID:            callerID,
+		CallerRole:          callerRole,
+		Status:              domain.QuestionStatus(req.Status),
+		PublishedTeamIDsSet: req.PublishedTeamIDs != nil,
+		PublishedTeamIDs:    req.PublishedTeamIDs,
+	}
+	if req.VisibilityScope != nil {
+		vs := domain.VisibilityScope(*req.VisibilityScope)
+		input.VisibilityScope = &vs
+	}
+
+	question, err := h.questionUC.UpdateQuestionVisibility(r.Context(), id, input)
+	if err != nil {
+		switch {
+		case errors.Is(err, domain.ErrQuestionNotFound):
+			writeJSON(w, http.StatusNotFound, response{Error: "問題が見つかりません"})
+		case errors.Is(err, domain.ErrPermissionDenied):
+			writeJSON(w, http.StatusForbidden, response{Error: err.Error()})
+		case errors.Is(err, domain.ErrInvalidQuestionStatus):
+			writeJSON(w, http.StatusBadRequest, response{Error: err.Error()})
+		case errors.Is(err, domain.ErrInvalidVisibilityScope):
+			writeJSON(w, http.StatusBadRequest, response{Error: err.Error()})
+		default:
+			slog.Error("問題公開設定変更でエラーが発生しました", "id", id, "error", err)
+			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, response{Data: toQuestionDTO(question)})
+}
+
 // HandleDeleteQuestion は DELETE /api/v1/questions/{id} を処理します（作成者本人または admin のみ）。
 func (h *QuestionHandler) HandleDeleteQuestion(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
@@ -185,8 +253,7 @@ func (h *QuestionHandler) HandleDeleteQuestion(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	callerID, _ := r.Context().Value(contextkey.UserID).(string)
-	callerRole, _ := r.Context().Value(contextkey.UserRole).(domain.Role)
+	callerID, callerRole := callerInfo(r)
 	if callerID == "" {
 		writeJSON(w, http.StatusUnauthorized, response{Error: "認証情報が取得できません"})
 		return

@@ -103,7 +103,7 @@ func main() {
 	teamUC := usecase.NewTeamUseCase(teamRepo, userRepo)
 
 	questionRepo := repository.NewGCSQuestionRepository(sc, gcsBucket)
-	questionUC := usecase.NewQuestionUseCase(questionRepo)
+	questionUC := usecase.NewQuestionUseCase(questionRepo, teamRepo)
 
 	tagRepo := repository.NewGCSTagRepository(sc, gcsBucket, questionRepo)
 	tagUC := usecase.NewTagUseCase(tagRepo)
@@ -158,6 +158,8 @@ func main() {
 	mux.Handle("GET /api/v1/questions/{id}", withAuth(questionHandler.HandleGetQuestion))
 	mux.Handle("PUT /api/v1/questions/{id}", withAuth(questionHandler.HandleUpdateQuestion))
 	mux.Handle("DELETE /api/v1/questions/{id}", withAuth(questionHandler.HandleDeleteQuestion))
+	// 公開設定変更（作成者本人または admin のみ。認可はユースケース層で実施）
+	mux.Handle("PATCH /api/v1/questions/{id}/visibility", withAuth(questionHandler.HandleUpdateQuestionVisibility))
 
 	// チーム管理（認証済み全ユーザー。各エンドポイントで認可チェックをユースケース層が実施）
 	mux.Handle("POST /api/v1/teams", withAuth(teamHandler.HandleCreateTeam))
