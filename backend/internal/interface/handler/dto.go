@@ -120,6 +120,15 @@ func toQuestionDTO(q *domain.Question) QuestionDTO {
 	}
 }
 
+// QuestionListResponseDTO は問題一覧APIのレスポンス用DTOです（ページネーション情報付き）。
+type QuestionListResponseDTO struct {
+	Items      []QuestionDTO `json:"items"`
+	Total      int           `json:"total"`
+	Page       int           `json:"page"`
+	PerPage    int           `json:"per_page"`
+	TotalPages int           `json:"total_pages"`
+}
+
 // CreateQuestionRequestDTO は問題作成リクエストのDTOです。
 type CreateQuestionRequestDTO struct {
 	Title            string   `json:"title"`

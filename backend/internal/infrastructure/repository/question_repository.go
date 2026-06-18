@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -201,6 +202,56 @@ func (r *GCSQuestionRepository) List(ctx context.Context) ([]*domain.Question, e
 	questions := make([]*domain.Question, 0, len(records))
 	for _, rec := range records {
 		questions = append(questions, toQuestion(rec))
+	}
+
+	return questions, nil
+}
+
+// Search は指定したフィルタ条件に合致する問題の一覧を返します。
+// GCSから全件読み込み後、アプリ側でタグ・キーワードフィルタリングを行います。
+func (r *GCSQuestionRepository) Search(ctx context.Context, filter domain.QuestionSearchFilter) ([]*domain.Question, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	records, err := r.loadQuestions(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("問題データ読み込みに失敗しました: %w", err)
+	}
+
+	questions := make([]*domain.Question, 0, len(records))
+	for _, rec := range records {
+		q := toQuestion(rec)
+
+		// タグANDフィルタリング: 指定されたタグIDをすべて持つ問題のみ返す
+		if len(filter.TagIDs) > 0 {
+			tagSet := make(map[string]struct{}, len(rec.Tags))
+			for _, t := range rec.Tags {
+				tagSet[t] = struct{}{}
+			}
+			match := true
+			for _, tid := range filter.TagIDs {
+				if _, ok := tagSet[tid]; !ok {
+					match = false
+					break
+				}
+			}
+			if !match {
+				continue
+			}
+		}
+
+		// キーワード検索: title / body / explanation / memo を対象とした部分一致
+		if filter.Keyword != "" {
+			kw := filter.Keyword
+			if !strings.Contains(rec.Title, kw) &&
+				!strings.Contains(rec.Body, kw) &&
+				!strings.Contains(rec.Explanation, kw) &&
+				!strings.Contains(rec.Memo, kw) {
+				continue
+			}
+		}
+
+		questions = append(questions, q)
 	}
 
 	return questions, nil

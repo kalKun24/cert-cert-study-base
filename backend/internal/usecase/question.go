@@ -131,6 +131,118 @@ type ListQuestionsInput struct {
 	CallerRole domain.Role
 }
 
+// SearchQuestionsInput は問題検索・フィルタリングユースケースの入力です。
+type SearchQuestionsInput struct {
+	// CallerID はリクエストユーザーのID
+	CallerID string
+	// CallerRole はリクエストユーザーのロール
+	CallerRole domain.Role
+	// TagIDs はAND絞り込みするタグIDの一覧。空の場合はタグフィルタなし。
+	TagIDs []string
+	// Keyword はキーワード検索文字列。空の場合は検索なし。
+	Keyword string
+	// Page はページ番号（1始まり）。0以下の場合は1とみなします。
+	Page int
+	// PerPage は1ページあたりの件数。0以下の場合は20とみなします。最大100。
+	PerPage int
+}
+
+// SearchQuestionsResult は問題検索・フィルタリングユースケースの結果です。
+type SearchQuestionsResult struct {
+	// Items は現在ページの問題一覧
+	Items []*domain.Question
+	// Total はフィルタリング後の総件数
+	Total int
+	// Page は現在のページ番号（1始まり）
+	Page int
+	// PerPage は1ページあたりの件数
+	PerPage int
+	// TotalPages は総ページ数
+	TotalPages int
+}
+
+// defaultPerPage はページネーションのデフォルト件数です。
+const defaultPerPage = 20
+
+// maxPerPage はページネーションの最大件数です。
+const maxPerPage = 100
+
+// SearchQuestions は検索・フィルタリング条件に基づき、可視性フィルタを適用した問題一覧をページネーション付きで返します。
+// - タグIDは複数指定した場合AND絞り込みを行います。
+// - キーワードはtitle / body / explanation / memo を対象に部分一致検索します。
+// - 可視性ルール（status / visibility_scope）はListQuestionsと同一ルールを適用します。
+// - 検索結果0件は空のItemsと200を返します（エラーにしません）。
+func (uc *QuestionUseCase) SearchQuestions(ctx context.Context, input SearchQuestionsInput) (*SearchQuestionsResult, error) {
+	// ページネーションパラメータの正規化
+	page := input.Page
+	if page < 1 {
+		page = 1
+	}
+	perPage := input.PerPage
+	if perPage < 1 {
+		perPage = defaultPerPage
+	}
+	if perPage > maxPerPage {
+		perPage = maxPerPage
+	}
+
+	// リポジトリに検索フィルタを渡して候補を取得
+	filter := domain.QuestionSearchFilter{
+		TagIDs:  input.TagIDs,
+		Keyword: input.Keyword,
+	}
+	candidates, err := uc.questionRepo.Search(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("問題検索に失敗しました: %w", err)
+	}
+
+	// 可視性フィルタリング
+	isAdmin := input.CallerRole == domain.RoleAdmin
+
+	var callerTeamIDs map[string]struct{}
+	if !isAdmin {
+		callerTeamIDs, err = uc.callerTeamIDs(ctx, input.CallerID)
+		if err != nil {
+			return nil, fmt.Errorf("チーム情報の取得に失敗しました: %w", err)
+		}
+	}
+
+	visible := make([]*domain.Question, 0, len(candidates))
+	for _, q := range candidates {
+		if q.IsVisibleTo(input.CallerID, isAdmin, callerTeamIDs) {
+			visible = append(visible, q)
+		}
+	}
+
+	// ページネーション計算
+	total := len(visible)
+	totalPages := (total + perPage - 1) / perPage
+	if totalPages == 0 {
+		totalPages = 1
+	}
+
+	// ページ範囲のクリッピング
+	if page > totalPages {
+		page = totalPages
+	}
+
+	// オフセット計算とスライス
+	start := (page - 1) * perPage
+	end := start + perPage
+	if end > total {
+		end = total
+	}
+	items := visible[start:end]
+
+	return &SearchQuestionsResult{
+		Items:      items,
+		Total:      total,
+		Page:       page,
+		PerPage:    perPage,
+		TotalPages: totalPages,
+	}, nil
+}
+
 // ListQuestions は可視性ルールに基づいてフィルタリングした問題一覧を返します。
 // - status=published かつ visibility_scope=all → 全ログインユーザーに返す
 // - status=published かつ visibility_scope=team → リクエストユーザーが published_team_ids のいずれかに所属する場合のみ返す

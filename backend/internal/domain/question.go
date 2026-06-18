@@ -128,6 +128,14 @@ var (
 	ErrInvalidVisibilityScope = errors.New("無効な公開範囲です")
 )
 
+// QuestionSearchFilter は問題検索・フィルタリング条件を表します。
+type QuestionSearchFilter struct {
+	// TagIDs はAND絞り込みするタグIDの一覧。空の場合はタグフィルタなし。
+	TagIDs []string
+	// Keyword はタイトル・問題文・解説・メモを対象としたキーワード検索（部分一致）。空の場合は検索なし。
+	Keyword string
+}
+
 // QuestionRepository は問題の永続化操作を抽象化するインターフェースです。
 // 具体的な実装はinfrastructure層に置きます。
 // 各メソッドはリクエストスコープの context.Context を受け取り、
@@ -139,6 +147,10 @@ type QuestionRepository interface {
 
 	// List は全問題の一覧を返します。
 	List(ctx context.Context) ([]*Question, error)
+
+	// Search は指定したフィルタ条件に合致する問題の一覧を返します。
+	// フィルタ条件が空の場合は全件を返します。
+	Search(ctx context.Context, filter QuestionSearchFilter) ([]*Question, error)
 
 	// Save は問題を新規作成または更新します。
 	// IDが一致するレコードが存在する場合は更新、存在しない場合は追加します。
