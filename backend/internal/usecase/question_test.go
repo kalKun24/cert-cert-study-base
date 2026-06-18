@@ -71,6 +71,50 @@ func (m *mockQuestionRepository) FindByTagID(_ context.Context, tagID string) ([
 	return result, nil
 }
 
+func (m *mockQuestionRepository) Search(_ context.Context, filter domain.QuestionSearchFilter) ([]*domain.Question, error) {
+	var result []*domain.Question
+	for _, q := range m.questions {
+		// タグANDフィルタリング
+		if len(filter.TagIDs) > 0 {
+			tagSet := make(map[string]struct{}, len(q.Tags))
+			for _, t := range q.Tags {
+				tagSet[t] = struct{}{}
+			}
+			match := true
+			for _, tid := range filter.TagIDs {
+				if _, ok := tagSet[tid]; !ok {
+					match = false
+					break
+				}
+			}
+			if !match {
+				continue
+			}
+		}
+		// キーワードフィルタリング
+		if filter.Keyword != "" {
+			kw := filter.Keyword
+			if !contains(q.Title, kw) && !contains(q.Body, kw) && !contains(q.Explanation, kw) && !contains(q.Memo, kw) {
+				continue
+			}
+		}
+		result = append(result, q)
+	}
+	return result, nil
+}
+
+// contains は s が substr を含むかどうかを返すヘルパーです。
+func contains(s, substr string) bool {
+	return len(substr) == 0 || (len(s) >= len(substr) && func() bool {
+		for i := 0; i <= len(s)-len(substr); i++ {
+			if s[i:i+len(substr)] == substr {
+				return true
+			}
+		}
+		return false
+	}())
+}
+
 func (m *mockQuestionRepository) Delete(_ context.Context, id string) error {
 	if m.deleteErr != nil {
 		return m.deleteErr
@@ -777,6 +821,400 @@ func TestQuestionUseCase_ListQuestions_PublishedTeam_NonMemberNotVisible(t *test
 	}
 	if len(questions) != 0 {
 		t.Errorf("チーム非所属ユーザーには見えないはずです: got %d, want 0", len(questions))
+	}
+}
+
+// --- SearchQuestions のテスト ---
+
+// testPublishedQuestionWithFields はキーワード検索テスト用の公開問題エンティティを生成します。
+func testPublishedQuestionWithFields(id, title, body, explanation, memo string, tags []string) *domain.Question {
+	return &domain.Question{
+		ID:               id,
+		Title:            title,
+		Body:             body,
+		Answer:           "## 解答\nテスト解答",
+		Explanation:      explanation,
+		Memo:             memo,
+		Tags:             tags,
+		Status:           domain.QuestionStatusPublished,
+		VisibilityScope:  domain.VisibilityScopeAll,
+		PublishedTeamIDs: []string{},
+		CreatedBy:        "user-1",
+	}
+}
+
+// TestQuestionUseCase_SearchQuestions_NoFilter はフィルタなしで全件返るテストです。
+func TestQuestionUseCase_SearchQuestions_NoFilter(t *testing.T) {
+	repo := newMockQuestionRepository()
+	repo.addQuestion(testPublishedQuestionWithFields("q-1", "問題1", "本文1", "解説1", "メモ1", []string{"tag-1"}))
+	repo.addQuestion(testPublishedQuestionWithFields("q-2", "問題2", "本文2", "解説2", "メモ2", []string{"tag-2"}))
+
+	uc := newQuestionUseCase(repo)
+
+	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
+		CallerID:   "user-1",
+		CallerRole: domain.RoleUser,
+		Page:       1,
+		PerPage:    20,
+	})
+	if err != nil {
+		t.Fatalf("問題検索に失敗しました: %v", err)
+	}
+	if result.Total != 2 {
+		t.Errorf("総件数が期待値と異なります: got %d, want 2", result.Total)
+	}
+	if len(result.Items) != 2 {
+		t.Errorf("取得件数が期待値と異なります: got %d, want 2", len(result.Items))
+	}
+}
+
+// TestQuestionUseCase_SearchQuestions_TagFilter はタグIDでフィルタリングするテストです。
+func TestQuestionUseCase_SearchQuestions_TagFilter(t *testing.T) {
+	repo := newMockQuestionRepository()
+	repo.addQuestion(testPublishedQuestionWithFields("q-1", "問題1", "本文1", "解説1", "メモ1", []string{"tag-1", "tag-2"}))
+	repo.addQuestion(testPublishedQuestionWithFields("q-2", "問題2", "本文2", "解説2", "メモ2", []string{"tag-2", "tag-3"}))
+	repo.addQuestion(testPublishedQuestionWithFields("q-3", "問題3", "本文3", "解説3", "メモ3", []string{"tag-3"}))
+
+	uc := newQuestionUseCase(repo)
+
+	// tag-2 のみ指定 → q-1, q-2 の2件
+	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
+		CallerID:   "user-1",
+		CallerRole: domain.RoleUser,
+		TagIDs:     []string{"tag-2"},
+		Page:       1,
+		PerPage:    20,
+	})
+	if err != nil {
+		t.Fatalf("問題検索に失敗しました: %v", err)
+	}
+	if result.Total != 2 {
+		t.Errorf("総件数が期待値と異なります: got %d, want 2", result.Total)
+	}
+}
+
+// TestQuestionUseCase_SearchQuestions_TagFilterAND は複数タグAND絞り込みのテストです。
+func TestQuestionUseCase_SearchQuestions_TagFilterAND(t *testing.T) {
+	repo := newMockQuestionRepository()
+	repo.addQuestion(testPublishedQuestionWithFields("q-1", "問題1", "本文1", "解説1", "メモ1", []string{"tag-1", "tag-2"}))
+	repo.addQuestion(testPublishedQuestionWithFields("q-2", "問題2", "本文2", "解説2", "メモ2", []string{"tag-2", "tag-3"}))
+
+	uc := newQuestionUseCase(repo)
+
+	// tag-1 AND tag-2 → q-1 のみ1件
+	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
+		CallerID:   "user-1",
+		CallerRole: domain.RoleUser,
+		TagIDs:     []string{"tag-1", "tag-2"},
+		Page:       1,
+		PerPage:    20,
+	})
+	if err != nil {
+		t.Fatalf("問題検索に失敗しました: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("AND絞り込みの総件数が期待値と異なります: got %d, want 1", result.Total)
+	}
+}
+
+// TestQuestionUseCase_SearchQuestions_KeywordTitle はタイトルのキーワード検索テストです。
+func TestQuestionUseCase_SearchQuestions_KeywordTitle(t *testing.T) {
+	repo := newMockQuestionRepository()
+	repo.addQuestion(testPublishedQuestionWithFields("q-1", "暗号化の基礎", "本文1", "解説1", "メモ1", []string{}))
+	repo.addQuestion(testPublishedQuestionWithFields("q-2", "リスク管理", "本文2", "解説2", "メモ2", []string{}))
+
+	uc := newQuestionUseCase(repo)
+
+	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
+		CallerID:   "user-1",
+		CallerRole: domain.RoleUser,
+		Keyword:    "暗号化",
+		Page:       1,
+		PerPage:    20,
+	})
+	if err != nil {
+		t.Fatalf("問題検索に失敗しました: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("総件数が期待値と異なります: got %d, want 1", result.Total)
+	}
+}
+
+// TestQuestionUseCase_SearchQuestions_KeywordBody は問題文のキーワード検索テストです。
+func TestQuestionUseCase_SearchQuestions_KeywordBody(t *testing.T) {
+	repo := newMockQuestionRepository()
+	repo.addQuestion(testPublishedQuestionWithFields("q-1", "問題1", "CIAトライアドとは何か", "解説1", "メモ1", []string{}))
+	repo.addQuestion(testPublishedQuestionWithFields("q-2", "問題2", "PKIの概念について", "解説2", "メモ2", []string{}))
+
+	uc := newQuestionUseCase(repo)
+
+	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
+		CallerID:   "user-1",
+		CallerRole: domain.RoleUser,
+		Keyword:    "CIA",
+		Page:       1,
+		PerPage:    20,
+	})
+	if err != nil {
+		t.Fatalf("問題検索に失敗しました: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("総件数が期待値と異なります: got %d, want 1", result.Total)
+	}
+}
+
+// TestQuestionUseCase_SearchQuestions_KeywordExplanation は解説のキーワード検索テストです。
+func TestQuestionUseCase_SearchQuestions_KeywordExplanation(t *testing.T) {
+	repo := newMockQuestionRepository()
+	repo.addQuestion(testPublishedQuestionWithFields("q-1", "問題1", "本文1", "機密性・完全性・可用性の三要素", "メモ1", []string{}))
+	repo.addQuestion(testPublishedQuestionWithFields("q-2", "問題2", "本文2", "デジタル署名の仕組み", "メモ2", []string{}))
+
+	uc := newQuestionUseCase(repo)
+
+	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
+		CallerID:   "user-1",
+		CallerRole: domain.RoleUser,
+		Keyword:    "機密性",
+		Page:       1,
+		PerPage:    20,
+	})
+	if err != nil {
+		t.Fatalf("問題検索に失敗しました: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("総件数が期待値と異なります: got %d, want 1", result.Total)
+	}
+}
+
+// TestQuestionUseCase_SearchQuestions_KeywordMemo はメモのキーワード検索テストです。
+func TestQuestionUseCase_SearchQuestions_KeywordMemo(t *testing.T) {
+	repo := newMockQuestionRepository()
+	repo.addQuestion(testPublishedQuestionWithFields("q-1", "問題1", "本文1", "解説1", "議論点：暗号化強度", []string{}))
+	repo.addQuestion(testPublishedQuestionWithFields("q-2", "問題2", "本文2", "解説2", "議論点：認証方式", []string{}))
+
+	uc := newQuestionUseCase(repo)
+
+	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
+		CallerID:   "user-1",
+		CallerRole: domain.RoleUser,
+		Keyword:    "暗号化",
+		Page:       1,
+		PerPage:    20,
+	})
+	if err != nil {
+		t.Fatalf("問題検索に失敗しました: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("総件数が期待値と異なります: got %d, want 1", result.Total)
+	}
+}
+
+// TestQuestionUseCase_SearchQuestions_TagAndKeyword はタグとキーワードの複合検索テストです。
+func TestQuestionUseCase_SearchQuestions_TagAndKeyword(t *testing.T) {
+	repo := newMockQuestionRepository()
+	repo.addQuestion(testPublishedQuestionWithFields("q-1", "暗号化の基礎", "本文1", "解説1", "メモ1", []string{"tag-1"}))
+	repo.addQuestion(testPublishedQuestionWithFields("q-2", "暗号化の応用", "本文2", "解説2", "メモ2", []string{"tag-2"}))
+	repo.addQuestion(testPublishedQuestionWithFields("q-3", "リスク管理", "本文3", "解説3", "メモ3", []string{"tag-1"}))
+
+	uc := newQuestionUseCase(repo)
+
+	// tag-1 AND keyword=暗号化 → q-1 のみ1件
+	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
+		CallerID:   "user-1",
+		CallerRole: domain.RoleUser,
+		TagIDs:     []string{"tag-1"},
+		Keyword:    "暗号化",
+		Page:       1,
+		PerPage:    20,
+	})
+	if err != nil {
+		t.Fatalf("問題検索に失敗しました: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("複合検索の総件数が期待値と異なります: got %d, want 1", result.Total)
+	}
+}
+
+// TestQuestionUseCase_SearchQuestions_EmptyResult は検索結果0件が空配列と200を返すテストです。
+func TestQuestionUseCase_SearchQuestions_EmptyResult(t *testing.T) {
+	repo := newMockQuestionRepository()
+	repo.addQuestion(testPublishedQuestionWithFields("q-1", "問題1", "本文1", "解説1", "メモ1", []string{"tag-1"}))
+
+	uc := newQuestionUseCase(repo)
+
+	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
+		CallerID:   "user-1",
+		CallerRole: domain.RoleUser,
+		Keyword:    "存在しないキーワードxyz",
+		Page:       1,
+		PerPage:    20,
+	})
+	if err != nil {
+		t.Fatalf("検索結果0件でもエラーは返されるべきではありません: %v", err)
+	}
+	if result.Total != 0 {
+		t.Errorf("総件数が期待値と異なります: got %d, want 0", result.Total)
+	}
+	if result.Items == nil {
+		t.Error("Items は nil ではなく空スライスが返されるべきです")
+	}
+	if len(result.Items) != 0 {
+		t.Errorf("取得件数が期待値と異なります: got %d, want 0", len(result.Items))
+	}
+}
+
+// TestQuestionUseCase_SearchQuestions_Pagination はページネーションのテストです。
+func TestQuestionUseCase_SearchQuestions_Pagination(t *testing.T) {
+	repo := newMockQuestionRepository()
+	// 公開問題を5件作成
+	for i := 1; i <= 5; i++ {
+		repo.addQuestion(testPublishedQuestionWithFields(
+			fmt.Sprintf("q-%d", i),
+			fmt.Sprintf("問題%d", i),
+			"本文",
+			"解説",
+			"メモ",
+			[]string{},
+		))
+	}
+
+	uc := newQuestionUseCase(repo)
+
+	// 1ページあたり2件、2ページ目を取得
+	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
+		CallerID:   "user-1",
+		CallerRole: domain.RoleUser,
+		Page:       2,
+		PerPage:    2,
+	})
+	if err != nil {
+		t.Fatalf("問題検索に失敗しました: %v", err)
+	}
+	if result.Total != 5 {
+		t.Errorf("総件数が期待値と異なります: got %d, want 5", result.Total)
+	}
+	if result.TotalPages != 3 {
+		t.Errorf("総ページ数が期待値と異なります: got %d, want 3", result.TotalPages)
+	}
+	if result.Page != 2 {
+		t.Errorf("ページ番号が期待値と異なります: got %d, want 2", result.Page)
+	}
+	if len(result.Items) != 2 {
+		t.Errorf("取得件数が期待値と異なります: got %d, want 2", len(result.Items))
+	}
+}
+
+// TestQuestionUseCase_SearchQuestions_PaginationFirstPage はページネーションの1ページ目テストです。
+func TestQuestionUseCase_SearchQuestions_PaginationFirstPage(t *testing.T) {
+	repo := newMockQuestionRepository()
+	for i := 1; i <= 3; i++ {
+		repo.addQuestion(testPublishedQuestionWithFields(
+			fmt.Sprintf("q-%d", i),
+			fmt.Sprintf("問題%d", i),
+			"本文", "解説", "メモ", []string{},
+		))
+	}
+
+	uc := newQuestionUseCase(repo)
+
+	// デフォルトパラメータ（page=0はpage=1として扱われる）
+	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
+		CallerID:   "user-1",
+		CallerRole: domain.RoleUser,
+		Page:       0, // 0以下は1とみなす
+		PerPage:    0, // 0以下はデフォルト20とみなす
+	})
+	if err != nil {
+		t.Fatalf("問題検索に失敗しました: %v", err)
+	}
+	if result.Page != 1 {
+		t.Errorf("ページ番号が期待値と異なります: got %d, want 1", result.Page)
+	}
+	if result.PerPage != 20 {
+		t.Errorf("1ページあたりの件数が期待値と異なります: got %d, want 20", result.PerPage)
+	}
+	if result.Total != 3 {
+		t.Errorf("総件数が期待値と異なります: got %d, want 3", result.Total)
+	}
+}
+
+// TestQuestionUseCase_SearchQuestions_VisibilityFilter は可視性フィルタが検索に適用されるテストです。
+func TestQuestionUseCase_SearchQuestions_VisibilityFilter(t *testing.T) {
+	repo := newMockQuestionRepository()
+	// user-1 の draft 問題（user-2 からは見えない）
+	repo.addQuestion(testQuestion("q-1", "テスト問題", "user-1"))
+	// user-1 の公開問題（全ユーザーに見える）
+	repo.addQuestion(testPublishedQuestionWithFields("q-2", "テスト問題（公開）", "本文", "解説", "メモ", []string{}))
+
+	uc := newQuestionUseCase(repo)
+
+	// user-2 として検索 → 公開問題q-2のみ見える
+	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
+		CallerID:   "user-2",
+		CallerRole: domain.RoleUser,
+		Keyword:    "テスト",
+		Page:       1,
+		PerPage:    20,
+	})
+	if err != nil {
+		t.Fatalf("問題検索に失敗しました: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("可視性フィルタ後の総件数が期待値と異なります: got %d, want 1", result.Total)
+	}
+}
+
+// TestQuestionUseCase_SearchQuestions_AdminSeesAll は admin が全問題を検索できるテストです。
+func TestQuestionUseCase_SearchQuestions_AdminSeesAll(t *testing.T) {
+	repo := newMockQuestionRepository()
+	// draft 問題（通常ユーザーからは作成者のみ見える）
+	repo.addQuestion(testQuestion("q-1", "テスト問題（draft）", "user-1"))
+	// 公開問題
+	repo.addQuestion(testPublishedQuestionWithFields("q-2", "テスト問題（公開）", "本文", "解説", "メモ", []string{}))
+
+	uc := newQuestionUseCase(repo)
+
+	// admin として検索 → 全2件が見える
+	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
+		CallerID:   "admin-1",
+		CallerRole: domain.RoleAdmin,
+		Keyword:    "テスト",
+		Page:       1,
+		PerPage:    20,
+	})
+	if err != nil {
+		t.Fatalf("問題検索に失敗しました: %v", err)
+	}
+	if result.Total != 2 {
+		t.Errorf("admin の場合の総件数が期待値と異なります: got %d, want 2", result.Total)
+	}
+}
+
+// TestQuestionUseCase_SearchQuestions_PerPageMax はper_page最大値の正規化テストです。
+func TestQuestionUseCase_SearchQuestions_PerPageMax(t *testing.T) {
+	repo := newMockQuestionRepository()
+	for i := 1; i <= 3; i++ {
+		repo.addQuestion(testPublishedQuestionWithFields(
+			fmt.Sprintf("q-%d", i),
+			fmt.Sprintf("問題%d", i),
+			"本文", "解説", "メモ", []string{},
+		))
+	}
+
+	uc := newQuestionUseCase(repo)
+
+	// per_page=200 は最大値100に正規化される
+	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
+		CallerID:   "user-1",
+		CallerRole: domain.RoleUser,
+		Page:       1,
+		PerPage:    200,
+	})
+	if err != nil {
+		t.Fatalf("問題検索に失敗しました: %v", err)
+	}
+	if result.PerPage != 100 {
+		t.Errorf("per_page が最大値に正規化されていません: got %d, want 100", result.PerPage)
 	}
 }
 
