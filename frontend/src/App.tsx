@@ -6,6 +6,8 @@ import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import QuestionListPage from './pages/QuestionListPage';
 import QuestionDetailPage from './pages/QuestionDetailPage';
+import QuestionCreatePage from './pages/QuestionCreatePage';
+import QuestionEditPage from './pages/QuestionEditPage';
 
 export default function App() {
   return (
@@ -18,8 +20,9 @@ export default function App() {
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />
               <Route path="/questions" element={<QuestionListPage />} />
+              <Route path="/questions/new" element={<QuestionCreatePage />} />
               <Route path="/questions/:id" element={<QuestionDetailPage />} />
-              {/* 今後の機能画面はここに追加 */}
+              <Route path="/questions/:id/edit" element={<QuestionEditPage />} />
             </Route>
           </Route>
 
