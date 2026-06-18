@@ -21,8 +21,6 @@ import (
 	gcsStorage "github.com/kalKun24/cert-study-base/backend/internal/infrastructure/storage"
 	"github.com/kalKun24/cert-study-base/backend/internal/interface/handler"
 	"github.com/kalKun24/cert-study-base/backend/internal/usecase"
-
-	gcs "cloud.google.com/go/storage"
 )
 
 // response は統一レスポンスフォーマットです。
@@ -63,8 +61,8 @@ func main() {
 
 	ctx := context.Background()
 
-	// GCSクライアントを初期化
-	gcsClient, err := gcs.NewClient(ctx)
+	// GCS_EMULATOR_HOST が設定されている場合はエミュレータへ、未設定時は実 GCS へ接続
+	gcsClient, err := gcsStorage.NewClientFromEnv(ctx)
 	if err != nil {
 		slog.Error("GCSクライアントの初期化に失敗しました", "error", err)
 		os.Exit(1)
@@ -74,6 +72,15 @@ func main() {
 			slog.Warn("GCSクライアントのクローズに失敗しました", "error", err)
 		}
 	}()
+
+	// エミュレータ使用時はバケットが存在しないため起動時に作成する
+	if os.Getenv("GCS_EMULATOR_HOST") != "" {
+		if err := gcsStorage.EnsureBucketExists(ctx, gcsClient, gcsBucket); err != nil {
+			slog.Error("エミュレータバケットの作成に失敗しました", "error", err)
+			os.Exit(1)
+		}
+		slog.Info("GCS エミュレータを使用します", "host", os.Getenv("GCS_EMULATOR_HOST"), "bucket", gcsBucket)
+	}
 
 	// StorageClient アダプター（GCS → 独自インターフェース）
 	sc := gcsStorage.NewGCSStorageClient(gcsClient)
@@ -89,8 +96,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	teamRepo := repository.NewGCSTeamRepository(sc, gcsBucket)
+
 	authUC := usecase.NewAuthUseCase(userRepo, bcryptHasher, jwtManager)
 	userUC := usecase.NewUserUseCase(userRepo, bcryptHasher)
+	teamUC := usecase.NewTeamUseCase(teamRepo, userRepo)
 
 	questionRepo := repository.NewGCSQuestionRepository(sc, gcsBucket)
 	questionUC := usecase.NewQuestionUseCase(questionRepo)
@@ -98,6 +108,7 @@ func main() {
 	authHandler := handler.NewAuthHandler(authUC)
 	userHandler := handler.NewUserHandler(userUC)
 	questionHandler := handler.NewQuestionHandler(questionUC)
+	teamHandler := handler.NewTeamHandler(teamUC)
 
 	// ルーティング設定
 	mux := http.NewServeMux()
@@ -143,6 +154,15 @@ func main() {
 	mux.Handle("GET /api/v1/questions/{id}", withAuth(questionHandler.HandleGetQuestion))
 	mux.Handle("PUT /api/v1/questions/{id}", withAuth(questionHandler.HandleUpdateQuestion))
 	mux.Handle("DELETE /api/v1/questions/{id}", withAuth(questionHandler.HandleDeleteQuestion))
+
+	// チーム管理（認証済み全ユーザー。各エンドポイントで認可チェックをユースケース層が実施）
+	mux.Handle("POST /api/v1/teams", withAuth(teamHandler.HandleCreateTeam))
+	mux.Handle("GET /api/v1/teams", withAuth(teamHandler.HandleListTeams))
+	mux.Handle("GET /api/v1/teams/{id}", withAuth(teamHandler.HandleGetTeam))
+	mux.Handle("PUT /api/v1/teams/{id}", withAuth(teamHandler.HandleUpdateTeam))
+	mux.Handle("DELETE /api/v1/teams/{id}", withAuth(teamHandler.HandleDeleteTeam))
+	mux.Handle("POST /api/v1/teams/{id}/members", withAuth(teamHandler.HandleAddTeamMember))
+	mux.Handle("DELETE /api/v1/teams/{id}/members/{user_id}", withAuth(teamHandler.HandleRemoveTeamMember))
 
 	srv := &http.Server{
 		Addr:         net.JoinHostPort("", port),

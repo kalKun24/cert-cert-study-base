@@ -438,6 +438,265 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /api/v1/teams:
+    post:
+      summary: チーム作成（admin / teamowner のみ）
+      operationId: createTeam
+      tags:
+        - teams
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTeamRequest"
+      responses:
+        "201":
+          description: チーム作成成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Team"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    get:
+      summary: チーム一覧取得（admin は全件、それ以外は自分が所属するチームのみ）
+      operationId: listTeams
+      tags:
+        - teams
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: チーム一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Team"
+                  error:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/teams/{id}:
+    get:
+      summary: チーム詳細取得（メンバーまたは admin のみ）
+      operationId: getTeam
+      tags:
+        - teams
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      responses:
+        "200":
+          description: チーム詳細（メンバー一覧を含む）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/TeamDetail"
+                  error:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      summary: チーム情報更新（owner_id 本人または admin のみ）
+      operationId: updateTeam
+      tags:
+        - teams
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTeamRequest"
+      responses:
+        "200":
+          description: チーム更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Team"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: チーム削除（owner_id 本人または admin のみ）
+      operationId: deleteTeam
+      tags:
+        - teams
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      responses:
+        "200":
+          description: チーム削除成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                        example: チームを削除しました
+                  error:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/teams/{id}/members:
+    post:
+      summary: メンバー追加（owner_id 本人または admin のみ）
+      operationId: addTeamMember
+      tags:
+        - teams
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddTeamMemberRequest"
+      responses:
+        "201":
+          description: メンバー追加成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/TeamMember"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/teams/{id}/members/{user_id}:
+    delete:
+      summary: メンバー除外（owner_id 本人または admin のみ）
+      operationId: removeTeamMember
+      tags:
+        - teams
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - name: user_id
+          in: path
+          required: true
+          description: 除外するユーザーID（UUID形式）
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440001"
+      responses:
+        "200":
+          description: メンバー除外成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                        example: メンバーを除外しました
+                  error:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/v1/users/{id}/status:
     patch:
       summary: ユーザー有効/停止切り替え（admin のみ）
@@ -487,6 +746,16 @@ components:
       bearerFormat: JWT
 
   parameters:
+    TeamID:
+      name: id
+      in: path
+      required: true
+      description: チームID（UUID形式）
+      schema:
+        type: string
+        format: uuid
+        example: "660e8400-e29b-41d4-a716-446655440000"
+
     UserID:
       name: id
       in: path
@@ -508,6 +777,118 @@ components:
         example: "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
 
   schemas:
+    Team:
+      type: object
+      description: チームエンティティ
+      required:
+        - id
+        - name
+        - description
+        - owner_id
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: チームID
+          example: "660e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          description: チーム名（一意）
+          example: "CISSP勉強会"
+        description:
+          type: string
+          description: チームの説明
+          example: "CISSP資格取得を目指す勉強会グループです"
+        owner_id:
+          type: string
+          format: uuid
+          description: チームオーナーのユーザーID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        created_at:
+          type: string
+          format: date-time
+          description: 作成日時
+          example: "2024-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: 更新日時
+          example: "2024-01-01T00:00:00Z"
+
+    TeamMember:
+      type: object
+      description: チームメンバーエンティティ
+      required:
+        - team_id
+        - user_id
+        - joined_at
+      properties:
+        team_id:
+          type: string
+          format: uuid
+          description: チームID
+          example: "660e8400-e29b-41d4-a716-446655440000"
+        user_id:
+          type: string
+          format: uuid
+          description: メンバーのユーザーID
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        joined_at:
+          type: string
+          format: date-time
+          description: 参加日時
+          example: "2024-01-01T00:00:00Z"
+
+    TeamDetail:
+      allOf:
+        - $ref: "#/components/schemas/Team"
+        - type: object
+          properties:
+            members:
+              type: array
+              description: チームメンバー一覧
+              items:
+                $ref: "#/components/schemas/TeamMember"
+
+    CreateTeamRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: チーム名（一意）
+          example: "CISSP勉強会"
+        description:
+          type: string
+          description: チームの説明（任意）
+          example: "CISSP資格取得を目指す勉強会グループです"
+
+    UpdateTeamRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: チーム名（省略時は変更しない）
+          example: "CISSP勉強会 2024"
+        description:
+          type: string
+          description: チームの説明（省略時は変更しない）
+          example: "2024年度版 CISSP勉強会"
+
+    AddTeamMemberRequest:
+      type: object
+      required:
+        - user_id
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: 追加するユーザーID
+          example: "550e8400-e29b-41d4-a716-446655440001"
+
     User:
       type: object
       description: ユーザーエンティティ（パスワードハッシュは含まない）

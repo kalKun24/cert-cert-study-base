@@ -5,13 +5,13 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-016 |
-| ステータス | 🔴 未着手 |
+| ステータス | 🟢 完了 |
 | 作成日 | 2026-06-17 |
-| 着手日 | - |
-| 完了日 | - |
+| 着手日 | 2026-06-18 |
+| 完了日 | 2026-06-18 |
 | ブランチ名 | `feature/gcs-local-emulator` |
-| PR番号 | - |
-| PRリンク | - |
+| PR番号 | #4 |
+| PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/4 |
 
 ---
 
@@ -55,11 +55,11 @@
 
 ## サブチケット（コミット単位）
 
-- [ ] `chore(infra): docker-compose に fake-gcs-server サービスを追加`
-- [ ] `feat(infrastructure): GCS_EMULATOR_HOST によるエミュレータ切り替えを実装`
-- [ ] `test(infrastructure): GCS エミュレータを使ったリポジトリ統合テストを追加`
-- [ ] `chore(ci): GitHub Actions に fake-gcs-server を組み込む`
-- [ ] `docs(readme): ローカル開発環境セットアップ手順を更新`
+- [x] `chore(infra): docker-compose に fake-gcs-server サービスを追加`
+- [x] `feat(infrastructure): GCS_EMULATOR_HOST によるエミュレータ切り替えを実装`
+- [x] `test(infrastructure): GCS エミュレータを使ったリポジトリ統合テストを追加`
+- [x] `chore(ci): GitHub Actions に fake-gcs-server を組み込む`
+- [x] `docs(readme): ローカル開発環境セットアップ手順を更新`
 
 ---
 

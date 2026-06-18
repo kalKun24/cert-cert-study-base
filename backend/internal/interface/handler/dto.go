@@ -146,3 +146,64 @@ type UpdateQuestionRequestDTO struct {
 	VisibilityScope  *string  `json:"visibility_scope"`
 	PublishedTeamIDs []string `json:"published_team_ids"`
 }
+
+// TeamDTO はAPIレスポンス用のチームDTOです。
+type TeamDTO struct {
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	OwnerID     string    `json:"owner_id"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// TeamMemberDTO はAPIレスポンス用のチームメンバーDTOです。
+type TeamMemberDTO struct {
+	TeamID   string    `json:"team_id"`
+	UserID   string    `json:"user_id"`
+	JoinedAt time.Time `json:"joined_at"`
+}
+
+// TeamDetailDTO はチーム詳細のDTOです（メンバー一覧を含む）。
+type TeamDetailDTO struct {
+	TeamDTO
+	Members []TeamMemberDTO `json:"members"`
+}
+
+// CreateTeamRequestDTO はチーム作成リクエストのDTOです。
+type CreateTeamRequestDTO struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+// UpdateTeamRequestDTO はチーム更新リクエストのDTOです。
+type UpdateTeamRequestDTO struct {
+	Name        *string `json:"name"`
+	Description *string `json:"description"`
+}
+
+// AddTeamMemberRequestDTO はメンバー追加リクエストのDTOです。
+type AddTeamMemberRequestDTO struct {
+	UserID string `json:"user_id"`
+}
+
+// toTeamDTO はドメインエンティティをAPIレスポンス用DTOに変換します。
+func toTeamDTO(t *domain.Team) TeamDTO {
+	return TeamDTO{
+		ID:          t.ID,
+		Name:        t.Name,
+		Description: t.Description,
+		OwnerID:     t.OwnerID,
+		CreatedAt:   t.CreatedAt,
+		UpdatedAt:   t.UpdatedAt,
+	}
+}
+
+// toTeamMemberDTO はドメインエンティティをAPIレスポンス用DTOに変換します。
+func toTeamMemberDTO(m *domain.TeamMember) TeamMemberDTO {
+	return TeamMemberDTO{
+		TeamID:   m.TeamID,
+		UserID:   m.UserID,
+		JoinedAt: m.JoinedAt,
+	}
+}

@@ -83,8 +83,6 @@ type Question struct {
 var (
 	// ErrQuestionNotFound は問題が見つからない場合のエラーです。
 	ErrQuestionNotFound = errors.New("問題が見つかりません")
-	// ErrPermissionDenied は操作権限がない場合のエラーです。
-	ErrPermissionDenied = errors.New("この操作を行う権限がありません")
 	// ErrInvalidQuestionStatus は問題のステータスが無効な値の場合のエラーです。
 	ErrInvalidQuestionStatus = errors.New("無効な問題ステータスです")
 	// ErrInvalidVisibilityScope は公開範囲が無効な値の場合のエラーです。
