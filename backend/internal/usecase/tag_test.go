@@ -13,21 +13,29 @@ import (
 // --- タグ用モック定義 ---
 
 // mockTagRepository は domain.TagRepository のモックです。
+// 使用中チェックもリポジトリ層の責務に移動したため、Delete 内でチェックを行います。
 type mockTagRepository struct {
 	tags      map[string]*domain.Tag
+	questions map[string]*domain.Question // 使用中チェック用
 	saveErr   error
 	deleteErr error
 }
 
 func newMockTagRepository() *mockTagRepository {
 	return &mockTagRepository{
-		tags: make(map[string]*domain.Tag),
+		tags:      make(map[string]*domain.Tag),
+		questions: make(map[string]*domain.Question),
 	}
 }
 
 // addTag はテスト用のタグをモックに追加します。
 func (m *mockTagRepository) addTag(t *domain.Tag) {
 	m.tags[t.ID] = t
+}
+
+// addQuestionForTagCheck はタグ使用中チェック用のテスト問題をモックに追加します。
+func (m *mockTagRepository) addQuestionForTagCheck(q *domain.Question) {
+	m.questions[q.ID] = q
 }
 
 func (m *mockTagRepository) FindByID(_ context.Context, id string) (*domain.Tag, error) {
@@ -69,6 +77,14 @@ func (m *mockTagRepository) Delete(_ context.Context, id string) error {
 	if _, ok := m.tags[id]; !ok {
 		return domain.ErrTagNotFound
 	}
+	// 使用中チェック（インフラ層の責務をモックで再現）
+	for _, q := range m.questions {
+		for _, tid := range q.Tags {
+			if tid == id {
+				return domain.ErrTagInUse
+			}
+		}
+	}
 	delete(m.tags, id)
 	return nil
 }
@@ -106,8 +122,7 @@ func TestTagUseCase_ListTags_Success(t *testing.T) {
 	tagRepo.addTag(testTag("tag-1", "CISSP"))
 	tagRepo.addTag(testTag("tag-2", "ドメイン1"))
 
-	questionRepo := newMockQuestionRepository()
-	uc := usecase.NewTagUseCase(tagRepo, questionRepo)
+	uc := usecase.NewTagUseCase(tagRepo)
 
 	tags, err := uc.ListTags(context.Background())
 	if err != nil {
@@ -121,8 +136,7 @@ func TestTagUseCase_ListTags_Success(t *testing.T) {
 // TestTagUseCase_ListTags_Empty はタグが0件の場合のテストです。
 func TestTagUseCase_ListTags_Empty(t *testing.T) {
 	tagRepo := newMockTagRepository()
-	questionRepo := newMockQuestionRepository()
-	uc := usecase.NewTagUseCase(tagRepo, questionRepo)
+	uc := usecase.NewTagUseCase(tagRepo)
 
 	tags, err := uc.ListTags(context.Background())
 	if err != nil {
@@ -136,8 +150,7 @@ func TestTagUseCase_ListTags_Empty(t *testing.T) {
 // TestTagUseCase_CreateTag_Success は正常系のタグ作成テストです。
 func TestTagUseCase_CreateTag_Success(t *testing.T) {
 	tagRepo := newMockTagRepository()
-	questionRepo := newMockQuestionRepository()
-	uc := usecase.NewTagUseCase(tagRepo, questionRepo)
+	uc := usecase.NewTagUseCase(tagRepo)
 
 	tag, err := uc.CreateTag(context.Background(), usecase.CreateTagInput{Name: "CISSP"})
 	if err != nil {
@@ -157,12 +170,37 @@ func TestTagUseCase_CreateTag_Success(t *testing.T) {
 // TestTagUseCase_CreateTag_EmptyName はタグ名が空の場合のテストです。
 func TestTagUseCase_CreateTag_EmptyName(t *testing.T) {
 	tagRepo := newMockTagRepository()
-	questionRepo := newMockQuestionRepository()
-	uc := usecase.NewTagUseCase(tagRepo, questionRepo)
+	uc := usecase.NewTagUseCase(tagRepo)
 
 	_, err := uc.CreateTag(context.Background(), usecase.CreateTagInput{Name: ""})
 	if err == nil {
 		t.Fatal("タグ名が空の場合はエラーが返されるべきです")
+	}
+}
+
+// TestTagUseCase_CreateTag_WhitespaceOnly はタグ名が空白のみの場合のテストです。
+func TestTagUseCase_CreateTag_WhitespaceOnly(t *testing.T) {
+	tagRepo := newMockTagRepository()
+	uc := usecase.NewTagUseCase(tagRepo)
+
+	_, err := uc.CreateTag(context.Background(), usecase.CreateTagInput{Name: "   "})
+	if err == nil {
+		t.Fatal("タグ名が空白のみの場合はエラーが返されるべきです")
+	}
+}
+
+// TestTagUseCase_CreateTag_TooLongName はタグ名が最大長を超える場合のテストです。
+func TestTagUseCase_CreateTag_TooLongName(t *testing.T) {
+	tagRepo := newMockTagRepository()
+	uc := usecase.NewTagUseCase(tagRepo)
+
+	longName := string(make([]rune, 51))
+	for i := range longName {
+		longName = longName[:i] + "a" + longName[i+1:]
+	}
+	_, err := uc.CreateTag(context.Background(), usecase.CreateTagInput{Name: longName})
+	if err == nil {
+		t.Fatal("タグ名が50文字を超える場合はエラーが返されるべきです")
 	}
 }
 
@@ -171,8 +209,7 @@ func TestTagUseCase_CreateTag_DuplicateName(t *testing.T) {
 	tagRepo := newMockTagRepository()
 	tagRepo.addTag(testTag("tag-1", "CISSP"))
 
-	questionRepo := newMockQuestionRepository()
-	uc := usecase.NewTagUseCase(tagRepo, questionRepo)
+	uc := usecase.NewTagUseCase(tagRepo)
 
 	_, err := uc.CreateTag(context.Background(), usecase.CreateTagInput{Name: "CISSP"})
 	if !errors.Is(err, domain.ErrTagNameAlreadyExists) {
@@ -185,8 +222,7 @@ func TestTagUseCase_UpdateTag_Success(t *testing.T) {
 	tagRepo := newMockTagRepository()
 	tagRepo.addTag(testTag("tag-1", "CISSP"))
 
-	questionRepo := newMockQuestionRepository()
-	uc := usecase.NewTagUseCase(tagRepo, questionRepo)
+	uc := usecase.NewTagUseCase(tagRepo)
 
 	newName := "CISSP 2024"
 	tag, err := uc.UpdateTag(context.Background(), "tag-1", usecase.UpdateTagInput{Name: &newName})
@@ -203,8 +239,7 @@ func TestTagUseCase_UpdateTag_SameName(t *testing.T) {
 	tagRepo := newMockTagRepository()
 	tagRepo.addTag(testTag("tag-1", "CISSP"))
 
-	questionRepo := newMockQuestionRepository()
-	uc := usecase.NewTagUseCase(tagRepo, questionRepo)
+	uc := usecase.NewTagUseCase(tagRepo)
 
 	sameName := "CISSP"
 	tag, err := uc.UpdateTag(context.Background(), "tag-1", usecase.UpdateTagInput{Name: &sameName})
@@ -222,8 +257,7 @@ func TestTagUseCase_UpdateTag_DuplicateName(t *testing.T) {
 	tagRepo.addTag(testTag("tag-1", "CISSP"))
 	tagRepo.addTag(testTag("tag-2", "ドメイン1"))
 
-	questionRepo := newMockQuestionRepository()
-	uc := usecase.NewTagUseCase(tagRepo, questionRepo)
+	uc := usecase.NewTagUseCase(tagRepo)
 
 	duplicateName := "ドメイン1"
 	_, err := uc.UpdateTag(context.Background(), "tag-1", usecase.UpdateTagInput{Name: &duplicateName})
@@ -235,8 +269,7 @@ func TestTagUseCase_UpdateTag_DuplicateName(t *testing.T) {
 // TestTagUseCase_UpdateTag_NotFound は存在しないIDで更新した場合のテストです。
 func TestTagUseCase_UpdateTag_NotFound(t *testing.T) {
 	tagRepo := newMockTagRepository()
-	questionRepo := newMockQuestionRepository()
-	uc := usecase.NewTagUseCase(tagRepo, questionRepo)
+	uc := usecase.NewTagUseCase(tagRepo)
 
 	newName := "CISSP"
 	_, err := uc.UpdateTag(context.Background(), "nonexistent-id", usecase.UpdateTagInput{Name: &newName})
@@ -250,8 +283,7 @@ func TestTagUseCase_UpdateTag_EmptyName(t *testing.T) {
 	tagRepo := newMockTagRepository()
 	tagRepo.addTag(testTag("tag-1", "CISSP"))
 
-	questionRepo := newMockQuestionRepository()
-	uc := usecase.NewTagUseCase(tagRepo, questionRepo)
+	uc := usecase.NewTagUseCase(tagRepo)
 
 	emptyName := ""
 	_, err := uc.UpdateTag(context.Background(), "tag-1", usecase.UpdateTagInput{Name: &emptyName})
@@ -260,13 +292,43 @@ func TestTagUseCase_UpdateTag_EmptyName(t *testing.T) {
 	}
 }
 
+// TestTagUseCase_UpdateTag_WhitespaceOnly はタグ名を空白のみに更新する場合のテストです。
+func TestTagUseCase_UpdateTag_WhitespaceOnly(t *testing.T) {
+	tagRepo := newMockTagRepository()
+	tagRepo.addTag(testTag("tag-1", "CISSP"))
+
+	uc := usecase.NewTagUseCase(tagRepo)
+
+	whitespaceName := "   "
+	_, err := uc.UpdateTag(context.Background(), "tag-1", usecase.UpdateTagInput{Name: &whitespaceName})
+	if err == nil {
+		t.Fatal("タグ名が空白のみの場合はエラーが返されるべきです")
+	}
+}
+
+// TestTagUseCase_UpdateTag_TooLongName はタグ名が最大長を超える更新テストです。
+func TestTagUseCase_UpdateTag_TooLongName(t *testing.T) {
+	tagRepo := newMockTagRepository()
+	tagRepo.addTag(testTag("tag-1", "CISSP"))
+
+	uc := usecase.NewTagUseCase(tagRepo)
+
+	longName := string(make([]rune, 51))
+	for i := range longName {
+		longName = longName[:i] + "a" + longName[i+1:]
+	}
+	_, err := uc.UpdateTag(context.Background(), "tag-1", usecase.UpdateTagInput{Name: &longName})
+	if err == nil {
+		t.Fatal("タグ名が50文字を超える場合はエラーが返されるべきです")
+	}
+}
+
 // TestTagUseCase_DeleteTag_Success は正常系のタグ削除テストです。
 func TestTagUseCase_DeleteTag_Success(t *testing.T) {
 	tagRepo := newMockTagRepository()
 	tagRepo.addTag(testTag("tag-1", "CISSP"))
 
-	questionRepo := newMockQuestionRepository()
-	uc := usecase.NewTagUseCase(tagRepo, questionRepo)
+	uc := usecase.NewTagUseCase(tagRepo)
 
 	err := uc.DeleteTag(context.Background(), "tag-1")
 	if err != nil {
@@ -283,8 +345,7 @@ func TestTagUseCase_DeleteTag_Success(t *testing.T) {
 // TestTagUseCase_DeleteTag_NotFound は存在しないIDで削除した場合のテストです。
 func TestTagUseCase_DeleteTag_NotFound(t *testing.T) {
 	tagRepo := newMockTagRepository()
-	questionRepo := newMockQuestionRepository()
-	uc := usecase.NewTagUseCase(tagRepo, questionRepo)
+	uc := usecase.NewTagUseCase(tagRepo)
 
 	err := uc.DeleteTag(context.Background(), "nonexistent-id")
 	if !errors.Is(err, domain.ErrTagNotFound) {
@@ -293,15 +354,14 @@ func TestTagUseCase_DeleteTag_NotFound(t *testing.T) {
 }
 
 // TestTagUseCase_DeleteTag_InUse は使用中タグを削除しようとした場合のテストです。
+// 使用中チェックはリポジトリ層（mockTagRepository.Delete）で行われます。
 func TestTagUseCase_DeleteTag_InUse(t *testing.T) {
 	tagRepo := newMockTagRepository()
 	tagRepo.addTag(testTag("tag-1", "CISSP"))
+	// tag-1 を使用している問題をモックに追加（リポジトリ層での使用中チェック用）
+	tagRepo.addQuestionForTagCheck(testQuestionWithTags("q-1", []string{"tag-1", "tag-2"}))
 
-	questionRepo := newMockQuestionRepository()
-	// tag-1 を使用している問題を追加
-	questionRepo.addQuestion(testQuestionWithTags("q-1", []string{"tag-1", "tag-2"}))
-
-	uc := usecase.NewTagUseCase(tagRepo, questionRepo)
+	uc := usecase.NewTagUseCase(tagRepo)
 
 	err := uc.DeleteTag(context.Background(), "tag-1")
 	if !errors.Is(err, domain.ErrTagInUse) {
@@ -314,12 +374,10 @@ func TestTagUseCase_DeleteTag_NotInUse(t *testing.T) {
 	tagRepo := newMockTagRepository()
 	tagRepo.addTag(testTag("tag-1", "CISSP"))
 	tagRepo.addTag(testTag("tag-2", "ドメイン1"))
+	// tag-2 のみを使用している問題をモックに追加
+	tagRepo.addQuestionForTagCheck(testQuestionWithTags("q-1", []string{"tag-2"}))
 
-	questionRepo := newMockQuestionRepository()
-	// tag-2 のみを使用している問題を追加
-	questionRepo.addQuestion(testQuestionWithTags("q-1", []string{"tag-2"}))
-
-	uc := usecase.NewTagUseCase(tagRepo, questionRepo)
+	uc := usecase.NewTagUseCase(tagRepo)
 
 	// tag-1 は使用されていないので削除可能
 	err := uc.DeleteTag(context.Background(), "tag-1")

@@ -5,23 +5,28 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/kalKun24/cert-study-base/backend/internal/domain"
 )
 
+const (
+	// tagNameMaxLength はタグ名の最大長です。
+	tagNameMaxLength = 50
+)
+
 // TagUseCase はタグ管理に関するユースケースを実装します。
 type TagUseCase struct {
-	tagRepo      domain.TagRepository
-	questionRepo domain.QuestionRepository
+	tagRepo domain.TagRepository
 }
 
 // NewTagUseCase は TagUseCase を生成します（コンストラクタインジェクション）。
-func NewTagUseCase(tagRepo domain.TagRepository, questionRepo domain.QuestionRepository) *TagUseCase {
+// 使用中チェックは TagRepository の Delete 実装（インフラ層）に委譲します。
+func NewTagUseCase(tagRepo domain.TagRepository) *TagUseCase {
 	return &TagUseCase{
-		tagRepo:      tagRepo,
-		questionRepo: questionRepo,
+		tagRepo: tagRepo,
 	}
 }
 
@@ -45,9 +50,14 @@ type CreateTagInput struct {
 // admin ロールのみ実行可能（認可はハンドラ層のミドルウェアで保証）。
 // タグ名の重複は ErrTagNameAlreadyExists を返します。
 func (uc *TagUseCase) CreateTag(ctx context.Context, input CreateTagInput) (*domain.Tag, error) {
-	if input.Name == "" {
+	name := strings.TrimSpace(input.Name)
+	if name == "" {
 		return nil, fmt.Errorf("タグ名は必須です")
 	}
+	if len([]rune(name)) > tagNameMaxLength {
+		return nil, fmt.Errorf("タグ名は%d文字以内で入力してください", tagNameMaxLength)
+	}
+	input.Name = name
 
 	// タグ名の重複チェック
 	if _, err := uc.tagRepo.FindByName(ctx, input.Name); err == nil {
@@ -84,15 +94,19 @@ func (uc *TagUseCase) UpdateTag(ctx context.Context, id string, input UpdateTagI
 	}
 
 	if input.Name != nil {
-		if *input.Name == "" {
+		name := strings.TrimSpace(*input.Name)
+		if name == "" {
 			return nil, fmt.Errorf("タグ名は必須です")
 		}
+		if len([]rune(name)) > tagNameMaxLength {
+			return nil, fmt.Errorf("タグ名は%d文字以内で入力してください", tagNameMaxLength)
+		}
 		// タグ名の重複チェック（自分自身は除外）
-		existing, err := uc.tagRepo.FindByName(ctx, *input.Name)
+		existing, err := uc.tagRepo.FindByName(ctx, name)
 		if err == nil && existing.ID != id {
 			return nil, domain.ErrTagNameAlreadyExists
 		}
-		tag.Name = *input.Name
+		tag.Name = name
 	}
 
 	if err := uc.tagRepo.Save(ctx, tag); err != nil {
@@ -104,27 +118,10 @@ func (uc *TagUseCase) UpdateTag(ctx context.Context, id string, input UpdateTagI
 
 // DeleteTag は指定IDのタグを削除します。
 // admin ロールのみ実行可能（認可はハンドラ層のミドルウェアで保証）。
-// 削除対象のタグIDが問題の tags フィールドに含まれる場合は ErrTagInUse を返します。
+// 使用中チェックは TagRepository の Delete 実装（インフラ層）に委譲します。
+// 削除対象のタグIDが問題に使用されている場合は ErrTagInUse を返します。
+// タグが存在しない場合は ErrTagNotFound を返します。
 func (uc *TagUseCase) DeleteTag(ctx context.Context, id string) error {
-	// タグの存在確認
-	if _, err := uc.tagRepo.FindByID(ctx, id); err != nil {
-		return fmt.Errorf("タグの取得に失敗しました: %w", err)
-	}
-
-	// 使用中チェック: タグIDを参照している問題が存在するか確認
-	questions, err := uc.questionRepo.List(ctx)
-	if err != nil {
-		return fmt.Errorf("問題一覧の取得に失敗しました: %w", err)
-	}
-
-	for _, q := range questions {
-		for _, tagID := range q.Tags {
-			if tagID == id {
-				return domain.ErrTagInUse
-			}
-		}
-	}
-
 	if err := uc.tagRepo.Delete(ctx, id); err != nil {
 		return fmt.Errorf("タグの削除に失敗しました: %w", err)
 	}

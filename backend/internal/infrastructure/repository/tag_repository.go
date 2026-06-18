@@ -47,17 +47,22 @@ func toTag(r tagRecord) *domain.Tag {
 // GCSTagRepository はGCS上のJSONファイルにタグデータを永続化するリポジトリです。
 // domain.TagRepository インターフェースを実装します。
 // タグデータは GCS バケット内の tags.json に保存します。
+// questionRepo を保持することで、Delete 時の使用中チェックを同一ロック区間内で完結させ
+// TOCTOU（Time-of-check to time-of-use）競合を防ぎます。
 type GCSTagRepository struct {
-	mu      sync.RWMutex
-	storage storage.StorageClient
-	bucket  string
+	mu           sync.RWMutex
+	storage      storage.StorageClient
+	bucket       string
+	questionRepo domain.QuestionRepository
 }
 
 // NewGCSTagRepository は GCSTagRepository を生成します。
-func NewGCSTagRepository(sc storage.StorageClient, bucket string) *GCSTagRepository {
+// questionRepo はタグ削除時の使用中チェックに使用します。
+func NewGCSTagRepository(sc storage.StorageClient, bucket string, questionRepo domain.QuestionRepository) *GCSTagRepository {
 	return &GCSTagRepository{
-		storage: sc,
-		bucket:  bucket,
+		storage:      sc,
+		bucket:       bucket,
+		questionRepo: questionRepo,
 	}
 }
 
@@ -199,6 +204,9 @@ func (r *GCSTagRepository) Save(ctx context.Context, tag *domain.Tag) error {
 }
 
 // Delete はIDで指定したタグを削除します。
+// 削除前に同一ロック区間内で使用中チェックを行います。
+// タグが問題に使用されている場合は domain.ErrTagInUse を返します。
+// タグが存在しない場合は domain.ErrTagNotFound を返します。
 func (r *GCSTagRepository) Delete(ctx context.Context, id string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -220,6 +228,17 @@ func (r *GCSTagRepository) Delete(ctx context.Context, id string) error {
 
 	if !found {
 		return domain.ErrTagNotFound
+	}
+
+	// 使用中チェック: 指定タグIDを含む問題が存在するか確認。
+	// questionRepo.FindByTagID は内部でロックを取得するため、GCSTagRepository の mu とは
+	// 独立しており、デッドロックは発生しません。
+	questions, err := r.questionRepo.FindByTagID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("使用中チェックに失敗しました: %w", err)
+	}
+	if len(questions) > 0 {
+		return domain.ErrTagInUse
 	}
 
 	if err := r.saveTags(ctx, newRecords); err != nil {

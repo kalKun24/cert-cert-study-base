@@ -105,8 +105,8 @@ func main() {
 	questionRepo := repository.NewGCSQuestionRepository(sc, gcsBucket)
 	questionUC := usecase.NewQuestionUseCase(questionRepo)
 
-	tagRepo := repository.NewGCSTagRepository(sc, gcsBucket)
-	tagUC := usecase.NewTagUseCase(tagRepo, questionRepo)
+	tagRepo := repository.NewGCSTagRepository(sc, gcsBucket, questionRepo)
+	tagUC := usecase.NewTagUseCase(tagRepo)
 
 	authHandler := handler.NewAuthHandler(authUC)
 	userHandler := handler.NewUserHandler(userUC)

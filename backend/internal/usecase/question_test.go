@@ -52,6 +52,19 @@ func (m *mockQuestionRepository) Save(_ context.Context, question *domain.Questi
 	return nil
 }
 
+func (m *mockQuestionRepository) FindByTagID(_ context.Context, tagID string) ([]*domain.Question, error) {
+	var result []*domain.Question
+	for _, q := range m.questions {
+		for _, tid := range q.Tags {
+			if tid == tagID {
+				result = append(result, q)
+				break
+			}
+		}
+	}
+	return result, nil
+}
+
 func (m *mockQuestionRepository) Delete(_ context.Context, id string) error {
 	if m.deleteErr != nil {
 		return m.deleteErr

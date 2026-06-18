@@ -193,6 +193,29 @@ func (r *GCSQuestionRepository) List(ctx context.Context) ([]*domain.Question, e
 	return questions, nil
 }
 
+// FindByTagID は指定されたタグIDを持つ問題の一覧を返します。
+func (r *GCSQuestionRepository) FindByTagID(ctx context.Context, tagID string) ([]*domain.Question, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	records, err := r.loadQuestions(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("問題データ読み込みに失敗しました: %w", err)
+	}
+
+	var questions []*domain.Question
+	for _, rec := range records {
+		for _, tid := range rec.Tags {
+			if tid == tagID {
+				questions = append(questions, toQuestion(rec))
+				break
+			}
+		}
+	}
+
+	return questions, nil
+}
+
 // Save は問題を新規作成または更新します。
 // IDが一致するレコードが存在する場合は更新、存在しない場合は追加します。
 func (r *GCSQuestionRepository) Save(ctx context.Context, question *domain.Question) error {

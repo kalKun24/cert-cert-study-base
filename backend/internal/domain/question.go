@@ -105,6 +105,10 @@ type QuestionRepository interface {
 	// IDが一致するレコードが存在する場合は更新、存在しない場合は追加します。
 	Save(ctx context.Context, question *Question) error
 
+	// FindByTagID は指定されたタグIDを持つ問題の一覧を返します。
+	// 該当する問題が存在しない場合は空のスライスを返します。
+	FindByTagID(ctx context.Context, tagID string) ([]*Question, error)
+
 	// Delete はIDで指定した問題を削除します。
 	// 問題が存在しない場合は ErrQuestionNotFound を返します。
 	Delete(ctx context.Context, id string) error
