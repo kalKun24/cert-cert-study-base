@@ -105,10 +105,14 @@ func main() {
 	questionRepo := repository.NewGCSQuestionRepository(sc, gcsBucket)
 	questionUC := usecase.NewQuestionUseCase(questionRepo)
 
+	tagRepo := repository.NewGCSTagRepository(sc, gcsBucket)
+	tagUC := usecase.NewTagUseCase(tagRepo, questionRepo)
+
 	authHandler := handler.NewAuthHandler(authUC)
 	userHandler := handler.NewUserHandler(userUC)
 	questionHandler := handler.NewQuestionHandler(questionUC)
 	teamHandler := handler.NewTeamHandler(teamUC)
+	tagHandler := handler.NewTagHandler(tagUC)
 
 	// ルーティング設定
 	mux := http.NewServeMux()
@@ -163,6 +167,12 @@ func main() {
 	mux.Handle("DELETE /api/v1/teams/{id}", withAuth(teamHandler.HandleDeleteTeam))
 	mux.Handle("POST /api/v1/teams/{id}/members", withAuth(teamHandler.HandleAddTeamMember))
 	mux.Handle("DELETE /api/v1/teams/{id}/members/{user_id}", withAuth(teamHandler.HandleRemoveTeamMember))
+
+	// タグ管理（一覧取得は認証済み全ユーザー、作成・更新・削除は admin のみ）
+	mux.Handle("GET /api/v1/tags", withAuth(tagHandler.HandleListTags))
+	mux.Handle("POST /api/v1/tags", withAdmin(tagHandler.HandleCreateTag))
+	mux.Handle("PUT /api/v1/tags/{id}", withAdmin(tagHandler.HandleUpdateTag))
+	mux.Handle("DELETE /api/v1/tags/{id}", withAdmin(tagHandler.HandleDeleteTag))
 
 	srv := &http.Server{
 		Addr:         net.JoinHostPort("", port),
