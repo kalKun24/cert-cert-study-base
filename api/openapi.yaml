@@ -438,6 +438,52 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /api/v1/questions/{id}/visibility:
+    patch:
+      summary: 問題の公開設定変更（作成者本人または admin のみ）
+      description: |
+        指定IDの問題の公開ステータス・公開範囲・公開対象チームIDを変更します。
+        作成者本人または admin ロールのみ操作可能です。
+        - status=draft / private の場合、作成者のみが閲覧できます。
+        - status=published かつ visibility_scope=all の場合、全ログインユーザーが閲覧できます。
+        - status=published かつ visibility_scope=team の場合、published_team_ids に指定したチームのメンバーのみ閲覧できます。
+      operationId: updateQuestionVisibility
+      tags:
+        - questions
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/QuestionID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateQuestionVisibilityRequest"
+      responses:
+        "200":
+          description: 公開設定更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Question"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/v1/teams:
     post:
       summary: チーム作成（admin / teamowner のみ）
@@ -1239,6 +1285,33 @@ components:
             type: string
           description: 公開対象チームIDの一覧（visibility_scope=team の場合に使用）
           example: []
+
+    UpdateQuestionVisibilityRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - draft
+            - private
+            - published
+          description: 公開ステータス
+          example: "published"
+        visibility_scope:
+          type: string
+          enum:
+            - all
+            - team
+          description: 公開範囲（status=published のときのみ有効）
+          example: "team"
+        published_team_ids:
+          type: array
+          items:
+            type: string
+          description: 公開対象チームIDの一覧（visibility_scope=team の場合に使用）
+          example: ["660e8400-e29b-41d4-a716-446655440000"]
 
     UpdateQuestionRequest:
       type: object
