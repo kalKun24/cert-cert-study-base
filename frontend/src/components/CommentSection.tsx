@@ -1,5 +1,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import ReactMarkdown from 'react-markdown';
+import rehypeSanitize from 'rehype-sanitize';
 import { useAuth } from '../context/AuthContext';
 import { Comment } from '../types/comment';
 import { fetchComments, postComment, updateComment, deleteComment } from '../utils/commentApi';
@@ -21,6 +23,9 @@ export default function CommentSection({ questionId }: Props) {
   const [newPreview, setNewPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+
+  // 削除エラー
+  const [deleteError, setDeleteError] = useState('');
 
   // 編集中のコメント管理
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -102,11 +107,13 @@ export default function CommentSection({ questionId }: Props) {
   };
 
   const handleDelete = async (commentId: string) => {
+    if (!window.confirm(t('comment.confirm.delete'))) return;
+    setDeleteError('');
     try {
       await deleteComment(questionId, commentId);
       setComments((prev) => prev.filter((c) => c.id !== commentId));
     } catch {
-      // 削除失敗時はコンソールのみ（UIはそのまま）
+      setDeleteError(t('comment.error.deleteFailed'));
     }
   };
 
@@ -140,10 +147,19 @@ export default function CommentSection({ questionId }: Props) {
         <p className="comment-empty">{t('comment.section.empty')}</p>
       )}
 
+      {deleteError && (
+        <p role="alert" className="alert alert-error">
+          {deleteError}
+        </p>
+      )}
+
       {!isLoading && !loadError && comments.length > 0 && (
         <ul className="comment-list">
           {comments.map((comment) => {
             const isOwner = user?.id === comment.created_by;
+            const isAdmin = user?.role === 'admin';
+            const canDelete = isOwner || isAdmin;
+            const canEdit = isOwner;
             const isEditing = editingId === comment.id;
 
             return (
@@ -156,22 +172,26 @@ export default function CommentSection({ questionId }: Props) {
                     )}
                   </span>
                   <span className="comment-date">{formatDate(comment.created_at)}</span>
-                  {isOwner && !isEditing && (
+                  {(canEdit || canDelete) && !isEditing && (
                     <div className="comment-actions">
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => handleEditStart(comment)}
-                      >
-                        {t('common.edit')}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-danger btn-sm"
-                        onClick={() => handleDelete(comment.id)}
-                      >
-                        {t('common.delete')}
-                      </button>
+                      {canEdit && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handleEditStart(comment)}
+                        >
+                          {t('common.edit')}
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          type="button"
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleDelete(comment.id)}
+                        >
+                          {t('common.delete')}
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -198,7 +218,11 @@ export default function CommentSection({ questionId }: Props) {
 
                     {editPreview ? (
                       <div className="comment-preview-body">
-                        {editBody || (
+                        {editBody ? (
+                          <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
+                            {editBody}
+                          </ReactMarkdown>
+                        ) : (
                           <span className="comment-preview-empty">
                             {t('comment.form.previewEmpty')}
                           </span>
@@ -241,7 +265,11 @@ export default function CommentSection({ questionId }: Props) {
                     </div>
                   </div>
                 ) : (
-                  <div className="comment-body">{comment.body}</div>
+                  <div className="comment-body">
+                    <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
+                      {comment.body}
+                    </ReactMarkdown>
+                  </div>
                 )}
               </li>
             );
@@ -272,7 +300,9 @@ export default function CommentSection({ questionId }: Props) {
 
           {newPreview ? (
             <div className="comment-preview-body">
-              {newBody || (
+              {newBody ? (
+                <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{newBody}</ReactMarkdown>
+              ) : (
                 <span className="comment-preview-empty">{t('comment.form.previewEmpty')}</span>
               )}
             </div>
