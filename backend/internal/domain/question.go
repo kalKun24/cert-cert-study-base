@@ -109,6 +109,9 @@ func (q *Question) IsVisibleTo(callerID string, isAdmin bool, callerTeamIDs map[
 				}
 			}
 			return false
+		default:
+			// 未知の visibility_scope は安全サイドに倒して完全拒否
+			return false
 		}
 	}
 	// status が未設定（後方互換）の場合は draft 扱いで作成者のみ

@@ -142,9 +142,14 @@ func (uc *QuestionUseCase) ListQuestions(ctx context.Context, input ListQuestion
 	}
 
 	isAdmin := input.CallerRole == domain.RoleAdmin
-	callerTeamIDs, err := uc.callerTeamIDs(ctx, input.CallerID)
-	if err != nil {
-		return nil, err
+
+	var callerTeamIDs map[string]struct{}
+	if !isAdmin {
+		var err error
+		callerTeamIDs, err = uc.callerTeamIDs(ctx, input.CallerID)
+		if err != nil {
+			return nil, fmt.Errorf("チーム情報の取得に失敗しました: %w", err)
+		}
 	}
 
 	visible := make([]*domain.Question, 0, len(questions))
@@ -173,9 +178,14 @@ func (uc *QuestionUseCase) GetQuestion(ctx context.Context, id string, input Get
 	}
 
 	isAdmin := input.CallerRole == domain.RoleAdmin
-	callerTeamIDs, err := uc.callerTeamIDs(ctx, input.CallerID)
-	if err != nil {
-		return nil, err
+
+	var callerTeamIDs map[string]struct{}
+	if !isAdmin {
+		var err error
+		callerTeamIDs, err = uc.callerTeamIDs(ctx, input.CallerID)
+		if err != nil {
+			return nil, fmt.Errorf("チーム情報の取得に失敗しました: %w", err)
+		}
 	}
 
 	if !question.IsVisibleTo(input.CallerID, isAdmin, callerTeamIDs) {
@@ -200,6 +210,9 @@ type UpdateQuestionVisibilityInput struct {
 	PublishedTeamIDs    []string
 	PublishedTeamIDsSet bool
 }
+
+// maxPublishedTeamIDs は公開対象チームIDの最大件数です。
+const maxPublishedTeamIDs = 50
 
 // UpdateQuestionVisibility は指定IDの問題の公開設定を変更します。
 // 作成者本人（created_by == callerID）または admin のみ変更可能です。
@@ -230,6 +243,9 @@ func (uc *QuestionUseCase) UpdateQuestionVisibility(ctx context.Context, id stri
 
 	// published_team_ids の設定
 	if input.PublishedTeamIDsSet {
+		if len(input.PublishedTeamIDs) > maxPublishedTeamIDs {
+			return nil, fmt.Errorf("公開対象チームIDは最大%d件です", maxPublishedTeamIDs)
+		}
 		if input.PublishedTeamIDs == nil {
 			question.PublishedTeamIDs = []string{}
 		} else {

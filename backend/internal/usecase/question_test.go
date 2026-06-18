@@ -3,6 +3,7 @@ package usecase_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/kalKun24/cert-study-base/backend/internal/domain"
@@ -716,5 +717,94 @@ func TestQuestionUseCase_ListQuestions_DraftOnlyOwner(t *testing.T) {
 	}
 	if len(questions) != 1 {
 		t.Errorf("draft 問題は作成者には見えるはずです: got %d, want 1", len(questions))
+	}
+}
+
+// TestQuestionUseCase_ListQuestions_PublishedTeam_MemberVisible は
+// TeamMember レコード経由で追加されたメンバーにチーム公開問題が返るテストです（指摘 #2 対応）。
+func TestQuestionUseCase_ListQuestions_PublishedTeam_MemberVisible(t *testing.T) {
+	qRepo := newMockQuestionRepository()
+	tRepo := newMockTeamRepository()
+
+	// user-1 が team-1 に公開した問題
+	q := testPublishedQuestion("q-1", "user-1", domain.VisibilityScopeTeam, []string{"team-1"})
+	qRepo.addQuestion(q)
+
+	// team-1 を登録（オーナーは user-1 自身）
+	tRepo.addTeam(&domain.Team{ID: "team-1", Name: "チーム1", OwnerID: "user-1"})
+
+	// user-3 を team-1 の TeamMember として追加（オーナーではなくメンバー）
+	tRepo.members = append(tRepo.members, domain.TeamMember{TeamID: "team-1", UserID: "user-3"})
+
+	uc := usecase.NewQuestionUseCase(qRepo, tRepo)
+
+	// user-3 として取得 → team-1 のメンバーなので見える
+	questions, err := uc.ListQuestions(context.Background(), usecase.ListQuestionsInput{
+		CallerID:   "user-3",
+		CallerRole: domain.RoleUser,
+	})
+	if err != nil {
+		t.Fatalf("問題一覧取得に失敗しました: %v", err)
+	}
+	if len(questions) != 1 {
+		t.Errorf("チームメンバーには公開問題が見えるはずです: got %d, want 1", len(questions))
+	}
+}
+
+// TestQuestionUseCase_ListQuestions_PublishedTeam_NonMemberNotVisible は
+// team-1 に所属していないユーザーにはチーム公開問題が返らないテストです（指摘 #2 対応）。
+func TestQuestionUseCase_ListQuestions_PublishedTeam_NonMemberNotVisible(t *testing.T) {
+	qRepo := newMockQuestionRepository()
+	tRepo := newMockTeamRepository()
+
+	// user-1 が team-1 に公開した問題
+	q := testPublishedQuestion("q-1", "user-1", domain.VisibilityScopeTeam, []string{"team-1"})
+	qRepo.addQuestion(q)
+
+	// team-1 を登録（user-3 はメンバーとして追加しない）
+	tRepo.addTeam(&domain.Team{ID: "team-1", Name: "チーム1", OwnerID: "user-1"})
+	tRepo.members = append(tRepo.members, domain.TeamMember{TeamID: "team-1", UserID: "user-3"})
+
+	// user-4 は team-1 に所属していない
+	uc := usecase.NewQuestionUseCase(qRepo, tRepo)
+
+	questions, err := uc.ListQuestions(context.Background(), usecase.ListQuestionsInput{
+		CallerID:   "user-4",
+		CallerRole: domain.RoleUser,
+	})
+	if err != nil {
+		t.Fatalf("問題一覧取得に失敗しました: %v", err)
+	}
+	if len(questions) != 0 {
+		t.Errorf("チーム非所属ユーザーには見えないはずです: got %d, want 0", len(questions))
+	}
+}
+
+// TestQuestionUseCase_UpdateQuestionVisibility_TooManyTeamIDs は
+// published_team_ids の上限超過のバリデーションテストです（指摘 #5 対応）。
+func TestQuestionUseCase_UpdateQuestionVisibility_TooManyTeamIDs(t *testing.T) {
+	repo := newMockQuestionRepository()
+	repo.addQuestion(testQuestion("q-1", "問題1", "user-1"))
+
+	uc := newQuestionUseCase(repo)
+
+	// 51件のチームIDを生成（上限50件を超える）
+	teamIDs := make([]string, 51)
+	for i := range teamIDs {
+		teamIDs[i] = fmt.Sprintf("team-%d", i+1)
+	}
+
+	vs := domain.VisibilityScopeTeam
+	_, err := uc.UpdateQuestionVisibility(context.Background(), "q-1", usecase.UpdateQuestionVisibilityInput{
+		CallerID:            "user-1",
+		CallerRole:          domain.RoleUser,
+		Status:              domain.QuestionStatusPublished,
+		VisibilityScope:     &vs,
+		PublishedTeamIDs:    teamIDs,
+		PublishedTeamIDsSet: true,
+	})
+
+	if err == nil {
+		t.Fatal("published_team_ids が上限を超える場合はエラーが返されるべきです")
 	}
 }
