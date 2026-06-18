@@ -40,5 +40,47 @@
     "unauthorized": "ログインが必要です",
     "forbidden": "この操作を行う権限がありません",
     "serverError": "サーバーエラーが発生しました。しばらく待ってから再試行してください"
+  },
+  "question": {
+    "backToList": "問題一覧に戻る",
+    "tagsLabel": "タグ",
+    "section": {
+      "body": "問題文",
+      "answer": "解答",
+      "explanation": "解説",
+      "discussionNotes": "議論点・メモ"
+    },
+    "list": {
+      "empty": "問題がまだありません"
+    },
+    "error": {
+      "fetchFailed": "問題の読み込みに失敗しました。再試行してください"
+    }
+  },
+  "comment": {
+    "section": {
+      "title": "コメント",
+      "empty": "コメントはまだありません"
+    },
+    "badge": {
+      "own": "自分"
+    },
+    "form": {
+      "title": "コメントを投稿する",
+      "bodyLabel": "コメント本文",
+      "placeholder": "Markdownで記述できます",
+      "write": "編集",
+      "preview": "プレビュー",
+      "previewEmpty": "（プレビューするテキストがありません）",
+      "submit": "投稿する"
+    },
+    "validation": {
+      "bodyRequired": "コメント本文を入力してください"
+    },
+    "error": {
+      "fetchFailed": "コメントの読み込みに失敗しました",
+      "postFailed": "コメントの投稿に失敗しました。再試行してください",
+      "updateFailed": "コメントの更新に失敗しました。再試行してください"
+    }
   }
 }

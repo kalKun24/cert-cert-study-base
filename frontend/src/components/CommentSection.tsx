@@ -1,0 +1,304 @@
+import { useState, useEffect, FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '../context/AuthContext';
+import { Comment } from '../types/comment';
+import { fetchComments, postComment, updateComment, deleteComment } from '../utils/commentApi';
+
+interface Props {
+  questionId: string;
+}
+
+export default function CommentSection({ questionId }: Props) {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+
+  // 新規投稿フォームの状態
+  const [newBody, setNewBody] = useState('');
+  const [newPreview, setNewPreview] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  // 編集中のコメント管理
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editBody, setEditBody] = useState('');
+  const [editPreview, setEditPreview] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [editError, setEditError] = useState('');
+
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+    setLoadError('');
+    fetchComments(questionId)
+      .then((data) => {
+        if (isMounted) setComments(data);
+      })
+      .catch(() => {
+        if (isMounted) setLoadError(t('comment.error.fetchFailed'));
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [questionId, t]);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!newBody.trim()) {
+      setSubmitError(t('comment.validation.bodyRequired'));
+      return;
+    }
+    setIsSubmitting(true);
+    setSubmitError('');
+    try {
+      const created = await postComment(questionId, newBody.trim());
+      setComments((prev) => [...prev, created]);
+      setNewBody('');
+      setNewPreview(false);
+    } catch {
+      setSubmitError(t('comment.error.postFailed'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditStart = (comment: Comment) => {
+    setEditingId(comment.id);
+    setEditBody(comment.body);
+    setEditPreview(false);
+    setEditError('');
+  };
+
+  const handleEditCancel = () => {
+    setEditingId(null);
+    setEditBody('');
+    setEditPreview(false);
+    setEditError('');
+  };
+
+  const handleEditSave = async (commentId: string) => {
+    if (!editBody.trim()) {
+      setEditError(t('comment.validation.bodyRequired'));
+      return;
+    }
+    setIsUpdating(true);
+    setEditError('');
+    try {
+      const updated = await updateComment(questionId, commentId, editBody.trim());
+      setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)));
+      setEditingId(null);
+      setEditBody('');
+    } catch {
+      setEditError(t('comment.error.updateFailed'));
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDelete = async (commentId: string) => {
+    try {
+      await deleteComment(questionId, commentId);
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+    } catch {
+      // 削除失敗時はコンソールのみ（UIはそのまま）
+    }
+  };
+
+  const formatDate = (iso: string): string => {
+    const d = new Date(iso);
+    return d.toLocaleString('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  return (
+    <section className="comment-section" aria-label={t('comment.section.title')}>
+      <h2 className="comment-section-title">{t('comment.section.title')}</h2>
+
+      {/* コメント一覧 */}
+      {isLoading && (
+        <p role="status" className="comment-loading">
+          {t('common.loading')}
+        </p>
+      )}
+      {loadError && (
+        <p role="alert" className="alert alert-error">
+          {loadError}
+        </p>
+      )}
+      {!isLoading && !loadError && comments.length === 0 && (
+        <p className="comment-empty">{t('comment.section.empty')}</p>
+      )}
+
+      {!isLoading && !loadError && comments.length > 0 && (
+        <ul className="comment-list">
+          {comments.map((comment) => {
+            const isOwner = user?.id === comment.created_by;
+            const isEditing = editingId === comment.id;
+
+            return (
+              <li key={comment.id} className={`comment-item${isOwner ? ' comment-item--own' : ''}`}>
+                <div className="comment-header">
+                  <span className="comment-author">
+                    {comment.display_name}
+                    {isOwner && (
+                      <span className="comment-own-badge">{t('comment.badge.own')}</span>
+                    )}
+                  </span>
+                  <span className="comment-date">{formatDate(comment.created_at)}</span>
+                  {isOwner && !isEditing && (
+                    <div className="comment-actions">
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => handleEditStart(comment)}
+                      >
+                        {t('common.edit')}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-sm"
+                        onClick={() => handleDelete(comment.id)}
+                      >
+                        {t('common.delete')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* 編集モード */}
+                {isEditing ? (
+                  <div className="comment-edit-form">
+                    <div className="comment-preview-toggle">
+                      <button
+                        type="button"
+                        className={`btn btn-tab${!editPreview ? ' btn-tab--active' : ''}`}
+                        onClick={() => setEditPreview(false)}
+                      >
+                        {t('comment.form.write')}
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn-tab${editPreview ? ' btn-tab--active' : ''}`}
+                        onClick={() => setEditPreview(true)}
+                      >
+                        {t('comment.form.preview')}
+                      </button>
+                    </div>
+
+                    {editPreview ? (
+                      <div className="comment-preview-body">
+                        {editBody || (
+                          <span className="comment-preview-empty">
+                            {t('comment.form.previewEmpty')}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <textarea
+                        className="comment-textarea"
+                        value={editBody}
+                        onChange={(e) => setEditBody(e.target.value)}
+                        rows={4}
+                        disabled={isUpdating}
+                        aria-label={t('comment.form.bodyLabel')}
+                      />
+                    )}
+
+                    {editError && (
+                      <p role="alert" className="alert alert-error">
+                        {editError}
+                      </p>
+                    )}
+
+                    <div className="comment-edit-actions">
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => handleEditSave(comment.id)}
+                        disabled={isUpdating}
+                      >
+                        {isUpdating ? t('common.loading') : t('common.save')}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={handleEditCancel}
+                        disabled={isUpdating}
+                      >
+                        {t('common.cancel')}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="comment-body">{comment.body}</div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {/* 新規コメント投稿フォーム */}
+      <div className="comment-new-form">
+        <h3 className="comment-new-form-title">{t('comment.form.title')}</h3>
+        <form onSubmit={handleSubmit} noValidate>
+          <div className="comment-preview-toggle">
+            <button
+              type="button"
+              className={`btn btn-tab${!newPreview ? ' btn-tab--active' : ''}`}
+              onClick={() => setNewPreview(false)}
+            >
+              {t('comment.form.write')}
+            </button>
+            <button
+              type="button"
+              className={`btn btn-tab${newPreview ? ' btn-tab--active' : ''}`}
+              onClick={() => setNewPreview(true)}
+            >
+              {t('comment.form.preview')}
+            </button>
+          </div>
+
+          {newPreview ? (
+            <div className="comment-preview-body">
+              {newBody || (
+                <span className="comment-preview-empty">{t('comment.form.previewEmpty')}</span>
+              )}
+            </div>
+          ) : (
+            <textarea
+              className="comment-textarea"
+              value={newBody}
+              onChange={(e) => setNewBody(e.target.value)}
+              placeholder={t('comment.form.placeholder')}
+              rows={4}
+              disabled={isSubmitting}
+              aria-label={t('comment.form.bodyLabel')}
+            />
+          )}
+
+          {submitError && (
+            <p role="alert" className="alert alert-error">
+              {submitError}
+            </p>
+          )}
+
+          <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+            {isSubmitting ? t('common.loading') : t('comment.form.submit')}
+          </button>
+        </form>
+      </div>
+    </section>
+  );
+}
