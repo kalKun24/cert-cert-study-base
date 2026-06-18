@@ -10,8 +10,8 @@
 | 着手日 | 2026-06-18 |
 | 完了日 | - |
 | ブランチ名 | `feature/question-crud-api` |
-| PR番号 | - |
-| PRリンク | （PR作成後に記入） |
+| PR番号 | #7 |
+| PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/7 |
 
 ---
 
