@@ -14,13 +14,32 @@ import (
 // QuestionUseCase は問題管理に関するユースケースを実装します。
 type QuestionUseCase struct {
 	questionRepo domain.QuestionRepository
+	teamRepo     domain.TeamRepository
 }
 
 // NewQuestionUseCase は QuestionUseCase を生成します（コンストラクタインジェクション）。
-func NewQuestionUseCase(questionRepo domain.QuestionRepository) *QuestionUseCase {
+func NewQuestionUseCase(questionRepo domain.QuestionRepository, teamRepo domain.TeamRepository) *QuestionUseCase {
 	return &QuestionUseCase{
 		questionRepo: questionRepo,
+		teamRepo:     teamRepo,
 	}
+}
+
+// callerTeamIDs はリクエストユーザーが所属するチームIDの集合を返します。
+// チームリポジトリが nil の場合（テスト用）は空の集合を返します。
+func (uc *QuestionUseCase) callerTeamIDs(ctx context.Context, callerID string) (map[string]struct{}, error) {
+	if uc.teamRepo == nil {
+		return map[string]struct{}{}, nil
+	}
+	teams, err := uc.teamRepo.ListByOwnerOrMember(ctx, callerID)
+	if err != nil {
+		return nil, fmt.Errorf("所属チームの取得に失敗しました: %w", err)
+	}
+	ids := make(map[string]struct{}, len(teams))
+	for _, t := range teams {
+		ids[t.ID] = struct{}{}
+	}
+	return ids, nil
 }
 
 // CreateQuestionInput は問題作成ユースケースの入力です。
@@ -104,23 +123,142 @@ func (uc *QuestionUseCase) CreateQuestion(ctx context.Context, input CreateQuest
 	return question, nil
 }
 
-// ListQuestions は全問題の一覧を取得します。
-// 認証済みユーザーであれば誰でも取得可能です。
-func (uc *QuestionUseCase) ListQuestions(ctx context.Context) ([]*domain.Question, error) {
+// ListQuestionsInput は問題一覧取得ユースケースの入力です。
+type ListQuestionsInput struct {
+	// CallerID はリクエストユーザーのID
+	CallerID string
+	// CallerRole はリクエストユーザーのロール
+	CallerRole domain.Role
+}
+
+// ListQuestions は可視性ルールに基づいてフィルタリングした問題一覧を返します。
+// - status=published かつ visibility_scope=all → 全ログインユーザーに返す
+// - status=published かつ visibility_scope=team → リクエストユーザーが published_team_ids のいずれかに所属する場合のみ返す
+// - status=draft / private → 作成者本人のみ返す（admin は全件取得可）
+func (uc *QuestionUseCase) ListQuestions(ctx context.Context, input ListQuestionsInput) ([]*domain.Question, error) {
 	questions, err := uc.questionRepo.List(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("問題一覧の取得に失敗しました: %w", err)
 	}
-	return questions, nil
+
+	isAdmin := input.CallerRole == domain.RoleAdmin
+
+	var callerTeamIDs map[string]struct{}
+	if !isAdmin {
+		var err error
+		callerTeamIDs, err = uc.callerTeamIDs(ctx, input.CallerID)
+		if err != nil {
+			return nil, fmt.Errorf("チーム情報の取得に失敗しました: %w", err)
+		}
+	}
+
+	visible := make([]*domain.Question, 0, len(questions))
+	for _, q := range questions {
+		if q.IsVisibleTo(input.CallerID, isAdmin, callerTeamIDs) {
+			visible = append(visible, q)
+		}
+	}
+	return visible, nil
+}
+
+// GetQuestionInput は問題詳細取得ユースケースの入力です。
+type GetQuestionInput struct {
+	// CallerID はリクエストユーザーのID
+	CallerID string
+	// CallerRole はリクエストユーザーのロール
+	CallerRole domain.Role
 }
 
 // GetQuestion はIDで問題を取得します。
-// 認証済みユーザーであれば誰でも取得可能です。
-func (uc *QuestionUseCase) GetQuestion(ctx context.Context, id string) (*domain.Question, error) {
+// 可視性ルールに基づき、閲覧不可の場合は ErrQuestionNotFound を返します。
+func (uc *QuestionUseCase) GetQuestion(ctx context.Context, id string, input GetQuestionInput) (*domain.Question, error) {
 	question, err := uc.questionRepo.FindByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("問題の取得に失敗しました: %w", err)
 	}
+
+	isAdmin := input.CallerRole == domain.RoleAdmin
+
+	var callerTeamIDs map[string]struct{}
+	if !isAdmin {
+		var err error
+		callerTeamIDs, err = uc.callerTeamIDs(ctx, input.CallerID)
+		if err != nil {
+			return nil, fmt.Errorf("チーム情報の取得に失敗しました: %w", err)
+		}
+	}
+
+	if !question.IsVisibleTo(input.CallerID, isAdmin, callerTeamIDs) {
+		// 存在するが閲覧権限がない場合も404を返す（情報漏洩防止）
+		return nil, fmt.Errorf("問題の取得に失敗しました: %w", domain.ErrQuestionNotFound)
+	}
+
+	return question, nil
+}
+
+// UpdateQuestionVisibilityInput は公開設定変更ユースケースの入力です。
+type UpdateQuestionVisibilityInput struct {
+	// CallerID は操作を実行するユーザーのID
+	CallerID string
+	// CallerRole は操作を実行するユーザーのロール
+	CallerRole domain.Role
+	// Status は変更後の公開ステータス
+	Status domain.QuestionStatus
+	// VisibilityScope は変更後の公開範囲（省略時は変更しない）
+	VisibilityScope *domain.VisibilityScope
+	// PublishedTeamIDs は変更後の公開対象チームIDの一覧（省略時は変更しない）
+	PublishedTeamIDs    []string
+	PublishedTeamIDsSet bool
+}
+
+// maxPublishedTeamIDs は公開対象チームIDの最大件数です。
+const maxPublishedTeamIDs = 50
+
+// UpdateQuestionVisibility は指定IDの問題の公開設定を変更します。
+// 作成者本人（created_by == callerID）または admin のみ変更可能です。
+func (uc *QuestionUseCase) UpdateQuestionVisibility(ctx context.Context, id string, input UpdateQuestionVisibilityInput) (*domain.Question, error) {
+	question, err := uc.questionRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("問題の取得に失敗しました: %w", err)
+	}
+
+	// 認可チェック: 作成者本人または admin のみ変更可能
+	if question.CreatedBy != input.CallerID && input.CallerRole != domain.RoleAdmin {
+		return nil, domain.ErrPermissionDenied
+	}
+
+	// status の検証と設定
+	if !input.Status.IsValid() {
+		return nil, domain.ErrInvalidQuestionStatus
+	}
+	question.Status = input.Status
+
+	// visibility_scope の検証と設定
+	if input.VisibilityScope != nil {
+		if !input.VisibilityScope.IsValid() {
+			return nil, domain.ErrInvalidVisibilityScope
+		}
+		question.VisibilityScope = *input.VisibilityScope
+	}
+
+	// published_team_ids の設定
+	if input.PublishedTeamIDsSet {
+		if len(input.PublishedTeamIDs) > maxPublishedTeamIDs {
+			return nil, fmt.Errorf("公開対象チームIDは最大%d件です", maxPublishedTeamIDs)
+		}
+		if input.PublishedTeamIDs == nil {
+			question.PublishedTeamIDs = []string{}
+		} else {
+			question.PublishedTeamIDs = input.PublishedTeamIDs
+		}
+	}
+
+	question.UpdatedAt = time.Now().UTC()
+
+	if err := uc.questionRepo.Save(ctx, question); err != nil {
+		return nil, fmt.Errorf("問題の保存に失敗しました: %w", err)
+	}
+
 	return question, nil
 }
 

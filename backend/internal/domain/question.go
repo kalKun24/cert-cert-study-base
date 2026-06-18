@@ -79,6 +79,45 @@ type Question struct {
 	UpdatedAt time.Time
 }
 
+// IsVisibleTo は指定したユーザーがこの問題を閲覧できるかどうかを返します。
+// callerID はリクエストユーザーのID、isAdmin は admin ロールかどうか、
+// callerTeamIDs はリクエストユーザーが所属するチームIDの集合です。
+func (q *Question) IsVisibleTo(callerID string, isAdmin bool, callerTeamIDs map[string]struct{}) bool {
+	// admin は全件閲覧可能
+	if isAdmin {
+		return true
+	}
+
+	switch q.Status {
+	case QuestionStatusDraft, QuestionStatusPrivate:
+		// draft / private は作成者本人のみ
+		return q.CreatedBy == callerID
+	case QuestionStatusPublished:
+		switch q.VisibilityScope {
+		case VisibilityScopeAll:
+			// 全ログインユーザーに公開
+			return true
+		case VisibilityScopeTeam:
+			// 作成者本人は常に閲覧可能
+			if q.CreatedBy == callerID {
+				return true
+			}
+			// published_team_ids のいずれかに所属するユーザーに公開
+			for _, teamID := range q.PublishedTeamIDs {
+				if _, ok := callerTeamIDs[teamID]; ok {
+					return true
+				}
+			}
+			return false
+		default:
+			// 未知の visibility_scope は安全サイドに倒して完全拒否
+			return false
+		}
+	}
+	// status が未設定（後方互換）の場合は draft 扱いで作成者のみ
+	return q.CreatedBy == callerID
+}
+
 // ドメインエラーの定義
 var (
 	// ErrQuestionNotFound は問題が見つからない場合のエラーです。

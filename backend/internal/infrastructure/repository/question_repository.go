@@ -64,6 +64,8 @@ func toQuestionRecord(q *domain.Question) questionRecord {
 }
 
 // toQuestion はJSONレコードをドメインエンティティに変換します。
+// 後方互換性のため、status / visibility_scope が空の場合はデフォルト値を設定します。
+// （既存の questions.json にフィールドがない場合でも安全に動作します）
 func toQuestion(r questionRecord) *domain.Question {
 	tags := r.Tags
 	if tags == nil {
@@ -73,6 +75,17 @@ func toQuestion(r questionRecord) *domain.Question {
 	if publishedTeamIDs == nil {
 		publishedTeamIDs = []string{}
 	}
+
+	// 後方互換: フィールドが空の場合はデフォルト値を設定
+	status := domain.QuestionStatus(r.Status)
+	if status == "" {
+		status = domain.QuestionStatusDraft
+	}
+	visibilityScope := domain.VisibilityScope(r.VisibilityScope)
+	if visibilityScope == "" {
+		visibilityScope = domain.VisibilityScopeAll
+	}
+
 	return &domain.Question{
 		ID:               r.ID,
 		Title:            r.Title,
@@ -81,8 +94,8 @@ func toQuestion(r questionRecord) *domain.Question {
 		Explanation:      r.Explanation,
 		Memo:             r.Memo,
 		Tags:             tags,
-		Status:           domain.QuestionStatus(r.Status),
-		VisibilityScope:  domain.VisibilityScope(r.VisibilityScope),
+		Status:           status,
+		VisibilityScope:  visibilityScope,
 		PublishedTeamIDs: publishedTeamIDs,
 		CreatedBy:        r.CreatedBy,
 		CreatedAt:        r.CreatedAt,
