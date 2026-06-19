@@ -9,12 +9,12 @@
   --color-bg-sidebar:     #001e1d;
   --color-text-primary:   #fffffe;
   --color-text-body:      #abd1c6;
-  --color-text-muted:     #abd1c6;
+  --color-text-muted:     #7db8ae;
   --color-accent:         #f9bc60;
   --color-accent-text:    #001e1d;
-  --color-error:          #e16162;
-  --color-success:        #abd1c6;
-  --color-border-default: #0f3433;
+  --color-error:          #f07b7b;
+  --color-success:        #3db88a;
+  --color-border-default: #2a6b69;
 
   /* --- タイポグラフィ --- */
   --font-family-base:     'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
@@ -263,9 +263,10 @@ img {
 }
 
 .role-badge[data-role="admin"] {
-  background-color: rgba(225, 97, 98, 0.15);
-  color: var(--color-error);
-  border-color: rgba(225, 97, 98, 0.4);
+  /* adminは権限の高さを表すスカイブルーで表現（危険色を避ける） */
+  background-color: rgba(96, 180, 218, 0.15);
+  color: #60b4da;
+  border-color: rgba(96, 180, 218, 0.4);
 }
 
 /* ハンバーガーボタン（モバイルのみ表示） */
