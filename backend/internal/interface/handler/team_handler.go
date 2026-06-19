@@ -283,6 +283,34 @@ func (h *TeamHandler) HandleChangeMemberRole(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusOK, response{Data: toTeamMemberDTO(member)})
 }
 
+// HandleLeaveTeam は DELETE /api/v1/teams/{id}/members/me を処理します。
+// ログインユーザーが自分自身をチームから脱退させます。
+func (h *TeamHandler) HandleLeaveTeam(w http.ResponseWriter, r *http.Request) {
+	callerID, _ := callerInfo(r)
+	teamID := r.PathValue("id")
+	if teamID == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+		return
+	}
+
+	if err := h.teamUC.LeaveTeam(r.Context(), callerID, teamID); err != nil {
+		switch {
+		case errors.Is(err, domain.ErrTeamNotFound):
+			writeJSON(w, http.StatusNotFound, response{Error: "チームが見つかりません"})
+		case errors.Is(err, domain.ErrMemberNotFound):
+			writeJSON(w, http.StatusNotFound, response{Error: "このチームのメンバーではありません"})
+		case errors.Is(err, domain.ErrLastTeamOwner):
+			writeJSON(w, http.StatusUnprocessableEntity, response{Error: err.Error()})
+		default:
+			slog.Error("チーム脱退でエラーが発生しました", "team_id", teamID, "caller_id", callerID, "error", err)
+			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, response{Data: map[string]string{"message": "チームから脱退しました"}})
+}
+
 // HandleRemoveTeamMember は DELETE /api/v1/teams/{id}/members/{user_id} を処理します。
 func (h *TeamHandler) HandleRemoveTeamMember(w http.ResponseWriter, r *http.Request) {
 	callerID, callerRole := callerInfo(r)
@@ -301,6 +329,8 @@ func (h *TeamHandler) HandleRemoveTeamMember(w http.ResponseWriter, r *http.Requ
 			writeJSON(w, http.StatusNotFound, response{Error: "メンバーが見つかりません"})
 		case errors.Is(err, domain.ErrPermissionDenied):
 			writeJSON(w, http.StatusForbidden, response{Error: err.Error()})
+		case errors.Is(err, domain.ErrLastTeamOwner):
+			writeJSON(w, http.StatusUnprocessableEntity, response{Error: err.Error()})
 		default:
 			slog.Error("メンバー除外でエラーが発生しました", "team_id", teamID, "user_id", userID, "error", err)
 			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})

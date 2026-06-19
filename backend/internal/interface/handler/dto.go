@@ -316,3 +316,38 @@ type CreateCommentRequestDTO struct {
 type UpdateCommentRequestDTO struct {
 	Body string `json:"body"`
 }
+
+// InvitationDTO はAPIレスポンス用の招待DTOです。
+type InvitationDTO struct {
+	ID                string    `json:"id"`
+	TeamID            string    `json:"team_id"`
+	InvitedBy         string    `json:"invited_by"`
+	InviteeIdentifier string    `json:"invitee_identifier"`
+	InviteeUserID     string    `json:"invitee_user_id"`
+	Status            string    `json:"status"`
+	CreatedAt         time.Time `json:"created_at"`
+}
+
+// SendInvitationRequestDTO は招待送信リクエストのDTOです。
+type SendInvitationRequestDTO struct {
+	InviteeIdentifier string `json:"invitee_identifier"`
+}
+
+// RespondInvitationRequestDTO は招待受諾/拒否リクエストのDTOです。
+type RespondInvitationRequestDTO struct {
+	// Status は "accepted" または "rejected" を指定する
+	Status string `json:"status"`
+}
+
+// toInvitationDTO はドメインエンティティをAPIレスポンス用DTOに変換します。
+func toInvitationDTO(inv *domain.Invitation) InvitationDTO {
+	return InvitationDTO{
+		ID:                inv.ID,
+		TeamID:            inv.TeamID,
+		InvitedBy:         inv.InvitedBy,
+		InviteeIdentifier: inv.InviteeIdentifier,
+		InviteeUserID:     inv.InviteeUserID,
+		Status:            string(inv.Status),
+		CreatedAt:         inv.CreatedAt,
+	}
+}

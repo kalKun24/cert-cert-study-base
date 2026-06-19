@@ -97,10 +97,12 @@ func main() {
 	}
 
 	teamRepo := repository.NewGCSTeamRepository(sc, gcsBucket)
+	invitationRepo := repository.NewGCSInvitationRepository(sc, gcsBucket)
 
 	authUC := usecase.NewAuthUseCase(userRepo, bcryptHasher, jwtManager)
 	userUC := usecase.NewUserUseCase(userRepo, bcryptHasher)
 	teamUC := usecase.NewTeamUseCase(teamRepo, userRepo)
+	invitationUC := usecase.NewInvitationUseCase(invitationRepo, teamRepo, userRepo)
 
 	questionRepo := repository.NewGCSQuestionRepository(sc, gcsBucket)
 	questionUC := usecase.NewQuestionUseCase(questionRepo, teamRepo)
@@ -117,6 +119,7 @@ func main() {
 	commentHandler := handler.NewCommentHandler(commentUC)
 	teamHandler := handler.NewTeamHandler(teamUC)
 	tagHandler := handler.NewTagHandler(tagUC)
+	invitationHandler := handler.NewInvitationHandler(invitationUC)
 
 	// ルーティング設定
 	mux := http.NewServeMux()
@@ -186,9 +189,16 @@ func main() {
 	mux.Handle("PUT /api/v1/teams/{id}", withAuth(teamHandler.HandleUpdateTeam))
 	mux.Handle("DELETE /api/v1/teams/{id}", withAuth(teamHandler.HandleDeleteTeam))
 	mux.Handle("POST /api/v1/teams/{id}/members", withAuth(teamHandler.HandleAddTeamMember))
+	// /members/me は /members/{user_id} より具体的なパターンが優先される（Go 1.22+ net/http）
+	mux.Handle("DELETE /api/v1/teams/{id}/members/me", withAuth(teamHandler.HandleLeaveTeam))
 	mux.Handle("DELETE /api/v1/teams/{id}/members/{user_id}", withAuth(teamHandler.HandleRemoveTeamMember))
 	// チーム内メンバーロール変更（認証済みユーザー、認可はユースケース層で実施）
 	mux.Handle("PATCH /api/v1/teams/{id}/members/{user_id}/role", withAuth(teamHandler.HandleChangeMemberRole))
+
+	// 招待管理（認証済みユーザー。認可はユースケース層で実施）
+	mux.Handle("POST /api/v1/teams/{id}/invitations", withAuth(invitationHandler.HandleSendInvitation))
+	mux.Handle("GET /api/v1/invitations/me", withAuth(invitationHandler.HandleListMyInvitations))
+	mux.Handle("PATCH /api/v1/invitations/{id}", withAuth(invitationHandler.HandleRespondInvitation))
 
 	// タグ管理（一覧取得は認証済み全ユーザー、作成・更新・削除は admin のみ）
 	mux.Handle("GET /api/v1/tags", withAuth(tagHandler.HandleListTags))
