@@ -63,7 +63,7 @@ export default function TeamDetailPage() {
   };
 
   return (
-    <section className="team-detail-page">
+    <section className="team-detail-page page-container-full">
       <Link to="/teams" className="back-link">
         {t('team.detail.backToList')}
       </Link>
@@ -125,8 +125,8 @@ export default function TeamDetailPage() {
                 <tbody>
                   {team.members.map((member) => (
                     <tr key={member.user_id}>
-                      <td>{member.user_id}</td>
-                      <td>
+                      <td data-label={t('team.detail.userId')}>{member.user_id}</td>
+                      <td data-label={t('team.detail.joinedAt')}>
                         {new Date(member.joined_at).toLocaleDateString('ja-JP')}
                       </td>
                       {isOwnerOrAdmin && (

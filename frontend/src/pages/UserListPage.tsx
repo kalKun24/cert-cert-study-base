@@ -35,7 +35,7 @@ export default function UserListPage() {
   };
 
   return (
-    <section className="user-list-page">
+    <section className="user-list-page content-wide page-container-full">
       <div className="page-header">
         <h1 className="page-title">{t('user.list.title')}</h1>
         <Link to="/admin/users/new" className="btn btn-primary">

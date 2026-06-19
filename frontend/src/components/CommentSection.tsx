@@ -129,12 +129,15 @@ export default function CommentSection({ questionId }: Props) {
   };
 
   return (
-    <section className="comment-section" aria-label={t('comment.section.title')}>
+    <section
+      className="comment-section"
+      aria-label={t('comment.section.title')}
+    >
       <h2 className="comment-section-title">{t('comment.section.title')}</h2>
 
       {/* コメント一覧 */}
       {isLoading && (
-        <p role="status" className="comment-loading">
+        <p role="status" aria-live="polite" className="comment-loading">
           {t('common.loading')}
         </p>
       )}
@@ -154,7 +157,7 @@ export default function CommentSection({ questionId }: Props) {
       )}
 
       {!isLoading && !loadError && comments.length > 0 && (
-        <ul className="comment-list">
+        <ul className="comment-list" aria-label={t('comment.section.title')}>
           {comments.map((comment) => {
             const isOwner = user?.id === comment.created_by;
             const isAdmin = user?.role === 'admin';
@@ -173,12 +176,13 @@ export default function CommentSection({ questionId }: Props) {
                   </span>
                   <span className="comment-date">{formatDate(comment.created_at)}</span>
                   {(canEdit || canDelete) && !isEditing && (
-                    <div className="comment-actions">
+                    <div className="comment-actions" role="group" aria-label={t('comment.section.title')}>
                       {canEdit && (
                         <button
                           type="button"
                           className="btn btn-secondary btn-sm"
                           onClick={() => handleEditStart(comment)}
+                          aria-label={`${t('common.edit')} - ${comment.display_name}のコメント`}
                         >
                           {t('common.edit')}
                         </button>
@@ -188,6 +192,7 @@ export default function CommentSection({ questionId }: Props) {
                           type="button"
                           className="btn btn-danger btn-sm"
                           onClick={() => handleDelete(comment.id)}
+                          aria-label={`${t('common.delete')} - ${comment.display_name}のコメント`}
                         >
                           {t('common.delete')}
                         </button>

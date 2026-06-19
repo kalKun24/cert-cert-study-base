@@ -24,7 +24,7 @@ export default function TeamCreatePage() {
   };
 
   return (
-    <section className="team-form-page">
+    <section className="team-form-page page-container-full">
       <h1 className="page-title">{t('team.form.createTitle')}</h1>
       <TeamForm
         isSubmitting={isSubmitting}

@@ -42,7 +42,7 @@ export default function UserEditPage() {
 
   if (isLoading) {
     return (
-      <section className="user-form-page">
+      <section className="user-form-page page-container-full">
         <p role="status" className="page-loading">
           {t('common.loading')}
         </p>
@@ -52,7 +52,7 @@ export default function UserEditPage() {
 
   if (loadError) {
     return (
-      <section className="user-form-page">
+      <section className="user-form-page page-container-full">
         <p role="alert" className="alert alert-error">
           {loadError}
         </p>
@@ -75,7 +75,7 @@ export default function UserEditPage() {
   };
 
   return (
-    <section className="user-form-page">
+    <section className="user-form-page page-container-full">
       <h1 className="page-title">{t('user.form.editTitle')}</h1>
       <UserForm
         mode="edit"

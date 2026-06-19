@@ -144,7 +144,7 @@ export default function QuestionEditPage() {
 
   if (loadError || !form) {
     return (
-      <div>
+      <div className="page-container-narrow">
         <p role="alert" className="alert alert-error">
           {loadError || t('errors.notFound')}
         </p>
@@ -156,7 +156,7 @@ export default function QuestionEditPage() {
   }
 
   return (
-    <section className="question-form-page">
+    <section className="question-form-page content-narrow page-container-narrow">
       <h1 className="page-title">{t('question.edit')}</h1>
 
       <form onSubmit={handleSubmit} noValidate className="question-form">

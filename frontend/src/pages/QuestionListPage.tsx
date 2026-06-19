@@ -7,6 +7,7 @@ import { Question } from '../types/question';
 import { Tag } from '../types/tag';
 import TagChip from '../components/TagChip';
 import Paginator from '../components/Paginator';
+import { QuestionListSkeleton } from '../components/Skeleton';
 
 const PER_PAGE = 20;
 
@@ -123,7 +124,7 @@ export default function QuestionListPage() {
   };
 
   return (
-    <section className="question-list-page">
+    <section className="question-list-page content-wide page-container-wide">
       <div className="question-list-header">
         <h1 className="page-title">{t('nav.questions')}</h1>
         <Link to="/questions/new" className="btn btn-primary">
@@ -160,9 +161,7 @@ export default function QuestionListPage() {
       </div>
 
       {isLoading ? (
-        <p role="status" className="page-loading">
-          {t('common.loading')}
-        </p>
+        <QuestionListSkeleton />
       ) : loadError ? (
         <p role="alert" className="alert alert-error">
           {loadError}

@@ -7,6 +7,8 @@ import { fetchQuestion, deleteQuestion } from '../utils/questionApi';
 import { useAuth } from '../context/AuthContext';
 import { Question } from '../types/question';
 import CommentSection from '../components/CommentSection';
+import AccordionSection from '../components/AccordionSection';
+import { QuestionDetailSkeleton } from '../components/Skeleton';
 
 function MarkdownContent({ source }: { source: string }) {
   return (
@@ -68,16 +70,12 @@ export default function QuestionDetailPage() {
   };
 
   if (isLoading) {
-    return (
-      <p role="status" className="page-loading">
-        {t('common.loading')}
-      </p>
-    );
+    return <QuestionDetailSkeleton />;
   }
 
   if (loadError) {
     return (
-      <div>
+      <div className="page-container-narrow">
         <p role="alert" className="alert alert-error">
           {loadError}
         </p>
@@ -90,7 +88,7 @@ export default function QuestionDetailPage() {
 
   if (!question) {
     return (
-      <div>
+      <div className="page-container-narrow">
         <p className="alert alert-error">{t('errors.notFound')}</p>
         <Link to="/questions" className="btn btn-secondary">
           {t('question.backToList')}
@@ -100,7 +98,7 @@ export default function QuestionDetailPage() {
   }
 
   return (
-    <article className="question-detail">
+    <article className="question-detail page-container-narrow">
       <header className="question-detail-header">
         <Link to="/questions" className="question-back-link">
           {t('question.backToList')}
@@ -120,7 +118,8 @@ export default function QuestionDetailPage() {
                 className="btn btn-danger"
                 onClick={handleDelete}
                 disabled={isDeleting}
-                aria-label={t('common.delete')}
+                aria-label={`${t('common.delete')} - ${question.title}`}
+                aria-busy={isDeleting}
               >
                 {t('common.delete')}
               </button>
@@ -133,9 +132,9 @@ export default function QuestionDetailPage() {
           </span>
           <span className="question-status">{t(`question.status.${question.status}`)}</span>
           {question.tags.length > 0 && (
-            <ul className="question-tags" aria-label={t('question.tagsLabel')}>
+            <ul className="question-tags" aria-label={t('question.tagsLabel')} role="list">
               {question.tags.map((tag) => (
-                <li key={tag} className="tag-badge">
+                <li key={tag} className="tag-badge" role="listitem">
                   {tag}
                 </li>
               ))}
@@ -149,29 +148,42 @@ export default function QuestionDetailPage() {
         )}
       </header>
 
-      <section className="question-detail-section" aria-label={t('question.section.body')}>
-        <h2 className="question-section-heading">{t('question.section.body')}</h2>
+      {/* 問題文: デフォルトで開いた状態 */}
+      <AccordionSection
+        title={t('question.section.body')}
+        defaultOpen={true}
+        className="question-section--body"
+      >
         <MarkdownContent source={question.body} />
-      </section>
+      </AccordionSection>
 
-      <section className="question-detail-section" aria-label={t('question.section.answer')}>
-        <h2 className="question-section-heading">{t('question.section.answer')}</h2>
+      {/* 解答: デフォルトで閉じた状態 */}
+      <AccordionSection
+        title={t('question.section.answer')}
+        defaultOpen={false}
+        className="question-section--answer"
+      >
         <MarkdownContent source={question.answer} />
-      </section>
+      </AccordionSection>
 
-      <section className="question-detail-section" aria-label={t('question.section.explanation')}>
-        <h2 className="question-section-heading">{t('question.section.explanation')}</h2>
+      {/* 解説: デフォルトで閉じた状態 */}
+      <AccordionSection
+        title={t('question.section.explanation')}
+        defaultOpen={false}
+        className="question-section--explanation"
+      >
         <MarkdownContent source={question.explanation} />
-      </section>
+      </AccordionSection>
 
+      {/* 議論点・メモ: 内容がある場合のみ、デフォルトで閉じた状態 */}
       {question.memo && (
-        <section
-          className="question-detail-section"
-          aria-label={t('question.section.discussionNotes')}
+        <AccordionSection
+          title={t('question.section.discussionNotes')}
+          defaultOpen={false}
+          className="question-section--memo"
         >
-          <h2 className="question-section-heading">{t('question.section.discussionNotes')}</h2>
           <MarkdownContent source={question.memo} />
-        </section>
+        </AccordionSection>
       )}
 
       <CommentSection questionId={question.id} />

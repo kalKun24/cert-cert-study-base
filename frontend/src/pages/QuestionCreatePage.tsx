@@ -101,7 +101,7 @@ export default function QuestionCreatePage() {
   };
 
   return (
-    <section className="question-form-page">
+    <section className="question-form-page content-narrow page-container-narrow">
       <h1 className="page-title">{t('question.new')}</h1>
 
       <form onSubmit={handleSubmit} noValidate className="question-form">

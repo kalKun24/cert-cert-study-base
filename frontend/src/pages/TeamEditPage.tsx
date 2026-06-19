@@ -44,7 +44,7 @@ export default function TeamEditPage() {
 
   if (isLoading) {
     return (
-      <section className="team-form-page">
+      <section className="team-form-page page-container-full">
         <p role="status" className="page-loading">
           {t('common.loading')}
         </p>
@@ -54,7 +54,7 @@ export default function TeamEditPage() {
 
   if (loadError) {
     return (
-      <section className="team-form-page">
+      <section className="team-form-page page-container-full">
         <p role="alert" className="alert alert-error">
           {loadError}
         </p>
@@ -68,7 +68,7 @@ export default function TeamEditPage() {
 
   if (!isOwnerOrAdmin) {
     return (
-      <section className="team-form-page">
+      <section className="team-form-page page-container-full">
         <p role="alert" className="alert alert-error">
           {t('errors.forbidden')}
         </p>
@@ -89,7 +89,7 @@ export default function TeamEditPage() {
   };
 
   return (
-    <section className="team-form-page">
+    <section className="team-form-page page-container-full">
       <h1 className="page-title">{t('team.form.editTitle')}</h1>
       <TeamForm
         initialName={team.name}

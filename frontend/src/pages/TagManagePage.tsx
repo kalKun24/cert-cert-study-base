@@ -104,7 +104,7 @@ export default function TagManagePage() {
   };
 
   return (
-    <section className="tag-manage-page">
+    <section className="tag-manage-page page-container-full">
       <h1 className="page-title">{t('tag.list.title')}</h1>
 
       {isAdmin && (
