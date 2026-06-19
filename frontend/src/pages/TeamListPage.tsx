@@ -37,7 +37,7 @@ export default function TeamListPage() {
   const canCreateTeam = user?.role === 'admin' || user?.role === 'teamowner';
 
   return (
-    <section className="team-list-page">
+    <section className="team-list-page content-wide">
       <div className="team-list-header">
         <h1 className="page-title">{t('team.list.title')}</h1>
         {canCreateTeam && (

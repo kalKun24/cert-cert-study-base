@@ -156,7 +156,7 @@ export default function QuestionEditPage() {
   }
 
   return (
-    <section className="question-form-page">
+    <section className="question-form-page content-narrow">
       <h1 className="page-title">{t('question.edit')}</h1>
 
       <form onSubmit={handleSubmit} noValidate className="question-form">
