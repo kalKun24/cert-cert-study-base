@@ -906,7 +906,7 @@ paths:
 
   /api/v1/teams/{id}/members/{user_id}:
     delete:
-      summary: メンバー除外（owner_id 本人または admin のみ）
+      summary: メンバー除外（per-team owner または admin のみ）
       operationId: removeTeamMember
       tags:
         - teams
@@ -945,6 +945,172 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/teams/{id}/members/me:
+    delete:
+      summary: チームから脱退（ログインユーザー自身）
+      description: |
+        ログインユーザーが自分自身をチームから脱退させます。
+        自分が唯一の per-team owner である場合は脱退できません。
+      operationId: leaveTeam
+      tags:
+        - teams
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      responses:
+        "200":
+          description: 脱退成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                        example: チームから脱退しました
+                  error:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/teams/{id}/invitations:
+    post:
+      summary: チームへの招待送信（per-team owner または admin のみ）
+      description: |
+        invitee_identifier には UUID（ユーザーID）・ユーザー名・メールアドレスのいずれかを指定します。
+        サーバー側でユーザーを解決します。
+      operationId: sendInvitation
+      tags:
+        - invitations
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendInvitationRequest"
+      responses:
+        "201":
+          description: 招待送信成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Invitation"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/invitations/me:
+    get:
+      summary: 自分宛の招待一覧取得
+      description: ログインユーザー宛の招待一覧を返します（全ステータスを含む）。
+      operationId: listMyInvitations
+      tags:
+        - invitations
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 招待一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Invitation"
+                  error:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/invitations/{id}:
+    patch:
+      summary: 招待の受諾または拒否（招待されたユーザーのみ）
+      operationId: respondInvitation
+      tags:
+        - invitations
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 招待ID（UUID形式）
+          schema:
+            type: string
+            format: uuid
+            example: "660e8400-e29b-41d4-a716-446655440001"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RespondInvitationRequest"
+      responses:
+        "200":
+          description: 招待への応答成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Invitation"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -2067,6 +2233,79 @@ components:
             - member
           description: 変更後のチーム内ロール
           example: "owner"
+
+    Invitation:
+      type: object
+      description: 招待エンティティ
+      required:
+        - id
+        - team_id
+        - invited_by
+        - invitee_identifier
+        - invitee_user_id
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 招待ID
+          example: "660e8400-e29b-41d4-a716-446655440001"
+        team_id:
+          type: string
+          format: uuid
+          description: 招待先チームID
+          example: "770e8400-e29b-41d4-a716-446655440001"
+        invited_by:
+          type: string
+          format: uuid
+          description: 招待したユーザーのID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        invitee_identifier:
+          type: string
+          description: 招待時に指定した識別子（UUID / ユーザー名 / メールアドレス）
+          example: "alice@example.com"
+        invitee_user_id:
+          type: string
+          format: uuid
+          description: 解決済みの招待先ユーザーID
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        status:
+          type: string
+          enum:
+            - pending
+            - accepted
+            - rejected
+          description: 招待のステータス
+          example: "pending"
+        created_at:
+          type: string
+          format: date-time
+          description: 招待日時
+          example: "2024-01-01T00:00:00Z"
+
+    SendInvitationRequest:
+      type: object
+      required:
+        - invitee_identifier
+      properties:
+        invitee_identifier:
+          type: string
+          description: 招待するユーザーの識別子（UUID / ユーザー名 / メールアドレスのいずれか）
+          example: "alice@example.com"
+
+    RespondInvitationRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - accepted
+            - rejected
+          description: 招待への応答（accepted=受諾 / rejected=拒否）
+          example: "accepted"
 
     ErrorResponse:
       type: object
