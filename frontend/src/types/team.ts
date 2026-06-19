@@ -11,6 +11,27 @@ export interface TeamMember {
   team_id: string;
   user_id: string;
   joined_at: string;
+  role: 'owner' | 'member';
+}
+
+export interface Invitation {
+  id: string;
+  team_id: string;
+  invited_by: string;
+  invitee_identifier: string;
+  invitee_user_id: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  created_at: string;
+}
+
+export interface InvitationsResponse {
+  data: Invitation[];
+  error: string | null;
+}
+
+export interface InvitationResponse {
+  data: Invitation;
+  error: string | null;
 }
 
 export interface TeamDetail extends Team {
