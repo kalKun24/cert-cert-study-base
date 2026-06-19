@@ -156,6 +156,12 @@ func main() {
 		return authMiddleware(h)
 	}
 
+	// 自分のプロフィール編集・パスワード変更（全ロール可）
+	// Go 1.22+ の net/http では /users/me/... は /users/{id}/... より具体的なパターンが優先されるため
+	// 登録順序に依存せず "me" がパスパラメータに誤マッチすることはない
+	mux.Handle("PATCH /api/v1/users/me/profile", withAuth(userHandler.HandleUpdateMyProfile))
+	mux.Handle("PATCH /api/v1/users/me/password", withAuth(userHandler.HandleChangeMyPassword))
+
 	// 問題CRUD（認証済み全ユーザー。認可はユースケース層で実施）
 	mux.Handle("POST /api/v1/questions", withAuth(questionHandler.HandleCreateQuestion))
 	mux.Handle("GET /api/v1/questions", withAuth(questionHandler.HandleListQuestions))
