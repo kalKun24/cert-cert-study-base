@@ -1415,6 +1415,30 @@ img {
 }
 
 /* =============================================================================
+   問題詳細 セクション左ボーダー色分け
+   ============================================================================= */
+
+/* 問題文: ゴールド（アクセントカラー） */
+.question-section--body.accordion-section {
+  border-left: 4px solid var(--color-accent);
+}
+
+/* 解答: グリーン */
+.question-section--answer.accordion-section {
+  border-left: 4px solid #3db88a;
+}
+
+/* 解説: 低輝度の薄いボーダー */
+.question-section--explanation.accordion-section {
+  border-left: 4px solid rgba(171, 209, 198, 0.4);
+}
+
+/* 議論点メモ: ダッシュボーダー風（擬似的に実線+低透明度で表現） */
+.question-section--memo.accordion-section {
+  border-left: 4px dashed rgba(171, 209, 198, 0.5);
+}
+
+/* =============================================================================
    コメントセクション
    ============================================================================= */
 
