@@ -51,28 +51,28 @@ export default function Layout() {
           <nav aria-label={t('nav.sidebar')}>
             <ul className="sidebar-menu">
               <li>
-                <NavLink to="/" end>
+                <NavLink to="/" end onClick={closeSidebar}>
                   {t('nav.home')}
                 </NavLink>
               </li>
               <li>
-                <NavLink to="/questions">
+                <NavLink to="/questions" onClick={closeSidebar}>
                   {t('nav.questions')}
                 </NavLink>
               </li>
               <li>
-                <NavLink to="/tags">
+                <NavLink to="/tags" onClick={closeSidebar}>
                   {t('nav.tags')}
                 </NavLink>
               </li>
               <li>
-                <NavLink to="/teams">
+                <NavLink to="/teams" onClick={closeSidebar}>
                   {t('nav.teams')}
                 </NavLink>
               </li>
               {user?.role === 'admin' && (
                 <li>
-                  <NavLink to="/admin/users">
+                  <NavLink to="/admin/users" onClick={closeSidebar}>
                     {t('nav.users')}
                   </NavLink>
                 </li>
