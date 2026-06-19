@@ -38,8 +38,8 @@ type Team struct {
 
 // TeamMember はチームメンバーエンティティです。
 type TeamMember struct {
-	TeamID   string
-	UserID   string
+	TeamID string
+	UserID string
 	// Role はチーム内のロール（owner / member）
 	Role     MemberRole
 	JoinedAt time.Time
