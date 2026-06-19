@@ -490,25 +490,26 @@ img {
   font-size: var(--font-size-xs);
 }
 
-/* プライマリボタン */
+/* プライマリボタン（Teal 600 ベース） */
 .btn-primary {
-  background-color: var(--color-accent);
-  color: var(--color-accent-text);
-  border-color: var(--color-accent);
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border-color: var(--color-primary);
   transition: background-color var(--transition-fast), color var(--transition-fast),
     border-color var(--transition-fast), box-shadow var(--transition-fast),
     transform var(--transition-fast);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #0f766e;
+  background-color: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
   text-decoration: none;
 }
 
 .btn-primary:active:not(:disabled) {
-  background: #115e59;
+  background-color: var(--color-primary-dark);
   transform: translateY(0);
   box-shadow: none;
 }
@@ -517,20 +518,20 @@ img {
 .btn-secondary {
   background-color: transparent;
   color: var(--color-text-body);
-  border-color: var(--color-text-body);
+  border-color: var(--color-border);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: rgba(13, 148, 136, 0.08);
-  color: var(--color-text-primary);
-  border-color: var(--color-text-primary);
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
   text-decoration: none;
 }
 
 /* デンジャーボタン */
 .btn-danger {
   background-color: var(--color-error);
-  color: var(--color-text-primary);
+  color: #ffffff;
   border-color: var(--color-error);
 }
 
@@ -648,7 +649,7 @@ img {
 
 .card {
   background-color: var(--color-bg-card);
-  border: var(--border-width-base) solid var(--color-border-default);
+  border: var(--border-width-base) solid var(--color-border);
   border-radius: var(--border-radius-lg);
   padding: var(--space-6);
   margin-bottom: var(--space-6);
@@ -661,7 +662,7 @@ img {
   color: var(--color-text-primary);
   margin-bottom: var(--space-5);
   padding-bottom: var(--space-4);
-  border-bottom: var(--border-width-base) solid var(--color-border-default);
+  border-bottom: var(--border-width-base) solid var(--color-border);
 }
 
 /* =============================================================================
