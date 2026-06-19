@@ -19,12 +19,18 @@ vi.mock('../../context/AuthContext', () => ({
 }));
 
 // react-i18next をモック（キーをそのまま返す）
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-    i18n: { language: 'ja' },
-  }),
-}));
+// t を factory スコープの固定参照にすることで useEffect([questionId, t]) の
+// 無限再実行を防ぐ（毎レンダーで新参照が生成されると setLoadError('') が
+// 繰り返されエラー状態がクリアされてしまう）
+vi.mock('react-i18next', () => {
+  const t = (key: string) => key;
+  return {
+    useTranslation: () => ({
+      t,
+      i18n: { language: 'ja' },
+    }),
+  };
+});
 
 // react-markdown をモック（テスト環境でのESM互換性対応）
 vi.mock('react-markdown', () => ({
