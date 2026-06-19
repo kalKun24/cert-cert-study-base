@@ -28,6 +28,7 @@ export default function LoginPage() {
   const errorRef = useRef<HTMLDivElement>(null);
 
   const from = (location.state as { from?: string })?.from ?? '/';
+  const successMessage = (location.state as { message?: string })?.message ?? '';
 
   useEffect(() => {
     if (error) {
@@ -84,6 +85,12 @@ export default function LoginPage() {
         <p className="login-subtitle">{t('app.description')}</p>
 
         <form onSubmit={handleSubmit} noValidate>
+          {successMessage && (
+            <div className="alert alert-success" role="status">
+              {successMessage}
+            </div>
+          )}
+
           {error && (
             <div
               className="alert alert-error"
