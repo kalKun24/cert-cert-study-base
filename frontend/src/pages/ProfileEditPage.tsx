@@ -115,7 +115,7 @@ export default function ProfileEditPage() {
         typeof (err as { response?: { status?: number } }).response?.status === 'number'
       ) {
         const status = (err as { response: { status: number } }).response.status;
-        if (status === 401) {
+        if (status === 422) {
           setPasswordError(t('profile.error.currentPasswordIncorrect'));
         } else {
           setPasswordError(t('profile.error.passwordChangeFailed'));
