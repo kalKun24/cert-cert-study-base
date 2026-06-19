@@ -12,7 +12,9 @@
     "users": "ユーザー管理",
     "login": "ログイン",
     "logout": "ログアウト",
-    "profile": "プロフィール編集"
+    "profile": "プロフィール編集",
+    "openMenu": "メニューを開く",
+    "sidebar": "サイドナビゲーション"
   },
   "login": {
     "username": "ユーザー名",
