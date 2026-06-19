@@ -71,134 +71,118 @@ function setupAuth(user: AuthUser | null = testUser) {
   });
 }
 
-beforeEach(() => {
-  // 各テスト前にデフォルトの解決済み Promise をセットしておく
-  // これにより前のテストの「解決しない Promise」が残留しない
-  mockFetchComments.mockResolvedValue([]);
-  mockUseAuth.mockReturnValue({
-    isAuthenticated: true,
-    user: testUser,
-    token: 'token',
-    login: vi.fn(),
-    logout: vi.fn(),
-  });
-});
-
 afterEach(() => {
   vi.clearAllMocks();
 });
 
 describe('CommentSection', () => {
-  describe('マウント時', () => {
-    it('fetchComments(questionId) が呼ばれる', async () => {
-      setupAuth();
-      mockFetchComments.mockResolvedValue([]);
+  it('マウント時に fetchComments(questionId) が呼ばれる', async () => {
+    setupAuth();
+    mockFetchComments.mockResolvedValue([]);
 
-      render(<CommentSection questionId={QUESTION_ID} />);
+    render(<CommentSection questionId={QUESTION_ID} />);
 
-      await waitFor(() => {
-        expect(mockFetchComments).toHaveBeenCalledWith(QUESTION_ID);
-      });
+    await waitFor(() => {
+      expect(mockFetchComments).toHaveBeenCalledWith(QUESTION_ID);
     });
-
-    it('ローディング中は role="status" の要素が表示される', () => {
-      setupAuth();
-      // fetchComments が解決しない Promise を使ってローディング状態を維持
-      mockFetchComments.mockReturnValue(new Promise(() => {}));
-
-      render(<CommentSection questionId={QUESTION_ID} />);
-
-      expect(screen.getByRole('status')).toBeInTheDocument();
-      expect(screen.getByRole('status').textContent).toBe('common.loading');
+    // テスト終了前にローディングが完了するまで待ち、pending な非同期処理を解消する
+    await waitFor(() => {
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
     });
   });
 
-  describe('fetchComments 成功時', () => {
-    it('コメントリストがレンダリングされる（display_name が表示される）', async () => {
-      setupAuth();
-      mockFetchComments.mockResolvedValue([mockComment]);
+  it('初回レンダー時は role="status" のローディング要素が表示される', async () => {
+    setupAuth();
+    mockFetchComments.mockResolvedValue([]);
 
-      render(<CommentSection questionId={QUESTION_ID} />);
+    render(<CommentSection questionId={QUESTION_ID} />);
 
-      await waitFor(() => {
-        expect(screen.getByText(mockComment.display_name)).toBeInTheDocument();
-      });
+    // render の直後は isLoading=true
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.getByRole('status').textContent).toBe('common.loading');
+
+    // テスト終了前に非同期処理を完了させる
+    await waitFor(() => {
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
     });
   });
 
-  describe('fetchComments 失敗時', () => {
-    it('role="alert" の要素が表示される', async () => {
-      setupAuth();
-      mockFetchComments.mockReturnValue(Promise.reject(new Error('fetch failed')));
+  it('fetchComments が成功するとコメントリストがレンダリングされる', async () => {
+    setupAuth();
+    mockFetchComments.mockResolvedValue([mockComment]);
 
-      render(<CommentSection questionId={QUESTION_ID} />);
+    render(<CommentSection questionId={QUESTION_ID} />);
 
-      await waitFor(
-        () => {
-          expect(screen.queryByRole('status')).not.toBeInTheDocument();
-          expect(screen.getByRole('alert')).toBeInTheDocument();
-        },
-        { timeout: 3000 },
+    await waitFor(() => {
+      expect(screen.getByText(mockComment.display_name)).toBeInTheDocument();
+    });
+  });
+
+  it('fetchComments が失敗すると role="alert" の要素が表示される', async () => {
+    setupAuth();
+    mockFetchComments.mockRejectedValue(new Error('fetch failed'));
+
+    render(<CommentSection questionId={QUESTION_ID} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+  });
+
+  it('textarea に入力して submit すると postComment が呼ばれる', async () => {
+    setupAuth();
+    mockFetchComments.mockResolvedValue([]);
+    mockPostComment.mockResolvedValue({
+      ...mockComment,
+      id: 'comment-new',
+      created_by: testUser.id,
+      display_name: testUser.display_name,
+      body: 'テスト投稿',
+    });
+
+    render(<CommentSection questionId={QUESTION_ID} />);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+
+    const textarea = screen.getByRole('textbox', {
+      name: 'comment.form.bodyLabel',
+    });
+    fireEvent.change(textarea, { target: { value: 'テスト投稿' } });
+
+    const submitButton = screen.getByRole('button', {
+      name: 'comment.form.submit',
+    });
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(mockPostComment).toHaveBeenCalledWith(QUESTION_ID, 'テスト投稿');
+    });
+  });
+
+  it('空のコメントを送信するとバリデーションエラーが role="alert" で表示され postComment は呼ばれない', async () => {
+    setupAuth();
+    mockFetchComments.mockResolvedValue([]);
+
+    render(<CommentSection questionId={QUESTION_ID} />);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+
+    const submitButton = screen.getByRole('button', {
+      name: 'comment.form.submit',
+    });
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+      expect(screen.getByRole('alert').textContent).toBe(
+        'comment.validation.bodyRequired',
       );
     });
-  });
 
-  describe('新規コメント投稿', () => {
-    it('textarea に入力して submit すると postComment が呼ばれる', async () => {
-      setupAuth();
-      mockFetchComments.mockResolvedValue([]);
-      mockPostComment.mockResolvedValue({
-        ...mockComment,
-        id: 'comment-new',
-        created_by: testUser.id,
-        display_name: testUser.display_name,
-        body: 'テスト投稿',
-      });
-
-      render(<CommentSection questionId={QUESTION_ID} />);
-
-      await waitFor(() => {
-        expect(mockFetchComments).toHaveBeenCalled();
-      });
-
-      const textarea = screen.getByRole('textbox', {
-        name: 'comment.form.bodyLabel',
-      });
-      fireEvent.change(textarea, { target: { value: 'テスト投稿' } });
-
-      const submitButton = screen.getByRole('button', {
-        name: 'comment.form.submit',
-      });
-      fireEvent.click(submitButton);
-
-      await waitFor(() => {
-        expect(mockPostComment).toHaveBeenCalledWith(QUESTION_ID, 'テスト投稿');
-      });
-    });
-
-    it('空のコメントを送信するとバリデーションエラーが role="alert" で表示され postComment は呼ばれない', async () => {
-      setupAuth();
-      mockFetchComments.mockResolvedValue([]);
-
-      render(<CommentSection questionId={QUESTION_ID} />);
-
-      await waitFor(() => {
-        expect(mockFetchComments).toHaveBeenCalled();
-      });
-
-      const submitButton = screen.getByRole('button', {
-        name: 'comment.form.submit',
-      });
-      fireEvent.click(submitButton);
-
-      await waitFor(() => {
-        expect(screen.getByRole('alert')).toBeInTheDocument();
-        expect(screen.getByRole('alert').textContent).toBe(
-          'comment.validation.bodyRequired',
-        );
-      });
-
-      expect(mockPostComment).not.toHaveBeenCalled();
-    });
+    expect(mockPostComment).not.toHaveBeenCalled();
   });
 });
