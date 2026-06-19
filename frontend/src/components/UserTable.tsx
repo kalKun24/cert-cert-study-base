@@ -30,14 +30,16 @@ export default function UserTable({ users, onStatusToggled, onDeleted }: UserTab
         <tbody>
           {users.map((user) => (
             <tr key={user.id}>
-              <td>{user.username}</td>
-              <td>{user.display_name}</td>
-              <td>{t(`user.role.${user.role}`)}</td>
-              <td>
+              <td data-label={t('user.table.username')}>{user.username}</td>
+              <td data-label={t('user.table.displayName')}>{user.display_name}</td>
+              <td data-label={t('user.table.role')}>{t(`user.role.${user.role}`)}</td>
+              <td data-label={t('user.table.status')}>
                 <UserStatusBadge isActive={user.is_active} />
               </td>
-              <td>{new Date(user.created_at).toLocaleDateString('ja-JP')}</td>
-              <td>
+              <td data-label={t('user.table.createdAt')}>
+                {new Date(user.created_at).toLocaleDateString('ja-JP')}
+              </td>
+              <td data-label={t('user.table.actions')}>
                 <div className="table-actions">
                   <Link
                     to={`/admin/users/${user.id}/edit`}
