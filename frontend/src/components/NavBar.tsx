@@ -17,9 +17,10 @@ const ROLE_LABELS: Record<string, string> = {
 
 interface NavBarProps {
   onMenuToggle?: () => void;
+  isSidebarOpen?: boolean;
 }
 
-export default function NavBar({ onMenuToggle }: NavBarProps) {
+export default function NavBar({ onMenuToggle, isSidebarOpen = false }: NavBarProps) {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -41,7 +42,9 @@ export default function NavBar({ onMenuToggle }: NavBarProps) {
         type="button"
         className="navbar-menu-toggle"
         onClick={onMenuToggle}
-        aria-label={t('nav.openMenu')}
+        aria-label={isSidebarOpen ? t('nav.closeMenu') : t('nav.openMenu')}
+        aria-expanded={isSidebarOpen}
+        aria-controls="sidebar"
       >
         ☰
       </button>

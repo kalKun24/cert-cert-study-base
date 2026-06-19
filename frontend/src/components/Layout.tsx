@@ -33,9 +33,9 @@ export default function Layout() {
 
   return (
     <div className="app-layout">
-      <NavBar onMenuToggle={handleMenuToggle} />
+      <NavBar onMenuToggle={handleMenuToggle} isSidebarOpen={isSidebarOpen} />
       <div className="app-body">
-        {/* モバイル: サイドバーオーバーレイ */}
+        {/* モバイル: サイドバーオーバーレイ（タップで閉じる） */}
         {isSidebarOpen && (
           <div
             className="sidebar-overlay"
@@ -44,7 +44,10 @@ export default function Layout() {
           />
         )}
 
-        <aside className={`sidebar${isSidebarOpen ? ' is-open' : ''}`}>
+        <aside
+          id="sidebar"
+          className={`sidebar${isSidebarOpen ? ' is-open' : ''}`}
+        >
           <nav aria-label={t('nav.sidebar')}>
             <ul className="sidebar-menu">
               <li>
