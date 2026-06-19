@@ -1528,3 +1528,39 @@ img {
     align-items: flex-start;
   }
 }
+
+/* =============================================================================
+   MDEditor ダークモード調整（ダークティールパレットとの視覚的一致）
+   ============================================================================= */
+
+[data-color-mode="dark"] .w-md-editor {
+  background-color: var(--color-bg-card) !important;
+  border: var(--border-width-base) solid var(--color-border-default) !important;
+  color: var(--color-text-body) !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-toolbar {
+  background-color: var(--color-bg-sidebar) !important;
+  border-bottom-color: var(--color-border-default) !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-toolbar button {
+  color: var(--color-text-muted) !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-toolbar button:hover {
+  color: var(--color-text-primary) !important;
+  background-color: rgba(249, 188, 96, 0.1) !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-text-input,
+[data-color-mode="dark"] .w-md-editor-text {
+  color: var(--color-text-body) !important;
+  background-color: var(--color-bg-card) !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-preview {
+  background-color: var(--color-bg-card) !important;
+  color: var(--color-text-body) !important;
+  border-left-color: var(--color-border-default) !important;
+}

@@ -196,7 +196,7 @@ export default function QuestionEditPage() {
             ))}
           </div>
 
-          <div data-color-mode="light">
+          <div data-color-mode="dark">
             <MDEditor
               value={form[activeTab]}
               onChange={handleEditorChange}
