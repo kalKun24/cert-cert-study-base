@@ -486,6 +486,32 @@ img {
   border-left-color: var(--color-primary);
 }
 
+/* ドロワー内ユーザー情報・ログアウトエリア */
+.mobile-drawer-user {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  margin-top: var(--space-2);
+  border-top: var(--border-width-base) solid var(--color-border);
+}
+
+.mobile-drawer-user-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-body);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-drawer-logout {
+  flex-shrink: 0;
+}
+
 /* =============================================================================
    ボタン
    ============================================================================= */

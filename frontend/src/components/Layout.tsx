@@ -1,9 +1,24 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router-dom';
 import NavBar from './NavBar';
 import { useAuth } from '../context/AuthContext';
+import apiClient from '../utils/apiClient';
+
+// ロールの表示ラベル
+const ROLE_LABELS: Record<string, string> = {
+  admin: '管理者',
+  teamowner: 'チームオーナー',
+  user: 'ユーザー',
+};
+
+// ロールの data 属性値
+const ROLE_DATA: Record<string, string> = {
+  admin: 'admin',
+  teamowner: 'teamowner',
+  user: 'user',
+};
 
 /** フォーカス可能な要素のセレクタ */
 const FOCUSABLE_SELECTORS =
@@ -11,9 +26,20 @@ const FOCUSABLE_SELECTORS =
 
 export default function Layout() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
+
+  const handleLogout = async () => {
+    try {
+      await apiClient.post('/auth/logout');
+    } catch {
+      // サーバーサイドはステートレスなので失敗しても続行
+    }
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   const closeMobileMenu = useCallback(() => {
     setIsMobileMenuOpen(false);
@@ -93,6 +119,17 @@ export default function Layout() {
     };
   }, [isMobileMenuOpen]);
 
+  // ドロワー開閉時に inert 属性を DOM 直接操作で設定する（型定義未整備のため）
+  useEffect(() => {
+    const drawer = drawerRef.current;
+    if (!drawer) return;
+    if (isMobileMenuOpen) {
+      drawer.removeAttribute('inert');
+    } else {
+      drawer.setAttribute('inert', '');
+    }
+  }, [isMobileMenuOpen]);
+
   return (
     <div className="app-layout">
       <NavBar
@@ -117,7 +154,7 @@ export default function Layout() {
         aria-label={t('nav.mobileMenu')}
         role="dialog"
         aria-modal="true"
-        hidden={!isMobileMenuOpen}
+        aria-hidden={!isMobileMenuOpen}
       >
         <nav>
           <ul className="mobile-nav-list" role="list">
@@ -155,6 +192,17 @@ export default function Layout() {
                 {t('nav.tags')}
               </NavLink>
             </li>
+            <li>
+              <NavLink
+                to="/teams"
+                className={({ isActive }) =>
+                  isActive ? 'mobile-nav-link mobile-nav-link--active' : 'mobile-nav-link'
+                }
+                onClick={closeMobileMenu}
+              >
+                {t('nav.teams')}
+              </NavLink>
+            </li>
             {/* ユーザー管理は admin のみ表示 */}
             {user?.role === 'admin' && (
               <li>
@@ -171,6 +219,28 @@ export default function Layout() {
             )}
           </ul>
         </nav>
+
+        {/* モバイルドロワー内ユーザー情報・ログアウト */}
+        {user && (
+          <div className="mobile-drawer-user">
+            <span className="mobile-drawer-user-info">
+              {user.display_name}
+              <span
+                className="role-badge"
+                data-role={ROLE_DATA[user.role] ?? 'user'}
+              >
+                {ROLE_LABELS[user.role] ?? user.role}
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="btn btn-secondary btn-sm mobile-drawer-logout"
+            >
+              {t('nav.logout')}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="app-body">

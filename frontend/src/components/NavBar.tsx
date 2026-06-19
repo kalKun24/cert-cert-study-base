@@ -68,6 +68,11 @@ export default function NavBar({ isMobileMenuOpen, onMobileMenuToggle }: NavBarP
               {t('nav.tags')}
             </NavLink>
           </li>
+          <li>
+            <NavLink to="/teams" className={({ isActive }) => isActive ? 'topbar-nav-link topbar-nav-link--active' : 'topbar-nav-link'}>
+              {t('nav.teams')}
+            </NavLink>
+          </li>
           {/* ユーザー管理は admin のみ表示 */}
           {user?.role === 'admin' && (
             <li>
