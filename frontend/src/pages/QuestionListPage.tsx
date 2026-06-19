@@ -1,27 +1,57 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchQuestions } from '../utils/questionApi';
 import { fetchTags } from '../utils/tagApi';
 import { Question } from '../types/question';
 import { Tag } from '../types/tag';
+import TagChip from '../components/TagChip';
 
 const PER_PAGE = 20;
 
+/** URL クエリの tag_ids パラメータ名 */
+const PARAM_TAG_IDS = 'tag_ids';
+/** URL クエリの keyword パラメータ名 */
+const PARAM_KEYWORD = 'keyword';
+/** URL クエリの page パラメータ名 */
+const PARAM_PAGE = 'page';
+
 export default function QuestionListPage() {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // URL クエリパラメータから初期値を復元
+  const initialTagNames = (): string[] => {
+    const raw = searchParams.get(PARAM_TAG_IDS);
+    if (!raw) return [];
+    return raw.split(',').filter(Boolean);
+  };
+  const initialKeyword = searchParams.get(PARAM_KEYWORD) ?? '';
+  const initialPage = parseInt(searchParams.get(PARAM_PAGE) ?? '1', 10) || 1;
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
-  const [keyword, setKeyword] = useState('');
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-  const [page, setPage] = useState(1);
+  const [keyword, setKeyword] = useState(initialKeyword);
+  const [selectedTagNames, setSelectedTagNames] = useState<string[]>(initialTagNames);
+  const [page, setPage] = useState(initialPage);
   const [totalPages, setTotalPages] = useState(1);
 
+  /** URL クエリパラメータを現在の状態で同期する */
+  const syncSearchParams = useCallback(
+    (currentPage: number, currentKeyword: string, currentTagNames: string[]) => {
+      const next = new URLSearchParams();
+      if (currentKeyword.trim()) next.set(PARAM_KEYWORD, currentKeyword.trim());
+      if (currentTagNames.length > 0) next.set(PARAM_TAG_IDS, currentTagNames.join(','));
+      if (currentPage > 1) next.set(PARAM_PAGE, String(currentPage));
+      setSearchParams(next, { replace: true });
+    },
+    [setSearchParams]
+  );
+
   const loadQuestions = useCallback(
-    (currentPage: number, currentKeyword: string, currentTagIds: string[]) => {
+    (currentPage: number, currentKeyword: string, currentTagNames: string[]) => {
       let isMounted = true;
       setIsLoading(true);
       setLoadError('');
@@ -33,8 +63,8 @@ export default function QuestionListPage() {
       if (currentKeyword.trim()) {
         params.keyword = currentKeyword.trim();
       }
-      if (currentTagIds.length > 0) {
-        params.tag_ids = currentTagIds.join(',');
+      if (currentTagNames.length > 0) {
+        params.tag_ids = currentTagNames.join(',');
       }
 
       fetchQuestions(params)
@@ -67,13 +97,14 @@ export default function QuestionListPage() {
   }, []);
 
   useEffect(() => {
-    const cleanup = loadQuestions(page, keyword, selectedTagIds);
+    syncSearchParams(page, keyword, selectedTagNames);
+    const cleanup = loadQuestions(page, keyword, selectedTagNames);
     return cleanup;
-  }, [page, keyword, selectedTagIds, loadQuestions]);
+  }, [page, keyword, selectedTagNames, loadQuestions, syncSearchParams]);
 
-  const handleTagToggle = (tagId: string) => {
-    setSelectedTagIds((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+  const handleTagToggle = (tagName: string) => {
+    setSelectedTagNames((prev) =>
+      prev.includes(tagName) ? prev.filter((n) => n !== tagName) : [...prev, tagName]
     );
     setPage(1);
   };
@@ -103,16 +134,18 @@ export default function QuestionListPage() {
         />
 
         {tags.length > 0 && (
-          <div className="filter-tags" aria-label={t('question.filter.tagPlaceholder')}>
+          <div
+            className="filter-tags"
+            role="group"
+            aria-label={t('question.filter.tagPlaceholder')}
+          >
             {tags.map((tag) => (
-              <label key={tag.id} className="filter-tag-label">
-                <input
-                  type="checkbox"
-                  checked={selectedTagIds.includes(tag.id)}
-                  onChange={() => handleTagToggle(tag.id)}
-                />
-                {tag.name}
-              </label>
+              <TagChip
+                key={tag.id}
+                tag={tag}
+                selected={selectedTagNames.includes(tag.name)}
+                onToggle={handleTagToggle}
+              />
             ))}
           </div>
         )}
@@ -155,7 +188,7 @@ export default function QuestionListPage() {
           </ul>
 
           {totalPages > 1 && (
-            <div className="pagination" role="navigation" aria-label="ページネーション">
+            <div className="pagination" role="navigation" aria-label={t('question.pagination.navLabel')}>
               <button
                 type="button"
                 className="btn btn-secondary"

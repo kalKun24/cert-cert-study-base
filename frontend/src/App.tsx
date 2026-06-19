@@ -12,6 +12,7 @@ import TeamListPage from './pages/TeamListPage';
 import TeamDetailPage from './pages/TeamDetailPage';
 import TeamCreatePage from './pages/TeamCreatePage';
 import TeamEditPage from './pages/TeamEditPage';
+import TagManagePage from './pages/TagManagePage';
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
               <Route path="/questions/new" element={<QuestionCreatePage />} />
               <Route path="/questions/:id" element={<QuestionDetailPage />} />
               <Route path="/questions/:id/edit" element={<QuestionEditPage />} />
+              <Route path="/tags" element={<TagManagePage />} />
               <Route path="/teams" element={<TeamListPage />} />
               <Route element={<PrivateRoute requiredRoles={['admin', 'teamowner']} />}>
                 <Route path="/teams/new" element={<TeamCreatePage />} />

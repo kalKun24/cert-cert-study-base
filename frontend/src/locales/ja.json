@@ -79,6 +79,7 @@
       "tagPlaceholder": "タグで絞り込み"
     },
     "pagination": {
+      "navLabel": "ページネーション",
       "prev": "前のページ",
       "next": "次のページ",
       "pageInfo": "{{page}} / {{total}} ページ"
@@ -138,6 +139,33 @@
     },
     "role": {
       "forbidden": "この操作を行う権限がありません"
+    }
+  },
+  "tag": {
+    "list": {
+      "title": "タグ一覧",
+      "empty": "タグがまだありません"
+    },
+    "form": {
+      "createTitle": "タグを作成",
+      "namePlaceholder": "タグ名を入力",
+      "nameLabel": "タグ名",
+      "editTitle": "タグを編集",
+      "saveButton": "保存",
+      "addButton": "追加"
+    },
+    "error": {
+      "fetchFailed": "タグの読み込みに失敗しました",
+      "createFailed": "タグの作成に失敗しました",
+      "updateFailed": "タグの更新に失敗しました",
+      "deleteFailed": "タグの削除に失敗しました",
+      "nameDuplicate": "同名のタグがすでに存在します"
+    },
+    "confirm": {
+      "delete": "タグ「{{name}}」を削除しますか？削除すると元に戻せません。"
+    },
+    "validation": {
+      "nameRequired": "タグ名を入力してください"
     }
   },
   "comment": {
