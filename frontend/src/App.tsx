@@ -13,6 +13,9 @@ import TeamDetailPage from './pages/TeamDetailPage';
 import TeamCreatePage from './pages/TeamCreatePage';
 import TeamEditPage from './pages/TeamEditPage';
 import TagManagePage from './pages/TagManagePage';
+import UserListPage from './pages/UserListPage';
+import UserCreatePage from './pages/UserCreatePage';
+import UserEditPage from './pages/UserEditPage';
 
 export default function App() {
   return (
@@ -35,6 +38,11 @@ export default function App() {
               </Route>
               <Route path="/teams/:id" element={<TeamDetailPage />} />
               <Route path="/teams/:id/edit" element={<TeamEditPage />} />
+              <Route element={<PrivateRoute requiredRoles={['admin']} />}>
+                <Route path="/admin/users" element={<UserListPage />} />
+                <Route path="/admin/users/new" element={<UserCreatePage />} />
+                <Route path="/admin/users/:id/edit" element={<UserEditPage />} />
+              </Route>
             </Route>
           </Route>
 

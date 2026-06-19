@@ -168,6 +168,68 @@
       "nameRequired": "タグ名を入力してください"
     }
   },
+  "user": {
+    "list": {
+      "title": "ユーザー管理",
+      "empty": "ユーザーがまだいません",
+      "createButton": "ユーザーを作成"
+    },
+    "table": {
+      "username": "ユーザー名",
+      "displayName": "表示名",
+      "role": "ロール",
+      "status": "ステータス",
+      "createdAt": "作成日",
+      "actions": "操作"
+    },
+    "status": {
+      "active": "有効",
+      "inactive": "停止中"
+    },
+    "role": {
+      "admin": "管理者",
+      "teamowner": "チームオーナー",
+      "user": "ユーザー"
+    },
+    "action": {
+      "activate": "有効化",
+      "deactivate": "停止"
+    },
+    "form": {
+      "createTitle": "ユーザーを作成",
+      "editTitle": "ユーザーを編集",
+      "usernameLabel": "ユーザー名",
+      "displayNameLabel": "表示名",
+      "emailLabel": "メールアドレス",
+      "roleLabel": "ロール",
+      "passwordLabel": "パスワード",
+      "passwordEditHint": "入力しない場合はパスワードを変更しません",
+      "usernamePlaceholder": "ユーザー名を入力してください",
+      "displayNamePlaceholder": "表示名を入力してください",
+      "emailPlaceholder": "メールアドレスを入力してください",
+      "passwordPlaceholder": "8文字以上で入力してください"
+    },
+    "confirm": {
+      "activate": "ユーザー「{{name}}」を有効化しますか？",
+      "deactivate": "ユーザー「{{name}}」を停止しますか？",
+      "delete": "ユーザー「{{name}}」を削除しますか？削除すると元に戻せません。"
+    },
+    "error": {
+      "fetchFailed": "ユーザーの読み込みに失敗しました。再試行してください",
+      "createFailed": "ユーザーの作成に失敗しました。再試行してください",
+      "updateFailed": "ユーザーの更新に失敗しました。再試行してください",
+      "deleteFailed": "ユーザーの削除に失敗しました",
+      "statusUpdateFailed": "ステータスの変更に失敗しました。再試行してください"
+    },
+    "validation": {
+      "usernameRequired": "ユーザー名を入力してください",
+      "displayNameRequired": "表示名を入力してください",
+      "emailRequired": "メールアドレスを入力してください",
+      "roleRequired": "ロールを選択してください",
+      "passwordRequired": "パスワードを入力してください",
+      "passwordTooShort": "パスワードは8文字以上で入力してください"
+    }
+  },
   "comment": {
     "section": {
       "title": "コメント",
