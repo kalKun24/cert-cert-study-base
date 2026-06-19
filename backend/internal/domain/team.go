@@ -6,6 +6,26 @@ import (
 	"time"
 )
 
+// MemberRole はチーム内のメンバーロールを表す型です。
+type MemberRole string
+
+const (
+	// MemberRoleOwner はチーム内のオーナーロールです。
+	MemberRoleOwner MemberRole = "owner"
+	// MemberRoleMember はチーム内の一般メンバーロールです。
+	MemberRoleMember MemberRole = "member"
+)
+
+// IsValid は MemberRole が有効な値かどうかを検証します。
+func (r MemberRole) IsValid() bool {
+	switch r {
+	case MemberRoleOwner, MemberRoleMember:
+		return true
+	default:
+		return false
+	}
+}
+
 // Team はチームエンティティです。
 type Team struct {
 	ID          string
@@ -20,6 +40,8 @@ type Team struct {
 type TeamMember struct {
 	TeamID   string
 	UserID   string
+	// Role はチーム内のロール（owner / member）
+	Role     MemberRole
 	JoinedAt time.Time
 }
 
@@ -29,6 +51,8 @@ var (
 	ErrTeamNameAlreadyExists = errors.New("このチーム名は既に使用されています")
 	ErrMemberAlreadyExists   = errors.New("このユーザーはすでにチームのメンバーです")
 	ErrMemberNotFound        = errors.New("このユーザーはチームのメンバーではありません")
+	// ErrLastTeamOwner はチームの最後のオーナーを降格しようとした場合のエラーです。
+	ErrLastTeamOwner = errors.New("チームの最後のオーナーを降格することはできません")
 )
 
 // TeamRepository はチームの永続化操作を抽象化するインターフェースです。
@@ -68,4 +92,10 @@ type TeamRepository interface {
 
 	// IsMember はユーザーがチームのメンバーかどうかを返します。
 	IsMember(ctx context.Context, teamID, userID string) (bool, error)
+
+	// FindOwners はチームのオーナーロールを持つメンバー一覧を返します。
+	FindOwners(ctx context.Context, teamID string) ([]*TeamMember, error)
+
+	// UpdateMemberRole はチームメンバーのロールを変更します。
+	UpdateMemberRole(ctx context.Context, teamID, userID string, role MemberRole) error
 }
