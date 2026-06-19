@@ -85,26 +85,20 @@ describe('CommentSection', () => {
     await waitFor(() => {
       expect(mockFetchComments).toHaveBeenCalledWith(QUESTION_ID);
     });
-    // テスト終了前にローディングが完了するまで待ち、pending な非同期処理を解消する
     await waitFor(() => {
       expect(screen.queryByRole('status')).not.toBeInTheDocument();
     });
   });
 
-  it('初回レンダー時は role="status" のローディング要素が表示される', async () => {
+  it('初回レンダー時は role="status" のローディング要素が表示される', () => {
     setupAuth();
-    mockFetchComments.mockResolvedValue([]);
+    // 解決しない Promise でローディング状態を維持する
+    mockFetchComments.mockImplementation(() => new Promise<Comment[]>(() => {}));
 
     render(<CommentSection questionId={QUESTION_ID} />);
 
-    // render の直後は isLoading=true
     expect(screen.getByRole('status')).toBeInTheDocument();
     expect(screen.getByRole('status').textContent).toBe('common.loading');
-
-    // テスト終了前に非同期処理を完了させる
-    await waitFor(() => {
-      expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    });
   });
 
   it('fetchComments が成功するとコメントリストがレンダリングされる', async () => {
@@ -120,7 +114,11 @@ describe('CommentSection', () => {
 
   it('fetchComments が失敗すると role="alert" の要素が表示される', async () => {
     setupAuth();
-    mockFetchComments.mockRejectedValue(new Error('fetch failed'));
+    // mockRejectedValue は環境によってはグローバルな unhandledRejection を引き起こすため
+    // async 関数で throw する実装を使う
+    mockFetchComments.mockImplementation(async () => {
+      throw new Error('fetch failed');
+    });
 
     render(<CommentSection questionId={QUESTION_ID} />);
 
@@ -131,6 +129,7 @@ describe('CommentSection', () => {
 
   it('textarea に入力して submit すると postComment が呼ばれる', async () => {
     setupAuth();
+    // フォームは loading 中でも常時レンダーされるため、loading 完了を待たずに操作できる
     mockFetchComments.mockResolvedValue([]);
     mockPostComment.mockResolvedValue({
       ...mockComment,
@@ -141,10 +140,6 @@ describe('CommentSection', () => {
     });
 
     render(<CommentSection questionId={QUESTION_ID} />);
-
-    await waitFor(() => {
-      expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    });
 
     const textarea = screen.getByRole('textbox', {
       name: 'comment.form.bodyLabel',
@@ -163,13 +158,10 @@ describe('CommentSection', () => {
 
   it('空のコメントを送信するとバリデーションエラーが role="alert" で表示され postComment は呼ばれない', async () => {
     setupAuth();
-    mockFetchComments.mockResolvedValue([]);
+    // フォームは loading 中でも常時レンダーされるため、loading 完了を待たずに操作できる
+    mockFetchComments.mockImplementation(() => new Promise<Comment[]>(() => {}));
 
     render(<CommentSection questionId={QUESTION_ID} />);
-
-    await waitFor(() => {
-      expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    });
 
     const submitButton = screen.getByRole('button', {
       name: 'comment.form.submit',
