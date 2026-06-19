@@ -256,6 +256,78 @@ func (uc *UserUseCase) DeleteUser(id string) error {
 	return nil
 }
 
+// UpdateProfileInput はプロフィール編集ユースケースの入力です。
+type UpdateProfileInput struct {
+	// UserID は編集対象のユーザーID（ログイン中のユーザー自身）
+	UserID string
+	// DisplayName は新しい表示名
+	DisplayName string
+}
+
+// UpdateProfile はログイン中のユーザーの display_name を更新します（全ロール可）。
+// TODO: ユースケース層のメソッドシグネチャに context.Context を追加し、
+// context.TODO() を呼び元から受け取った ctx に置き換える。
+func (uc *UserUseCase) UpdateProfile(input UpdateProfileInput) (*domain.User, error) {
+	if input.DisplayName == "" {
+		return nil, fmt.Errorf("display_name は必須です")
+	}
+
+	user, err := uc.userRepo.FindByID(context.TODO(), input.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("ユーザー取得に失敗しました: %w", err)
+	}
+
+	user.DisplayName = input.DisplayName
+	user.UpdatedAt = time.Now().UTC()
+
+	if err := uc.userRepo.Save(context.TODO(), user); err != nil {
+		return nil, fmt.Errorf("ユーザーの保存に失敗しました: %w", err)
+	}
+
+	return user, nil
+}
+
+// ChangePasswordInput はパスワード変更ユースケースの入力です。
+type ChangePasswordInput struct {
+	// UserID は変更対象のユーザーID（ログイン中のユーザー自身）
+	UserID string
+	// CurrentPassword は現在のパスワード（平文）
+	CurrentPassword string
+	// NewPassword は新しいパスワード（平文）
+	NewPassword string
+}
+
+// ChangePassword はログイン中のユーザーのパスワードを変更します（全ロール可）。
+// 現在のパスワードが誤っている場合は ErrCurrentPasswordIncorrect を返します。
+// TODO: ユースケース層のメソッドシグネチャに context.Context を追加し、
+// context.TODO() を呼び元から受け取った ctx に置き換える。
+func (uc *UserUseCase) ChangePassword(input ChangePasswordInput) error {
+	user, err := uc.userRepo.FindByID(context.TODO(), input.UserID)
+	if err != nil {
+		return fmt.Errorf("ユーザー取得に失敗しました: %w", err)
+	}
+
+	// 現在のパスワードを検証
+	if !uc.hasher.Verify(input.CurrentPassword, user.PasswordHash) {
+		return domain.ErrCurrentPasswordIncorrect
+	}
+
+	// 新しいパスワードをbcryptでハッシュ化
+	hash, err := uc.hasher.Hash(input.NewPassword)
+	if err != nil {
+		return fmt.Errorf("パスワードのハッシュ化に失敗しました: %w", err)
+	}
+
+	user.PasswordHash = hash
+	user.UpdatedAt = time.Now().UTC()
+
+	if err := uc.userRepo.Save(context.TODO(), user); err != nil {
+		return fmt.Errorf("ユーザーの保存に失敗しました: %w", err)
+	}
+
+	return nil
+}
+
 // UpdateUserStatus はユーザーの有効/停止を切り替えます（admin のみ呼び出し可）。
 // TODO: ユースケース層のメソッドシグネチャに context.Context を追加し、
 // context.TODO() を呼び元から受け取った ctx に置き換える。
