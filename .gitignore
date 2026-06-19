@@ -24,3 +24,6 @@ backend/server
 # テストカバレッジ
 coverage/
 *.out
+
+# Claude Code メモリ（ローカル専用）
+.claude/projects/
