@@ -34,6 +34,7 @@ export default function NavBar() {
         <Link to="/">{t('nav.home')}</Link>
         <Link to="/questions">{t('nav.questions')}</Link>
         <Link to="/tags">{t('nav.tags')}</Link>
+        <Link to="/teams">{t('nav.teams')}</Link>
       </div>
 
       <div className="navbar-user">

@@ -3,10 +3,10 @@ import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../utils/auth';
 
 interface Props {
-  requiredRole?: UserRole;
+  requiredRoles?: UserRole[];
 }
 
-export default function PrivateRoute({ requiredRole }: Props) {
+export default function PrivateRoute({ requiredRoles }: Props) {
   const { isAuthenticated, user } = useAuth();
   const location = useLocation();
 
@@ -14,7 +14,7 @@ export default function PrivateRoute({ requiredRole }: Props) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
-  if (requiredRole && user?.role !== requiredRole) {
+  if (requiredRoles && user && !requiredRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
   }
 
