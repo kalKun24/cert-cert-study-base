@@ -8,6 +8,7 @@
     "home": "ホーム",
     "questions": "問題一覧",
     "tags": "タグ一覧",
+    "teams": "チーム一覧",
     "users": "ユーザー管理",
     "login": "ログイン",
     "logout": "ログアウト"
@@ -88,6 +89,55 @@
     "validation": {
       "titleRequired": "タイトルを入力してください",
       "bodyRequired": "問題文を入力してください"
+    }
+  },
+  "team": {
+    "list": {
+      "title": "チーム一覧",
+      "empty": "所属チームがまだありません",
+      "memberCount": "{{count}}人",
+      "createButton": "チームを作成"
+    },
+    "detail": {
+      "backToList": "チーム一覧に戻る",
+      "membersTitle": "メンバー一覧",
+      "membersEmpty": "メンバーがいません",
+      "editButton": "チームを編集",
+      "deleteButton": "チームを削除",
+      "deleteConfirm": "チーム「{{name}}」を削除しますか？削除すると元に戻せません。",
+      "userId": "ユーザーID",
+      "joinedAt": "参加日"
+    },
+    "form": {
+      "createTitle": "チームを作成",
+      "editTitle": "チームを編集",
+      "nameLabel": "チーム名",
+      "descriptionLabel": "説明",
+      "namePlaceholder": "チーム名を入力してください",
+      "descriptionPlaceholder": "チームの説明を入力してください（任意）"
+    },
+    "member": {
+      "inviteTitle": "メンバーを招待",
+      "userIdLabel": "ユーザーID（UUID）",
+      "userIdPlaceholder": "招待するユーザーのIDを入力",
+      "inviteButton": "招待",
+      "removeButton": "除外",
+      "removeConfirm": "このメンバーをチームから除外しますか？"
+    },
+    "error": {
+      "fetchFailed": "チームの読み込みに失敗しました。再試行してください",
+      "createFailed": "チームの作成に失敗しました。再試行してください",
+      "updateFailed": "チームの更新に失敗しました。再試行してください",
+      "deleteFailed": "チームの削除に失敗しました。再試行してください",
+      "inviteFailed": "メンバーの招待に失敗しました。再試行してください",
+      "removeFailed": "メンバーの除外に失敗しました。再試行してください"
+    },
+    "validation": {
+      "nameRequired": "チーム名を入力してください",
+      "userIdRequired": "ユーザーIDを入力してください"
+    },
+    "role": {
+      "forbidden": "この操作を行う権限がありません"
     }
   },
   "comment": {
