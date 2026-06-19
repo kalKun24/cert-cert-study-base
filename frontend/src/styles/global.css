@@ -390,6 +390,73 @@ img {
 }
 
 /* =============================================================================
+   モバイルドロワーナビゲーション
+   モバイル（≤768px）でハンバーガータップ時にスライドイン表示
+   ============================================================================= */
+
+/* ドロワーオーバーレイ（タップで閉じる背景） */
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  z-index: 90;
+}
+
+/* ドロワー本体（デスクトップでは非表示） */
+.mobile-drawer {
+  display: none;
+  position: fixed;
+  top: var(--topbar-height);
+  left: 0;
+  right: 0;
+  z-index: 95;
+  background-color: var(--color-bg-card);
+  border-bottom: var(--border-width-base) solid var(--color-border);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-2) 0 var(--space-4);
+  transform: translateY(-100%);
+  transition: transform var(--transition-base);
+}
+
+/* ドロワー開いた状態 */
+.mobile-drawer--open {
+  transform: translateY(0);
+}
+
+/* ドロワー内ナビリスト */
+.mobile-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mobile-nav-link {
+  display: block;
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-body);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  transition: background-color var(--transition-fast), color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.mobile-nav-link:hover {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+/* アクティブ状態: Teal 600 テキスト + 左ボーダー */
+.mobile-nav-link--active {
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+  border-left-color: var(--color-primary);
+}
+
+/* =============================================================================
    ボタン
    ============================================================================= */
 
@@ -1809,53 +1876,50 @@ img {
 }
 
 /* =============================================================================
-   タブレット対応（768px - 1023px）
+   タブレット対応（768px - 1023px）: Topbar レイアウト維持
    ============================================================================= */
 
 @media (max-width: 1023px) {
-  .sidebar {
-    width: var(--sidebar-width-tablet);
-  }
-
-  .app-body {
-    margin-left: var(--sidebar-width-tablet);
+  /* タブレットでも Topbar 水平ナビを表示する（幅に余裕あり） */
+  .topbar-inner {
+    gap: var(--space-4);
+    padding: 0 var(--space-4);
   }
 }
 
 /* =============================================================================
-   モバイル対応（〜767px）
+   モバイル対応（〜768px）
    ============================================================================= */
 
-@media (max-width: 767px) {
-  /* サイドバーをデフォルト非表示・スライドインで表示 */
-  .sidebar {
-    transform: translateX(-100%);
-    width: var(--sidebar-width);
-    z-index: 90;
+@media (max-width: 768px) {
+  /* Topbar の中央水平ナビを非表示にする */
+  .topbar-nav {
+    display: none;
   }
 
-  .sidebar.is-open {
-    transform: translateX(0);
-    box-shadow: var(--shadow-lg);
-  }
-
-  /* サイドバーが閉じているときはメインコンテンツをフル幅に */
-  .app-body {
-    margin-left: 0;
-  }
-
-  /* オーバーレイを表示 */
-  .sidebar-overlay {
-    display: block;
+  /* ユーザーメニューも非表示（ドロワー側に移動） */
+  .topbar-user {
+    display: none;
   }
 
   /* ハンバーガーボタンを表示 */
-  .navbar-menu-toggle {
+  .topbar-hamburger {
     display: inline-flex;
   }
 
+  /* モバイルドロワーを有効化 */
+  .mobile-drawer {
+    display: block;
+  }
+
+  /* ドロワーオーバーレイを有効化 */
+  .mobile-overlay {
+    display: block;
+  }
+
+  /* メインコンテンツの左右パディング調整（モバイル: 16px） */
   .main-content {
-    padding: var(--space-5) var(--space-4);
+    padding: 0 var(--space-4);
   }
 
   .question-list-header {

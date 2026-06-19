@@ -4,57 +4,55 @@ import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router-dom';
 import NavBar from './NavBar';
 import { useAuth } from '../context/AuthContext';
-import {
-  IconHome,
-  IconQuestions,
-  IconTags,
-  IconTeams,
-  IconUsers,
-} from './SidebarIcon';
 
-const FOCUSABLE_SELECTORS = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+/** フォーカス可能な要素のセレクタ */
+const FOCUSABLE_SELECTORS =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export default function Layout() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const sidebarRef = useRef<HTMLElement>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
 
-  const closeSidebar = useCallback(() => {
-    setIsSidebarOpen(false);
+  const closeMobileMenu = useCallback(() => {
+    setIsMobileMenuOpen(false);
   }, []);
 
-  // ESCキーでサイドバーを閉じる
+  const handleMobileMenuToggle = () => {
+    setIsMobileMenuOpen((prev) => !prev);
+  };
+
+  // ESCキーでドロワーを閉じる
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isSidebarOpen) {
-        closeSidebar();
+      if (e.key === 'Escape' && isMobileMenuOpen) {
+        closeMobileMenu();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isSidebarOpen, closeSidebar]);
+  }, [isMobileMenuOpen, closeMobileMenu]);
 
-  // モバイル: サイドバーオーバーレイ表示中のフォーカストラップ
+  // モバイルドロワー開閉時のフォーカストラップ
   useEffect(() => {
-    if (!isSidebarOpen) return;
+    if (!isMobileMenuOpen) return;
 
-    const sidebar = sidebarRef.current;
-    if (!sidebar) return;
+    const drawer = drawerRef.current;
+    if (!drawer) return;
 
-    // サイドバー内のフォーカス可能な要素を取得
     const getFocusableElements = (): HTMLElement[] =>
-      Array.from(sidebar.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS));
+      Array.from(drawer.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS));
 
-    // サイドバーを開いたとき最初の要素にフォーカスを当てる
+    // ドロワーを開いたとき最初の要素にフォーカスを当てる
     const focusableElements = getFocusableElements();
     if (focusableElements.length > 0) {
       focusableElements[0].focus();
     }
 
-    // Tabキーをサイドバー内でループさせる
+    // Tabキーをドロワー内でループさせる
     const handleTabKey = (e: KeyboardEvent) => {
       if (e.key !== 'Tab') return;
 
@@ -81,85 +79,101 @@ export default function Layout() {
     return () => {
       document.removeEventListener('keydown', handleTabKey);
     };
-  }, [isSidebarOpen]);
+  }, [isMobileMenuOpen]);
 
-  const handleMenuToggle = () => {
-    setIsSidebarOpen((prev) => !prev);
-  };
+  // ドロワー開閉時に body のスクロールを制御する
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
 
   return (
     <div className="app-layout">
-      <NavBar onMenuToggle={handleMenuToggle} isSidebarOpen={isSidebarOpen} />
-      <div className="app-body">
-        {/* モバイル: サイドバーオーバーレイ（タップで閉じる） */}
-        {isSidebarOpen && (
-          <div
-            className="sidebar-overlay"
-            onClick={closeSidebar}
-            aria-hidden="true"
-          />
-        )}
+      <NavBar
+        isMobileMenuOpen={isMobileMenuOpen}
+        onMobileMenuToggle={handleMobileMenuToggle}
+      />
 
-        <aside
-          id="sidebar"
-          ref={sidebarRef}
-          className={`sidebar${isSidebarOpen ? ' is-open' : ''}`}
-        >
-          <nav aria-label={t('nav.sidebar')}>
-            {/* ホーム */}
-            <ul className="sidebar-menu">
-              <li>
-                <NavLink to="/" end onClick={closeSidebar}>
-                  <IconHome size={16} />
-                  {t('nav.home')}
-                </NavLink>
-              </li>
-            </ul>
+      {/* モバイルドロワーオーバーレイ（タップで閉じる） */}
+      {isMobileMenuOpen && (
+        <div
+          className="mobile-overlay"
+          onClick={closeMobileMenu}
+          aria-hidden="true"
+        />
+      )}
 
-            {/* コンテンツグループ */}
-            <p id="sidebar-label-content" className="sidebar-group-label">
-              {t('nav.group.content')}
-            </p>
-            <ul className="sidebar-menu" aria-labelledby="sidebar-label-content">
-              <li>
-                <NavLink to="/questions" onClick={closeSidebar}>
-                  <IconQuestions size={16} />
-                  {t('nav.questions')}
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/tags" onClick={closeSidebar}>
-                  <IconTags size={16} />
-                  {t('nav.tags')}
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/teams" onClick={closeSidebar}>
-                  <IconTeams size={16} />
-                  {t('nav.teams')}
-                </NavLink>
-              </li>
-            </ul>
-
-            {/* 管理グループ（adminのみ） */}
+      {/* モバイルドロワーナビゲーション */}
+      <div
+        id="mobile-menu"
+        ref={drawerRef}
+        className={`mobile-drawer${isMobileMenuOpen ? ' mobile-drawer--open' : ''}`}
+        aria-label={t('nav.mobileMenu')}
+        role="dialog"
+        aria-modal="true"
+        hidden={!isMobileMenuOpen}
+      >
+        <nav>
+          <ul className="mobile-nav-list" role="list">
+            <li>
+              <NavLink
+                to="/"
+                end
+                className={({ isActive }) =>
+                  isActive ? 'mobile-nav-link mobile-nav-link--active' : 'mobile-nav-link'
+                }
+                onClick={closeMobileMenu}
+              >
+                {t('nav.home')}
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/questions"
+                className={({ isActive }) =>
+                  isActive ? 'mobile-nav-link mobile-nav-link--active' : 'mobile-nav-link'
+                }
+                onClick={closeMobileMenu}
+              >
+                {t('nav.questions')}
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/tags"
+                className={({ isActive }) =>
+                  isActive ? 'mobile-nav-link mobile-nav-link--active' : 'mobile-nav-link'
+                }
+                onClick={closeMobileMenu}
+              >
+                {t('nav.tags')}
+              </NavLink>
+            </li>
+            {/* ユーザー管理は admin のみ表示 */}
             {user?.role === 'admin' && (
-              <>
-                <p id="sidebar-label-admin" className="sidebar-group-label">
-                  {t('nav.group.admin')}
-                </p>
-                <ul className="sidebar-menu" aria-labelledby="sidebar-label-admin">
-                  <li>
-                    <NavLink to="/admin/users" onClick={closeSidebar}>
-                      <IconUsers size={16} />
-                      {t('nav.users')}
-                    </NavLink>
-                  </li>
-                </ul>
-              </>
+              <li>
+                <NavLink
+                  to="/admin/users"
+                  className={({ isActive }) =>
+                    isActive ? 'mobile-nav-link mobile-nav-link--active' : 'mobile-nav-link'
+                  }
+                  onClick={closeMobileMenu}
+                >
+                  {t('nav.users')}
+                </NavLink>
+              </li>
             )}
-          </nav>
-        </aside>
+          </ul>
+        </nav>
+      </div>
 
+      <div className="app-body">
         <main className="main-content">
           <Outlet />
         </main>
