@@ -7,6 +7,8 @@ export interface User {
   email: string;
   role: UserRole;
   is_active: boolean;
+  is_team_owner?: boolean;
+  max_teams?: number;
   created_at: string;
   updated_at: string;
 }
@@ -43,4 +45,9 @@ export interface UpdateUserRequest {
 
 export interface UpdateUserStatusRequest {
   is_active: boolean;
+}
+
+export interface UpdateTeamOwnerStatusRequest {
+  is_team_owner: boolean;
+  max_teams?: number;
 }

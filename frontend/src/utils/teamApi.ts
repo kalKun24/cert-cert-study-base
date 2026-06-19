@@ -41,3 +41,11 @@ export async function addMember(teamId: string, req: AddMemberRequest): Promise<
 export async function removeMember(teamId: string, userId: string): Promise<void> {
   await apiClient.delete(`/teams/${teamId}/members/${userId}`);
 }
+
+export async function changeMemberRole(
+  teamId: string,
+  userId: string,
+  role: 'owner' | 'member',
+): Promise<void> {
+  await apiClient.patch(`/teams/${teamId}/members/${userId}/role`, { role });
+}

@@ -6,6 +6,7 @@ import {
   CreateUserRequest,
   UpdateUserRequest,
   UpdateUserStatusRequest,
+  UpdateTeamOwnerStatusRequest,
 } from '../types/user';
 
 export async function fetchUsers(): Promise<User[]> {
@@ -34,5 +35,13 @@ export async function deleteUser(id: string): Promise<void> {
 
 export async function updateUserStatus(id: string, req: UpdateUserStatusRequest): Promise<User> {
   const res = await apiClient.patch<UserResponse>(`/users/${id}/status`, req);
+  return res.data.data;
+}
+
+export async function updateTeamOwnerStatus(
+  id: string,
+  req: UpdateTeamOwnerStatusRequest,
+): Promise<User> {
+  const res = await apiClient.patch<UserResponse>(`/admin/users/${id}/team-owner`, req);
   return res.data.data;
 }
