@@ -50,4 +50,6 @@
 ## 関連情報
 
 - 関連チケット: TICKET-040（ダッシュボード表示）
-- 備考: README の表示は `react-markdown` + `rehype-sanitize` で XSS 対策を施す
+- 備考:
+  - README の表示は `react-markdown` + `rehype-sanitize` で XSS 対策を施す
+  - エディタ・プレビュー UI の配色は `global.css` の CSS カスタムプロパティと既存の Markdown エディタスタイルに従う
