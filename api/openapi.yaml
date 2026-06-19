@@ -1096,6 +1096,84 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /api/v1/users/me/profile:
+    patch:
+      summary: 自分のプロフィール編集（全ロール可）
+      description: ログイン中のユーザーが自分の display_name を変更します。
+      operationId: updateMyProfile
+      tags:
+        - users
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMyProfileRequest"
+      responses:
+        "200":
+          description: プロフィール更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/User"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/users/me/password:
+    patch:
+      summary: 自分のパスワード変更（全ロール可）
+      description: |
+        ログイン中のユーザーが自分のパスワードを変更します。
+        現在のパスワードが必須です。
+        - 現在のパスワードが誤っている場合は HTTP 401 を返します。
+        - パスワード変更成功後はフロントエンド側でログアウトしてください。
+      operationId: changeMyPassword
+      tags:
+        - users
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeMyPasswordRequest"
+      responses:
+        "200":
+          description: パスワード変更成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    nullable: true
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/v1/users/{id}/status:
     patch:
       summary: ユーザー有効/停止切り替え（admin のみ）
@@ -1811,6 +1889,33 @@ components:
           description: 新しいパスワード（省略時は変更しない）
           minLength: 8
           example: "newpassword123"
+
+    UpdateMyProfileRequest:
+      type: object
+      required:
+        - display_name
+      properties:
+        display_name:
+          type: string
+          description: 新しい表示名
+          example: "Alice Smith 2"
+
+    ChangeMyPasswordRequest:
+      type: object
+      required:
+        - current_password
+        - new_password
+      properties:
+        current_password:
+          type: string
+          description: 現在のパスワード（平文）
+          minLength: 8
+          example: "oldpassword123"
+        new_password:
+          type: string
+          description: 新しいパスワード（平文。サーバー側でbcryptハッシュ化）
+          minLength: 8
+          example: "newpassword456"
 
     UpdateUserStatusRequest:
       type: object
