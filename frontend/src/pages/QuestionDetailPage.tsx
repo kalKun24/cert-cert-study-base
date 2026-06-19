@@ -3,10 +3,9 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
-import apiClient from '../utils/apiClient';
-import { deleteQuestion } from '../utils/questionApi';
+import { fetchQuestion, deleteQuestion } from '../utils/questionApi';
 import { useAuth } from '../context/AuthContext';
-import { Question, QuestionResponse } from '../types/question';
+import { Question } from '../types/question';
 import CommentSection from '../components/CommentSection';
 
 function MarkdownContent({ source }: { source: string }) {
@@ -34,10 +33,9 @@ export default function QuestionDetailPage() {
     let isMounted = true;
     setIsLoading(true);
     setLoadError('');
-    apiClient
-      .get<QuestionResponse>(`/questions/${id}`)
-      .then((res) => {
-        if (isMounted) setQuestion(res.data.data);
+    fetchQuestion(id)
+      .then((q) => {
+        if (isMounted) setQuestion(q);
       })
       .catch(() => {
         if (isMounted) setLoadError(t('question.error.fetchFailed'));

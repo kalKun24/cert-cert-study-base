@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import apiClient from '../utils/apiClient';
+import { fetchQuestions } from '../utils/questionApi';
 import { fetchTags } from '../utils/tagApi';
-import { QuestionListResponse } from '../types/question';
+import { Question } from '../types/question';
 import { Tag } from '../types/tag';
 
 const PER_PAGE = 20;
@@ -11,7 +11,7 @@ const PER_PAGE = 20;
 export default function QuestionListPage() {
   const { t } = useTranslation();
 
-  const [questions, setQuestions] = useState<QuestionListResponse['data']['items']>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -26,7 +26,7 @@ export default function QuestionListPage() {
       setIsLoading(true);
       setLoadError('');
 
-      const params: Record<string, string | number> = {
+      const params: { page: number; per_page: number; keyword?: string; tag_ids?: string } = {
         page: currentPage,
         per_page: PER_PAGE,
       };
@@ -37,12 +37,11 @@ export default function QuestionListPage() {
         params.tag_ids = currentTagIds.join(',');
       }
 
-      apiClient
-        .get<QuestionListResponse>('/questions', { params })
-        .then((res) => {
+      fetchQuestions(params)
+        .then((data) => {
           if (isMounted) {
-            setQuestions(res.data.data.items);
-            setTotalPages(res.data.data.total_pages);
+            setQuestions(data.items);
+            setTotalPages(data.total_pages);
           }
         })
         .catch(() => {

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import MDEditor from '@uiw/react-md-editor';
-import apiClient from '../utils/apiClient';
-import { updateQuestion } from '../utils/questionApi';
+import rehypeSanitize from 'rehype-sanitize';
+import { fetchQuestion, updateQuestion } from '../utils/questionApi';
 import { fetchTags } from '../utils/tagApi';
-import { Question, QuestionResponse, QuestionStatus } from '../types/question';
+import { useAuth } from '../context/AuthContext';
+import { QuestionStatus } from '../types/question';
 import { Tag } from '../types/tag';
 
 type EditorTab = 'body' | 'answer' | 'explanation' | 'memo';
@@ -26,6 +27,7 @@ export default function QuestionEditPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [form, setForm] = useState<FormValues | null>(null);
   const [activeTab, setActiveTab] = useState<EditorTab>('body');
@@ -41,12 +43,16 @@ export default function QuestionEditPage() {
     let isMounted = true;
 
     Promise.all([
-      apiClient.get<QuestionResponse>(`/questions/${id}`),
+      fetchQuestion(id),
       fetchTags(),
     ])
-      .then(([questionRes, tagList]) => {
+      .then(([q, tagList]) => {
         if (!isMounted) return;
-        const q: Question = questionRes.data.data;
+        // 権限チェック: 作成者本人または admin のみ編集可
+        if (user === null || (user.id !== q.created_by && user.role !== 'admin')) {
+          navigate(`/questions/${id}`, { replace: true });
+          return;
+        }
         setForm({
           title: q.title,
           body: q.body,
@@ -68,7 +74,7 @@ export default function QuestionEditPage() {
     return () => {
       isMounted = false;
     };
-  }, [id, t]);
+  }, [id, t, user, navigate]);
 
   const handleTagToggle = (tagName: string) => {
     if (!form) return;
@@ -138,9 +144,14 @@ export default function QuestionEditPage() {
 
   if (loadError || !form) {
     return (
-      <p role="alert" className="alert alert-error">
-        {loadError || t('errors.notFound')}
-      </p>
+      <div>
+        <p role="alert" className="alert alert-error">
+          {loadError || t('errors.notFound')}
+        </p>
+        <Link to={id ? `/questions/${id}` : '/questions'} className="btn btn-secondary">
+          {t('question.backToList')}
+        </Link>
+      </div>
     );
   }
 
@@ -191,9 +202,12 @@ export default function QuestionEditPage() {
               onChange={handleEditorChange}
               height={300}
               preview="live"
+              previewOptions={{
+                rehypePlugins: [[rehypeSanitize]],
+              }}
             />
           </div>
-          {activeTab === 'body' && validationErrors.body && (
+          {validationErrors.body && (
             <p role="alert" className="form-error">
               {validationErrors.body}
             </p>
