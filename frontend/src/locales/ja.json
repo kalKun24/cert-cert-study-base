@@ -11,7 +11,8 @@
     "teams": "チーム一覧",
     "users": "ユーザー管理",
     "login": "ログイン",
-    "logout": "ログアウト"
+    "logout": "ログアウト",
+    "profile": "プロフィール編集"
   },
   "login": {
     "username": "ユーザー名",
