@@ -28,7 +28,15 @@ export default function LoginPage() {
   const errorRef = useRef<HTMLDivElement>(null);
 
   const from = (location.state as { from?: string })?.from ?? '/';
-  const successMessage = (location.state as { message?: string })?.message ?? '';
+  const [successMessage] = useState<string>(
+    () => {
+      const msg = (location.state as { message?: string })?.message ?? '';
+      if (msg) {
+        window.history.replaceState({}, document.title);
+      }
+      return msg;
+    }
+  );
 
   useEffect(() => {
     if (error) {
@@ -86,7 +94,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} noValidate>
           {successMessage && (
-            <div className="alert alert-success" role="status">
+            <div className="alert alert-success" role="status" aria-live="polite">
               {successMessage}
             </div>
           )}
@@ -130,8 +138,7 @@ export default function LoginPage() {
                 className="password-toggle-btn"
                 aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
                 onClick={() => setShowPassword((prev) => !prev)}
-                tabIndex={0}
-              >
+                >
                 {showPassword ? (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"

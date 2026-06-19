@@ -666,7 +666,7 @@ img {
   align-items: center;
 }
 
-.password-input-wrapper input {
+.login-card .password-input-wrapper input {
   width: 100%;
   /* トグルボタン幅分の右 padding を確保 */
   padding-right: calc(var(--space-3) * 2 + 18px);
