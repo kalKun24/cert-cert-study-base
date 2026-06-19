@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -25,7 +25,15 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const errorRef = useRef<HTMLDivElement>(null);
+
   const from = (location.state as { from?: string })?.from ?? '/';
+
+  useEffect(() => {
+    if (error) {
+      errorRef.current?.focus();
+    }
+  }, [error]);
 
   const validate = (): string => {
     if (!username.trim()) return t('login.validation.usernameRequired');
@@ -77,7 +85,12 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} noValidate>
           {error && (
-            <div className="alert alert-error" role="alert">
+            <div
+              className="alert alert-error"
+              role="alert"
+              tabIndex={-1}
+              ref={errorRef}
+            >
               {error}
             </div>
           )}
