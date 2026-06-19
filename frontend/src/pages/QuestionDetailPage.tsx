@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { Question } from '../types/question';
 import CommentSection from '../components/CommentSection';
 import AccordionSection from '../components/AccordionSection';
+import { QuestionDetailSkeleton } from '../components/Skeleton';
 
 function MarkdownContent({ source }: { source: string }) {
   return (
@@ -69,11 +70,7 @@ export default function QuestionDetailPage() {
   };
 
   if (isLoading) {
-    return (
-      <p role="status" className="page-loading">
-        {t('common.loading')}
-      </p>
-    );
+    return <QuestionDetailSkeleton />;
   }
 
   if (loadError) {

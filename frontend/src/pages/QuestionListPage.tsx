@@ -7,6 +7,7 @@ import { Question } from '../types/question';
 import { Tag } from '../types/tag';
 import TagChip from '../components/TagChip';
 import Paginator from '../components/Paginator';
+import { QuestionListSkeleton } from '../components/Skeleton';
 
 const PER_PAGE = 20;
 
@@ -160,9 +161,7 @@ export default function QuestionListPage() {
       </div>
 
       {isLoading ? (
-        <p role="status" className="page-loading">
-          {t('common.loading')}
-        </p>
+        <QuestionListSkeleton />
       ) : loadError ? (
         <p role="alert" className="alert alert-error">
           {loadError}
