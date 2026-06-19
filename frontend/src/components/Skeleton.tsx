@@ -1,5 +1,7 @@
 /** スケルトンローディングコンポーネント */
 
+import { useTranslation } from 'react-i18next';
+
 interface SkeletonProps {
   /** 幅（CSS値を文字列で指定。例: "100%", "200px"） */
   width?: string;
@@ -36,8 +38,10 @@ export default function Skeleton({
 
 /** 問題一覧のスケルトンアイテム */
 export function QuestionListSkeleton() {
+  const { t } = useTranslation();
+
   return (
-    <ul className="question-list" aria-busy="true" aria-label="読み込み中">
+    <ul className="question-list" aria-busy="true" aria-label={t('common.loading')}>
       {Array.from({ length: 5 }).map((_, i) => (
         <li key={i} className="question-list-item">
           <div className="skeleton-question-item">
@@ -56,8 +60,10 @@ export function QuestionListSkeleton() {
 
 /** 問題詳細のスケルトン */
 export function QuestionDetailSkeleton() {
+  const { t } = useTranslation();
+
   return (
-    <div className="question-detail" aria-busy="true" aria-label="読み込み中">
+    <div className="question-detail" aria-busy="true" aria-label={t('common.loading')}>
       <div className="skeleton-detail-header">
         <Skeleton variant="text" width="4rem" height="0.875rem" />
         <Skeleton variant="text" width="60%" height="1.875rem" />
@@ -80,8 +86,10 @@ export function QuestionDetailSkeleton() {
 
 /** ホームページのダッシュボードスケルトン */
 export function DashboardSkeleton() {
+  const { t } = useTranslation();
+
   return (
-    <div aria-busy="true" aria-label="読み込み中">
+    <div aria-busy="true" aria-label={t('common.loading')}>
       <div className="skeleton-stat-cards">
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="skeleton-stat-card">

@@ -1,4 +1,11 @@
-import { useState, useId, useRef } from 'react';
+import { useState, useId } from 'react';
+
+// React の HTMLAttributes に inert 属性の型を追加
+declare module 'react' {
+  interface HTMLAttributes<T> {
+    inert?: '' | undefined;
+  }
+}
 
 interface AccordionSectionProps {
   title: string;
@@ -14,6 +21,8 @@ interface AccordionSectionProps {
 /**
  * アコーディオン形式の折りたたみセクションコンポーネント。
  * キーボード操作（Enter・Space）対応、aria-expanded / aria-controls 付き。
+ * <button> は Enter・Space で自動的に click を発火するため onKeyDown は不要。
+ * 閉じたパネルは inert 属性でアクセシビリティツリーから除外する。
  */
 export default function AccordionSection({
   title,
@@ -25,16 +34,8 @@ export default function AccordionSection({
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const panelId = useId();
   const buttonId = useId();
-  const contentRef = useRef<HTMLDivElement>(null);
 
   const toggle = () => setIsOpen((prev) => !prev);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      toggle();
-    }
-  };
 
   return (
     <div className={`accordion-section ${className}`.trim()}>
@@ -46,7 +47,6 @@ export default function AccordionSection({
           aria-expanded={isOpen}
           aria-controls={panelId}
           onClick={toggle}
-          onKeyDown={handleKeyDown}
         >
           <span className="accordion-title">{title}</span>
           <span className="accordion-icon" aria-hidden="true">
@@ -69,7 +69,7 @@ export default function AccordionSection({
         role="region"
         aria-labelledby={buttonId}
         className={`accordion-panel${isOpen ? ' accordion-panel--open' : ''}`}
-        ref={contentRef}
+        inert={!isOpen ? '' : undefined}
       >
         <div className="accordion-panel-inner">{children}</div>
       </div>

@@ -117,10 +117,10 @@ export default function Layout() {
             </ul>
 
             {/* コンテンツグループ */}
-            <p className="sidebar-group-label" aria-hidden="true">
+            <p id="sidebar-label-content" className="sidebar-group-label">
               {t('nav.group.content')}
             </p>
-            <ul className="sidebar-menu">
+            <ul className="sidebar-menu" aria-labelledby="sidebar-label-content">
               <li>
                 <NavLink to="/questions" onClick={closeSidebar}>
                   <IconQuestions size={16} />
@@ -144,10 +144,10 @@ export default function Layout() {
             {/* 管理グループ（adminのみ） */}
             {user?.role === 'admin' && (
               <>
-                <p className="sidebar-group-label" aria-hidden="true">
+                <p id="sidebar-label-admin" className="sidebar-group-label">
                   {t('nav.group.admin')}
                 </p>
-                <ul className="sidebar-menu">
+                <ul className="sidebar-menu" aria-labelledby="sidebar-label-admin">
                   <li>
                     <NavLink to="/admin/users" onClick={closeSidebar}>
                       <IconUsers size={16} />

@@ -132,8 +132,6 @@ export default function CommentSection({ questionId }: Props) {
     <section
       className="comment-section"
       aria-label={t('comment.section.title')}
-      aria-live="polite"
-      aria-busy={isLoading}
     >
       <h2 className="comment-section-title">{t('comment.section.title')}</h2>
 
