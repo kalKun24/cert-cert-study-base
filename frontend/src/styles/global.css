@@ -356,6 +356,42 @@ img {
   border-color: rgba(25, 118, 210, 0.30);
 }
 
+/* チーム切り替えエリア（ナビとユーザーメニューの間） */
+.topbar-team-area {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* アクティブチームラベル */
+.topbar-team-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* チーム切り替えセレクト */
+.topbar-team-select {
+  padding: var(--space-1) var(--space-2);
+  background-color: var(--color-bg-page);
+  border: var(--border-width-base) solid var(--color-border);
+  border-radius: var(--border-radius-base);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xs);
+  font-family: inherit;
+  cursor: pointer;
+  max-width: 180px;
+  transition: border-color var(--transition-fast);
+}
+
+.topbar-team-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 var(--focus-ring-width) rgba(0, 137, 123, 0.20);
+}
+
 /* ハンバーガーボタン（モバイルのみ表示・デスクトップは display:none） */
 .topbar-hamburger {
   display: none;
@@ -1991,6 +2027,11 @@ img {
 
   /* ユーザーメニューも非表示（ドロワー側に移動） */
   .topbar-user {
+    display: none;
+  }
+
+  /* チーム切り替えエリアも非表示（モバイルでは省略） */
+  .topbar-team-area {
     display: none;
   }
 
