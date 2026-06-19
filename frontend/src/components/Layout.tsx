@@ -1,14 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router-dom';
 import NavBar from './NavBar';
 import { useAuth } from '../context/AuthContext';
 
+const FOCUSABLE_SELECTORS = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export default function Layout() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const sidebarRef = useRef<HTMLElement>(null);
 
   const closeSidebar = useCallback(() => {
     setIsSidebarOpen(false);
@@ -26,6 +29,52 @@ export default function Layout() {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isSidebarOpen, closeSidebar]);
+
+  // モバイル: サイドバーオーバーレイ表示中のフォーカストラップ
+  useEffect(() => {
+    if (!isSidebarOpen) return;
+
+    const sidebar = sidebarRef.current;
+    if (!sidebar) return;
+
+    // サイドバー内のフォーカス可能な要素を取得
+    const getFocusableElements = (): HTMLElement[] =>
+      Array.from(sidebar.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS));
+
+    // サイドバーを開いたとき最初の要素にフォーカスを当てる
+    const focusableElements = getFocusableElements();
+    if (focusableElements.length > 0) {
+      focusableElements[0].focus();
+    }
+
+    // Tabキーをサイドバー内でループさせる
+    const handleTabKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+
+      const elements = getFocusableElements();
+      if (elements.length === 0) return;
+
+      const first = elements[0];
+      const last = elements[elements.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleTabKey);
+    return () => {
+      document.removeEventListener('keydown', handleTabKey);
+    };
+  }, [isSidebarOpen]);
 
   const handleMenuToggle = () => {
     setIsSidebarOpen((prev) => !prev);
@@ -46,6 +95,7 @@ export default function Layout() {
 
         <aside
           id="sidebar"
+          ref={sidebarRef}
           className={`sidebar${isSidebarOpen ? ' is-open' : ''}`}
         >
           <nav aria-label={t('nav.sidebar')}>
