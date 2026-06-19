@@ -211,7 +211,7 @@ func (h *UserHandler) HandleUpdateMyProfile(w http.ResponseWriter, r *http.Reque
 
 // HandleChangeMyPassword は PATCH /api/v1/users/me/password を処理します（全ロール可）。
 // ログイン中のユーザー自身のパスワードを変更します。
-// 現在のパスワードが誤っている場合は HTTP 401 を返します。
+// 現在のパスワードが誤っている場合は HTTP 422 を返します。
 func (h *UserHandler) HandleChangeMyPassword(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(ContextKeyUserID).(string)
 	if !ok || userID == "" {
@@ -243,7 +243,7 @@ func (h *UserHandler) HandleChangeMyPassword(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrCurrentPasswordIncorrect):
-			writeJSON(w, http.StatusUnauthorized, response{Error: "current password is incorrect"})
+			writeJSON(w, http.StatusUnprocessableEntity, response{Error: "現在のパスワードが正しくありません"})
 		case errors.Is(err, domain.ErrUserNotFound):
 			writeJSON(w, http.StatusNotFound, response{Error: "ユーザーが見つかりません"})
 		default:
