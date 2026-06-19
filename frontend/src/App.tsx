@@ -28,7 +28,9 @@ export default function App() {
               <Route path="/questions/:id" element={<QuestionDetailPage />} />
               <Route path="/questions/:id/edit" element={<QuestionEditPage />} />
               <Route path="/teams" element={<TeamListPage />} />
-              <Route path="/teams/new" element={<TeamCreatePage />} />
+              <Route element={<PrivateRoute requiredRoles={['admin', 'teamowner']} />}>
+                <Route path="/teams/new" element={<TeamCreatePage />} />
+              </Route>
               <Route path="/teams/:id" element={<TeamDetailPage />} />
               <Route path="/teams/:id/edit" element={<TeamEditPage />} />
             </Route>

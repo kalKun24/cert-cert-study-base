@@ -41,7 +41,7 @@ export default function TeamDetailPage() {
   }, [id, t]);
 
   useEffect(() => {
-    loadTeam();
+    return loadTeam();
   }, [loadTeam]);
 
   if (!id) return null;
