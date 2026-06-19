@@ -18,6 +18,9 @@
     "sidebar": "サイドナビゲーション",
     "topbar": "グローバルナビゲーション",
     "mobileMenu": "モバイルメニュー",
+    "activeTeam": "現在のチーム",
+    "switchTeam": "チームを切り替え",
+    "createTeam": "チームを作成",
     "group": {
       "content": "コンテンツ",
       "admin": "管理"
@@ -150,6 +153,30 @@
     },
     "role": {
       "forbidden": "この操作を行う権限がありません"
+    },
+    "noTeam": {
+      "title": "チームに参加していません",
+      "description": "チーム管理者からの招待をお待ちください。",
+      "refreshButton": "更新"
+    },
+    "invitation": {
+      "pageTitle": "チームへの招待",
+      "teamId": "チームID",
+      "invitedBy": "招待者",
+      "invitedAt": "招待日",
+      "acceptButton": "参加する",
+      "rejectButton": "拒否する",
+      "empty": "招待はありません",
+      "acceptSuccess": "チームへの参加が完了しました",
+      "rejectSuccess": "招待を拒否しました",
+      "acceptFailed": "参加に失敗しました。再試行してください",
+      "rejectFailed": "拒否に失敗しました。再試行してください"
+    },
+    "leave": {
+      "button": "このチームから脱退する",
+      "confirm": "チーム「{{name}}」から脱退しますか？",
+      "success": "チームから脱退しました",
+      "failed": "脱退に失敗しました。再試行してください"
     }
   },
   "tag": {

@@ -12,6 +12,7 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   is_active: boolean;
+  is_team_owner?: boolean;
 }
 
 export function getToken(): string | null {
