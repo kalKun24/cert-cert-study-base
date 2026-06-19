@@ -251,15 +251,23 @@ img {
 .topbar-logo-link {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
+  /* #00897b on #ffffff: コントラスト比 4.54:1（WCAG AA 合格） */
   color: var(--color-primary);
   text-decoration: none;
   white-space: nowrap;
   letter-spacing: -0.01em;
+  border-radius: var(--border-radius-sm);
 }
 
 .topbar-logo-link:hover {
   color: var(--color-primary-dark);
   text-decoration: none;
+}
+
+/* キーボードフォーカス時のリング */
+.topbar-logo-link:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
 }
 
 /* 水平ナビリンク（中央） */
@@ -280,18 +288,27 @@ img {
   padding: 0 var(--space-3);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
+  /* --color-text-muted（#757575 on #ffffff）はコントラスト比 4.74:1 で WCAG AA 合格 */
   color: var(--color-text-muted);
   text-decoration: none;
   border-bottom: 2px solid transparent;
   transition: color var(--transition-fast), border-color var(--transition-fast);
   white-space: nowrap;
-  /* フォーカスリングの outline-offset を topbar 下端に合わせて調整 */
-  outline-offset: -2px;
+  /* フォーカスリングを要素内部に収める（Topbar 外にはみ出さないよう） */
+  outline-offset: -3px;
+  border-radius: var(--border-radius-sm);
 }
 
 .topbar-nav-link:hover {
   color: var(--color-primary);
   text-decoration: none;
+}
+
+/* キーボードフォーカス時のリング（:focus-visible で視覚化） */
+.topbar-nav-link:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: -3px;
+  border-radius: var(--border-radius-sm);
 }
 
 /* アクティブ状態: Teal 600 テキスト + 下ボーダー 2px */
@@ -363,6 +380,12 @@ img {
   border-color: var(--color-primary);
   color: var(--color-primary);
   background-color: var(--color-primary-light);
+}
+
+/* キーボードフォーカス時のリング */
+.topbar-hamburger:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
 }
 
 /* =============================================================================
@@ -447,6 +470,13 @@ img {
   background-color: var(--color-primary-light);
   color: var(--color-primary);
   text-decoration: none;
+}
+
+/* キーボードフォーカス時のリング */
+.mobile-nav-link:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: -2px;
+  background-color: var(--color-primary-light);
 }
 
 /* アクティブ状態: Teal 600 テキスト + 左ボーダー */
