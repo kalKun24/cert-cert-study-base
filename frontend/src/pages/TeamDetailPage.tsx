@@ -3,6 +3,8 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { fetchTeam, deleteTeam } from '../utils/teamApi';
+import { leaveTeam } from '../utils/invitationApi';
+import { useTeam } from '../context/TeamContext';
 import { TeamDetail } from '../types/team';
 import MemberInvite from '../components/MemberInvite';
 import MemberRemoveButton from '../components/MemberRemoveButton';
@@ -13,10 +15,13 @@ export default function TeamDetailPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  const { refreshTeams } = useTeam();
+
   const [team, setTeam] = useState<TeamDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [deleteError, setDeleteError] = useState('');
+  const [leaveError, setLeaveError] = useState('');
 
   const loadTeam = useCallback(() => {
     if (!id) return;
@@ -62,6 +67,23 @@ export default function TeamDetailPage() {
     }
   };
 
+  const isMember =
+    team !== null && user !== null && team.members.some((m) => m.user_id === user.id);
+
+  const handleLeave = async () => {
+    if (!team) return;
+    if (!window.confirm(t('team.leave.confirm', { name: team.name }))) return;
+
+    setLeaveError('');
+    try {
+      await leaveTeam(team.id);
+      await refreshTeams();
+      navigate('/', { replace: true });
+    } catch {
+      setLeaveError(t('team.leave.failed'));
+    }
+  };
+
   return (
     <section className="team-detail-page page-container-full">
       <Link to="/teams" className="back-link">
@@ -104,6 +126,24 @@ export default function TeamDetailPage() {
             <p role="alert" className="alert alert-error">
               {deleteError}
             </p>
+          )}
+
+          {leaveError && (
+            <p role="alert" className="alert alert-error">
+              {leaveError}
+            </p>
+          )}
+
+          {isMember && (
+            <div style={{ marginBottom: 'var(--space-4)' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleLeave}
+              >
+                {t('team.leave.button')}
+              </button>
+            </div>
           )}
 
           <section className="team-members-section" aria-labelledby="members-heading">
