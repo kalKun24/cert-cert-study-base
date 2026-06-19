@@ -64,26 +64,26 @@
 
 ## サブチケット（コミット単位）
 
-- [ ] `style(layout): CSS変数・カラーシステムをグローバルに定義`
+- [x] `style(layout): CSS変数・カラーシステムをグローバルに定義`
   - `global.css` に `--color-primary: #00897b` など CSS カスタムプロパティを定義
   - ボーダー半径・フォントサイズ・スペーシング変数も合わせて整理
-- [ ] `feat(layout): Topbarコンポーネントを実装`
+- [x] `feat(layout): Topbarコンポーネントを実装`
   - `frontend/src/components/Topbar.tsx` を新規作成
   - ロゴ・水平ナビリンク（ホーム / 問題一覧 / タグ / ユーザー管理）・ユーザーメニューを含む
   - アクティブリンク判定（`useLocation`）を実装
-- [ ] `feat(layout): モバイル用ハンバーガーメニューを実装`
+- [x] `feat(layout): モバイル用ハンバーガーメニューを実装`
   - Topbar 内にハンバーガーボタンを追加（≤768px で表示）
   - ドロワー型メニューの開閉ロジックと aria 属性を実装
-- [ ] `refactor(layout): サイドバーコンポーネントを削除しTopbarへ差し替え`
+- [x] `refactor(layout): サイドバーコンポーネントを削除しTopbarへ差し替え`
   - `Sidebar.tsx`（またはその相当）を削除
   - `App.tsx` または共通レイアウトコンポーネントを Topbar 使用に更新
-- [ ] `style(layout): コンテンツ中央寄せ用ラッパークラスを定義・適用`
+- [x] `style(layout): コンテンツ中央寄せ用ラッパークラスを定義・適用`
   - `.content-narrow`（720px）/ `.content-wide`（860px）/ `.content-full`（1000px）を `global.css` に定義
   - 各ページコンポーネント（QuestionDetailPage・QuestionCreatePage・QuestionEditPage 等）にラッパークラスを適用
-- [ ] `style(layout): ページ背景・カード・テキストカラーを全ページに適用`
+- [x] `style(layout): ページ背景・カード・テキストカラーを全ページに適用`
   - Grey 50 ページ背景・White カード背景・Grey 800/600 テキストを既存コンポーネントに反映
   - ボーダー半径（6〜8px）を主要カード・ボタン・入力欄に適用
-- [ ] `fix(a11y): TopbarのWCAGコントラスト・キーボード操作を修正`
+- [x] `fix(a11y): TopbarのWCAGコントラスト・キーボード操作を修正`
   - コントラスト比の確認と調整
   - キーボードフォーカス・Escape でメニュー閉じる動作を実装
 
