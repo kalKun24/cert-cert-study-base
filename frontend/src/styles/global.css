@@ -1004,6 +1004,41 @@ img {
 }
 
 /* =============================================================================
+   ページコンテナ（中央寄せ・Topbarレイアウト対応）
+   各ページのルート要素に適用する。padding-top で Topbar 分の空白を確保する。
+   ============================================================================= */
+
+/* ナロー: 問題詳細・作成・編集・ログインページ（720px） */
+.page-container-narrow {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-8) 0;
+}
+
+/* ワイド: 問題一覧・ホームダッシュボード（860px） */
+.page-container-wide {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: var(--space-8) 0;
+}
+
+/* フル: 管理テーブル系ページ（1000px） */
+.page-container-full {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: var(--space-8) 0;
+}
+
+/* モバイル: コンテナ上下パディングを縮小 */
+@media (max-width: 768px) {
+  .page-container-narrow,
+  .page-container-wide,
+  .page-container-full {
+    padding: var(--space-5) 0;
+  }
+}
+
+/* =============================================================================
    ダッシュボード（HomePage）
    ============================================================================= */
 

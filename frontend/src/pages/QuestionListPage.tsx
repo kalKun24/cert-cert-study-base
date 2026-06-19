@@ -124,7 +124,7 @@ export default function QuestionListPage() {
   };
 
   return (
-    <section className="question-list-page content-wide">
+    <section className="question-list-page content-wide page-container-wide">
       <div className="question-list-header">
         <h1 className="page-title">{t('nav.questions')}</h1>
         <Link to="/questions/new" className="btn btn-primary">

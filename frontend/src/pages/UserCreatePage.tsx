@@ -25,7 +25,7 @@ export default function UserCreatePage() {
   };
 
   return (
-    <section className="user-form-page">
+    <section className="user-form-page page-container-full">
       <h1 className="page-title">{t('user.form.createTitle')}</h1>
       <UserForm
         mode="create"

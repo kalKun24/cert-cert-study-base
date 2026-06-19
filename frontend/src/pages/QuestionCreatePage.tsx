@@ -101,7 +101,7 @@ export default function QuestionCreatePage() {
   };
 
   return (
-    <section className="question-form-page content-narrow">
+    <section className="question-form-page content-narrow page-container-narrow">
       <h1 className="page-title">{t('question.new')}</h1>
 
       <form onSubmit={handleSubmit} noValidate className="question-form">
@@ -141,7 +141,7 @@ export default function QuestionCreatePage() {
             ))}
           </div>
 
-          <div data-color-mode="dark">
+          <div data-color-mode="light">
             <MDEditor
               value={form[activeTab]}
               onChange={handleEditorChange}

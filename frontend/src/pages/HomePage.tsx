@@ -54,7 +54,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="dashboard content-wide">
+    <div className="dashboard content-wide page-container-wide">
       <div className="dashboard-header">
         <h1 className="page-title">{t('home.title')}</h1>
         <p className="dashboard-tagline">{t('app.tagline')}</p>

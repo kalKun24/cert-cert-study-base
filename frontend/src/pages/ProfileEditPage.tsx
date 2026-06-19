@@ -129,7 +129,7 @@ export default function ProfileEditPage() {
   };
 
   return (
-    <section className="profile-edit-page">
+    <section className="profile-edit-page page-container-full">
       <h1 className="page-title">{t('profile.pageTitle')}</h1>
 
       {/* 表示名の変更セクション */}

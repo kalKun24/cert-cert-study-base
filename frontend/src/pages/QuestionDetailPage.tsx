@@ -75,7 +75,7 @@ export default function QuestionDetailPage() {
 
   if (loadError) {
     return (
-      <div>
+      <div className="page-container-narrow">
         <p role="alert" className="alert alert-error">
           {loadError}
         </p>
@@ -88,7 +88,7 @@ export default function QuestionDetailPage() {
 
   if (!question) {
     return (
-      <div>
+      <div className="page-container-narrow">
         <p className="alert alert-error">{t('errors.notFound')}</p>
         <Link to="/questions" className="btn btn-secondary">
           {t('question.backToList')}
@@ -98,7 +98,7 @@ export default function QuestionDetailPage() {
   }
 
   return (
-    <article className="question-detail">
+    <article className="question-detail page-container-narrow">
       <header className="question-detail-header">
         <Link to="/questions" className="question-back-link">
           {t('question.backToList')}
