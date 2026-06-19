@@ -913,6 +913,110 @@ img {
 }
 
 /* =============================================================================
+   問題作成・編集フォーム（QuestionCreatePage / QuestionEditPage）
+   ============================================================================= */
+
+/* ページコンテナ */
+.question-form-page {
+  max-width: 860px;
+}
+
+/* フォーム全体 */
+.question-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* フォームフィールド共通ラッパー */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* セレクト（.form-group 外の独立セレクト） */
+.form-select {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-bg-card);
+  border: var(--border-width-base) solid var(--color-text-muted);
+  border-radius: var(--border-radius-base);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  line-height: var(--line-height-base);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  appearance: auto;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 var(--focus-ring-width) rgba(249, 188, 96, 0.25);
+}
+
+/* エディタタブ */
+.editor-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: var(--border-width-base) solid var(--color-border-default);
+  margin-bottom: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.editor-tab {
+  padding: var(--space-2) var(--space-4);
+  background: transparent;
+  border: var(--border-width-base) solid transparent;
+  border-bottom: none;
+  border-radius: var(--border-radius-base) var(--border-radius-base) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  cursor: pointer;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.editor-tab:hover {
+  color: var(--color-text-primary);
+  background-color: rgba(249, 188, 96, 0.06);
+}
+
+.editor-tab--active {
+  color: var(--color-accent);
+  background-color: var(--color-bg-card);
+  border-color: var(--color-border-default);
+  border-bottom-color: var(--color-bg-card);
+}
+
+/* タグチェックボックスリスト */
+.tag-checkbox-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.tag-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-body);
+  cursor: pointer;
+}
+
+.tag-checkbox-label input[type="checkbox"] {
+  accent-color: var(--color-accent);
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+/* =============================================================================
    ボタン・フォーム共通スタイル（グローバル補完）
    ============================================================================= */
 
