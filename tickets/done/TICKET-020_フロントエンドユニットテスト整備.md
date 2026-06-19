@@ -5,10 +5,10 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-020 |
-| ステータス | 🟡 作業中 |
+| ステータス | ✅ 完了 |
 | 作成日 | 2026-06-19 |
 | 着手日 | 2026-06-20 |
-| 完了日 | - |
+| 完了日 | 2026-06-20 |
 | ブランチ名 | `feature/frontend-unit-tests` |
 | PR番号 | - |
 | PRリンク | （PR作成後に記入） |
@@ -29,19 +29,19 @@
 
 ## 受け入れ条件
 
-- [ ] `npm test` でテストが実行できる
-- [ ] Vitest + React Testing Library のテスト基盤が整備されている
-- [ ] `AuthContext`・`PrivateRoute`・`CommentSection`・`apiClient` のテストが存在する
-- [ ] CI（GitHub Actions）でフロントエンドテストが自動実行される
+- [x] `npm test` でテストが実行できる
+- [x] Vitest + React Testing Library のテスト基盤が整備されている
+- [x] `AuthContext`・`PrivateRoute`・`CommentSection`・`apiClient` のテストが存在する
+- [x] CI（GitHub Actions）でフロントエンドテストが自動実行される
 
 ---
 
 ## サブチケット（コミット単位）
 
-- [ ] `chore(frontend): Vitest + React Testing Library のテスト環境を構築`
-- [ ] `test(frontend): AuthContext・PrivateRoute のユニットテストを作成`
-- [ ] `test(frontend): CommentSection・apiClient のユニットテストを作成`
-- [ ] `chore(ci): GitHub Actions にフロントエンドテストを追加`
+- [x] `chore(frontend): Vitest + React Testing Library のテスト環境を構築`
+- [x] `test(frontend): AuthContext・PrivateRoute のユニットテストを作成`
+- [x] `test(frontend): CommentSection・apiClient のユニットテストを作成`
+- [x] `chore(ci): GitHub Actions にフロントエンドテストを追加`
 
 ---
 
