@@ -7,6 +7,7 @@ import { fetchQuestion, deleteQuestion } from '../utils/questionApi';
 import { useAuth } from '../context/AuthContext';
 import { Question } from '../types/question';
 import CommentSection from '../components/CommentSection';
+import AccordionSection from '../components/AccordionSection';
 
 function MarkdownContent({ source }: { source: string }) {
   return (
@@ -149,29 +150,42 @@ export default function QuestionDetailPage() {
         )}
       </header>
 
-      <section className="question-detail-section" aria-label={t('question.section.body')}>
-        <h2 className="question-section-heading">{t('question.section.body')}</h2>
+      {/* 問題文: デフォルトで開いた状態 */}
+      <AccordionSection
+        title={t('question.section.body')}
+        defaultOpen={true}
+        className="question-section--body"
+      >
         <MarkdownContent source={question.body} />
-      </section>
+      </AccordionSection>
 
-      <section className="question-detail-section" aria-label={t('question.section.answer')}>
-        <h2 className="question-section-heading">{t('question.section.answer')}</h2>
+      {/* 解答: デフォルトで閉じた状態 */}
+      <AccordionSection
+        title={t('question.section.answer')}
+        defaultOpen={false}
+        className="question-section--answer"
+      >
         <MarkdownContent source={question.answer} />
-      </section>
+      </AccordionSection>
 
-      <section className="question-detail-section" aria-label={t('question.section.explanation')}>
-        <h2 className="question-section-heading">{t('question.section.explanation')}</h2>
+      {/* 解説: デフォルトで閉じた状態 */}
+      <AccordionSection
+        title={t('question.section.explanation')}
+        defaultOpen={false}
+        className="question-section--explanation"
+      >
         <MarkdownContent source={question.explanation} />
-      </section>
+      </AccordionSection>
 
+      {/* 議論点・メモ: 内容がある場合のみ、デフォルトで閉じた状態 */}
       {question.memo && (
-        <section
-          className="question-detail-section"
-          aria-label={t('question.section.discussionNotes')}
+        <AccordionSection
+          title={t('question.section.discussionNotes')}
+          defaultOpen={false}
+          className="question-section--memo"
         >
-          <h2 className="question-section-heading">{t('question.section.discussionNotes')}</h2>
           <MarkdownContent source={question.memo} />
-        </section>
+        </AccordionSection>
       )}
 
       <CommentSection questionId={question.id} />
