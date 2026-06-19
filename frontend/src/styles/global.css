@@ -326,9 +326,21 @@ img {
   width: 100%;
 }
 
+/* サイドバーグループラベル */
+.sidebar-group-label {
+  padding: var(--space-5) var(--space-6) var(--space-1);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
 .sidebar-menu a {
   display: flex;
   align-items: center;
+  gap: var(--space-2);
   padding: var(--space-3) var(--space-6);
   color: var(--color-text-body);
   font-size: var(--font-size-sm);
@@ -336,6 +348,17 @@ img {
   text-decoration: none;
   border-left: 3px solid transparent;
   transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.sidebar-menu a svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: opacity var(--transition-fast);
+}
+
+.sidebar-menu a:hover svg,
+.sidebar-menu a.active svg {
+  opacity: 1;
 }
 
 .sidebar-menu a:hover {

@@ -15,7 +15,11 @@
     "profile": "プロフィール編集",
     "openMenu": "メニューを開く",
     "closeMenu": "メニューを閉じる",
-    "sidebar": "サイドナビゲーション"
+    "sidebar": "サイドナビゲーション",
+    "group": {
+      "content": "コンテンツ",
+      "admin": "管理"
+    }
   },
   "login": {
     "username": "ユーザー名",

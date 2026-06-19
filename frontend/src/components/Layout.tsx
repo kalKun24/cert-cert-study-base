@@ -4,6 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router-dom';
 import NavBar from './NavBar';
 import { useAuth } from '../context/AuthContext';
+import {
+  IconHome,
+  IconQuestions,
+  IconTags,
+  IconTeams,
+  IconUsers,
+} from './SidebarIcon';
 
 const FOCUSABLE_SELECTORS = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -99,35 +106,57 @@ export default function Layout() {
           className={`sidebar${isSidebarOpen ? ' is-open' : ''}`}
         >
           <nav aria-label={t('nav.sidebar')}>
+            {/* ホーム */}
             <ul className="sidebar-menu">
               <li>
                 <NavLink to="/" end onClick={closeSidebar}>
+                  <IconHome size={16} />
                   {t('nav.home')}
                 </NavLink>
               </li>
+            </ul>
+
+            {/* コンテンツグループ */}
+            <p className="sidebar-group-label" aria-hidden="true">
+              {t('nav.group.content')}
+            </p>
+            <ul className="sidebar-menu">
               <li>
                 <NavLink to="/questions" onClick={closeSidebar}>
+                  <IconQuestions size={16} />
                   {t('nav.questions')}
                 </NavLink>
               </li>
               <li>
                 <NavLink to="/tags" onClick={closeSidebar}>
+                  <IconTags size={16} />
                   {t('nav.tags')}
                 </NavLink>
               </li>
               <li>
                 <NavLink to="/teams" onClick={closeSidebar}>
+                  <IconTeams size={16} />
                   {t('nav.teams')}
                 </NavLink>
               </li>
-              {user?.role === 'admin' && (
-                <li>
-                  <NavLink to="/admin/users" onClick={closeSidebar}>
-                    {t('nav.users')}
-                  </NavLink>
-                </li>
-              )}
             </ul>
+
+            {/* 管理グループ（adminのみ） */}
+            {user?.role === 'admin' && (
+              <>
+                <p className="sidebar-group-label" aria-hidden="true">
+                  {t('nav.group.admin')}
+                </p>
+                <ul className="sidebar-menu">
+                  <li>
+                    <NavLink to="/admin/users" onClick={closeSidebar}>
+                      <IconUsers size={16} />
+                      {t('nav.users')}
+                    </NavLink>
+                  </li>
+                </ul>
+              </>
+            )}
           </nav>
         </aside>
 
