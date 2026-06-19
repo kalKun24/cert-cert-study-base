@@ -20,6 +20,8 @@
   "login": {
     "username": "ユーザー名",
     "password": "パスワード",
+    "showPassword": "パスワードを表示",
+    "hidePassword": "パスワードを隠す",
     "error": {
       "invalidCredentials": "ユーザー名またはパスワードが正しくありません"
     },
