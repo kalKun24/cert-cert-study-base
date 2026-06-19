@@ -30,8 +30,11 @@ RUN printf 'server {\n\
     }\n\
 \n\
     # API へのプロキシ（本番環境ではバックエンドサービスにルーティング）\n\
+    # resolver を指定し変数経由にすることで起動時の名前解決エラーを回避\n\
+    resolver 127.0.0.11 valid=30s;\n\
     location /api/ {\n\
-        proxy_pass http://backend:8080;\n\
+        set $backend_host backend;\n\
+        proxy_pass http://$backend_host:8080;\n\
         proxy_set_header Host $host;\n\
         proxy_set_header X-Real-IP $remote_addr;\n\
     }\n\
