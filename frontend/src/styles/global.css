@@ -1028,6 +1028,337 @@ img {
 }
 
 /* =============================================================================
+   問題詳細ページ
+   ============================================================================= */
+
+.question-detail {
+  max-width: 860px;
+}
+
+.question-detail-header {
+  margin-bottom: var(--space-6);
+}
+
+.question-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-4);
+}
+
+.question-back-link:hover {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.question-detail-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.question-detail-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+  flex: 1;
+}
+
+.question-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.question-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* 公開ステータスバッジ */
+.question-status {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  background-color: rgba(249, 188, 96, 0.1);
+  color: var(--color-accent);
+  border: 1px solid rgba(249, 188, 96, 0.3);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.question-detail-section {
+  background-color: var(--color-bg-card);
+  border: var(--border-width-base) solid var(--color-border-default);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-6);
+  margin-bottom: var(--space-4);
+}
+
+.question-section-heading {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: var(--border-width-base) solid var(--color-border-default);
+}
+
+/* Markdown レンダリングコンテンツ */
+.markdown-content {
+  color: var(--color-text-body);
+  line-height: var(--line-height-relaxed);
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3 {
+  color: var(--color-text-primary);
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-3);
+}
+
+.markdown-content p {
+  margin-bottom: var(--space-3);
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  padding-left: var(--space-6);
+  margin-bottom: var(--space-3);
+  list-style: revert;
+}
+
+.markdown-content code {
+  background-color: var(--color-bg-sidebar);
+  padding: 0.1em 0.4em;
+  border-radius: var(--border-radius-sm);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.875em;
+}
+
+.markdown-content pre {
+  background-color: var(--color-bg-sidebar);
+  border: var(--border-width-base) solid var(--color-border-default);
+  border-radius: var(--border-radius-base);
+  padding: var(--space-4);
+  overflow-x: auto;
+  margin-bottom: var(--space-4);
+}
+
+.markdown-content pre code {
+  background: none;
+  padding: 0;
+}
+
+.markdown-content blockquote {
+  border-left: 3px solid var(--color-accent);
+  padding-left: var(--space-4);
+  color: var(--color-text-muted);
+  margin: var(--space-4) 0;
+}
+
+/* =============================================================================
+   コメントセクション
+   ============================================================================= */
+
+.comment-section {
+  margin-top: var(--space-8);
+}
+
+.comment-section-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-3);
+  border-bottom: var(--border-width-base) solid var(--color-border-default);
+}
+
+.comment-loading,
+.comment-empty {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  padding: var(--space-4) 0;
+}
+
+.comment-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.comment-item {
+  background-color: var(--color-bg-card);
+  border: var(--border-width-base) solid var(--color-border-default);
+  border-radius: var(--border-radius-base);
+  padding: var(--space-4);
+}
+
+.comment-item--own {
+  border-color: rgba(249, 188, 96, 0.3);
+}
+
+.comment-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.comment-author {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.comment-own-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  background-color: rgba(249, 188, 96, 0.15);
+  color: var(--color-accent);
+  border: 1px solid rgba(249, 188, 96, 0.4);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.comment-date {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-left: auto;
+}
+
+.comment-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.comment-body {
+  color: var(--color-text-body);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+}
+
+.comment-body p:last-child {
+  margin-bottom: 0;
+}
+
+.comment-textarea {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-bg-sidebar);
+  border: var(--border-width-base) solid var(--color-text-muted);
+  border-radius: var(--border-radius-base);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  line-height: var(--line-height-base);
+  resize: vertical;
+  transition: border-color var(--transition-fast);
+}
+
+.comment-textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 var(--focus-ring-width) rgba(249, 188, 96, 0.25);
+}
+
+.comment-textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.comment-preview-toggle {
+  display: flex;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+
+/* タブボタン（プレビュー切り替え） */
+.btn-tab {
+  background: transparent;
+  border: var(--border-width-base) solid var(--color-border-default);
+  border-bottom: none;
+  border-radius: var(--border-radius-base) var(--border-radius-base) 0 0;
+  color: var(--color-text-muted);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.btn-tab:hover {
+  color: var(--color-text-primary);
+}
+
+.btn-tab--active {
+  background-color: var(--color-bg-card);
+  color: var(--color-text-primary);
+  border-color: var(--color-accent);
+}
+
+.comment-preview-body {
+  background-color: var(--color-bg-sidebar);
+  border: var(--border-width-base) solid var(--color-border-default);
+  border-radius: 0 var(--border-radius-base) var(--border-radius-base) var(--border-radius-base);
+  padding: var(--space-3) var(--space-4);
+  min-height: 6rem;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-body);
+  line-height: var(--line-height-relaxed);
+  margin-bottom: var(--space-3);
+}
+
+.comment-preview-empty {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.comment-edit-actions,
+.comment-new-form .btn-primary {
+  margin-top: var(--space-3);
+}
+
+.comment-edit-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.comment-new-form {
+  background-color: var(--color-bg-card);
+  border: var(--border-width-base) solid var(--color-border-default);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+.comment-new-form-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-4);
+}
+
+/* =============================================================================
    タブレット対応（768px - 1023px）
    ============================================================================= */
 
