@@ -1217,6 +1217,98 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /api/v1/admin/users/{id}/team-owner:
+    patch:
+      summary: ユーザーのグローバルチームオーナー権限を設定（admin のみ）
+      description: 管理者がユーザーのチームオーナー権限を付与・剥奪し、チーム作成上限数を設定する。
+      operationId: updateUserTeamOwnerStatus
+      tags:
+        - users
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTeamOwnerStatusRequest"
+      responses:
+        "200":
+          description: チームオーナー権限更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/User"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/teams/{id}/members/{user_id}/role:
+    patch:
+      summary: チームメンバーのロールを変更（チームオーナーまたは admin のみ）
+      description: チーム内のメンバーロール（owner / member）を変更する。チームの最後のオーナーを member に降格することはできない。
+      operationId: changeTeamMemberRole
+      tags:
+        - teams
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - name: user_id
+          in: path
+          required: true
+          description: ロールを変更するユーザーID（UUID形式）
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440001"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeMemberRoleRequest"
+      responses:
+        "200":
+          description: ロール変更成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/TeamMember"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1323,6 +1415,7 @@ components:
         - team_id
         - user_id
         - joined_at
+        - role
       properties:
         team_id:
           type: string
@@ -1339,6 +1432,13 @@ components:
           format: date-time
           description: 参加日時
           example: "2024-01-01T00:00:00Z"
+        role:
+          type: string
+          enum:
+            - owner
+            - member
+          description: チーム内のロール
+          example: "member"
 
     TeamDetail:
       allOf:
@@ -1398,6 +1498,8 @@ components:
         - email
         - role
         - is_active
+        - is_team_owner
+        - max_teams
         - created_at
         - updated_at
       properties:
@@ -1431,6 +1533,14 @@ components:
           type: boolean
           description: 有効ユーザーかどうか（false = 停止中）
           example: true
+        is_team_owner:
+          type: boolean
+          description: チームを作成できるグローバル権限（admin が付与）
+          example: false
+        max_teams:
+          type: integer
+          description: 作成可能なチームの上限数（0 = 制限なし）
+          example: 3
         created_at:
           type: string
           format: date-time
@@ -1928,6 +2038,35 @@ components:
           type: boolean
           description: 有効化する場合は true、停止する場合は false
           example: false
+
+    UpdateTeamOwnerStatusRequest:
+      type: object
+      required:
+        - is_team_owner
+        - max_teams
+      properties:
+        is_team_owner:
+          type: boolean
+          description: チームを作成できるグローバル権限を付与する場合は true、剥奪する場合は false
+          example: true
+        max_teams:
+          type: integer
+          description: 作成可能なチームの上限数（0 = 制限なし）
+          minimum: 0
+          example: 3
+
+    ChangeMemberRoleRequest:
+      type: object
+      required:
+        - role
+      properties:
+        role:
+          type: string
+          enum:
+            - owner
+            - member
+          description: 変更後のチーム内ロール
+          example: "owner"
 
     ErrorResponse:
       type: object

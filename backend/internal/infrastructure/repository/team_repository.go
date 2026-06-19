@@ -33,6 +33,7 @@ type teamRecord struct {
 type teamMemberRecord struct {
 	TeamID   string    `json:"team_id"`
 	UserID   string    `json:"user_id"`
+	Role     string    `json:"role"`
 	JoinedAt time.Time `json:"joined_at"`
 }
 
@@ -62,6 +63,7 @@ func toTeamMember(r teamMemberRecord) *domain.TeamMember {
 	return &domain.TeamMember{
 		TeamID:   r.TeamID,
 		UserID:   r.UserID,
+		Role:     domain.MemberRole(r.Role),
 		JoinedAt: r.JoinedAt,
 	}
 }
@@ -352,6 +354,7 @@ func (r *GCSTeamRepository) AddMember(ctx context.Context, member *domain.TeamMe
 	records = append(records, teamMemberRecord{
 		TeamID:   member.TeamID,
 		UserID:   member.UserID,
+		Role:     string(member.Role),
 		JoinedAt: member.JoinedAt,
 	})
 
@@ -426,6 +429,54 @@ func (r *GCSTeamRepository) IsMember(ctx context.Context, teamID, userID string)
 		}
 	}
 	return false, nil
+}
+
+// FindOwners はチームのオーナーロールを持つメンバー一覧を返します。
+func (r *GCSTeamRepository) FindOwners(ctx context.Context, teamID string) ([]*domain.TeamMember, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	records, err := r.loadMembers(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("メンバーデータ読み込みに失敗しました: %w", err)
+	}
+
+	owners := make([]*domain.TeamMember, 0)
+	for _, rec := range records {
+		if rec.TeamID == teamID && rec.Role == string(domain.MemberRoleOwner) {
+			owners = append(owners, toTeamMember(rec))
+		}
+	}
+	return owners, nil
+}
+
+// UpdateMemberRole はチームメンバーのロールを変更します。
+func (r *GCSTeamRepository) UpdateMemberRole(ctx context.Context, teamID, userID string, role domain.MemberRole) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	records, err := r.loadMembers(ctx)
+	if err != nil {
+		return fmt.Errorf("メンバーデータ読み込みに失敗しました: %w", err)
+	}
+
+	found := false
+	for i, rec := range records {
+		if rec.TeamID == teamID && rec.UserID == userID {
+			records[i].Role = string(role)
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return domain.ErrMemberNotFound
+	}
+
+	if err := r.saveMembers(ctx, records); err != nil {
+		return fmt.Errorf("メンバーデータ保存に失敗しました: %w", err)
+	}
+	return nil
 }
 
 // GCSTeamRepository が domain.TeamRepository を実装していることをコンパイル時に保証します。

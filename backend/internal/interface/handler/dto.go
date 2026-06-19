@@ -23,6 +23,8 @@ type UserDTO struct {
 	Email       string    `json:"email"`
 	Role        string    `json:"role"`
 	IsActive    bool      `json:"is_active"`
+	IsTeamOwner bool      `json:"is_team_owner"`
+	MaxTeams    int       `json:"max_teams"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -36,6 +38,8 @@ func toUserDTO(u *domain.User) UserDTO {
 		Email:       u.Email,
 		Role:        string(u.Role),
 		IsActive:    u.IsActive,
+		IsTeamOwner: u.IsTeamOwner,
+		MaxTeams:    u.MaxTeams,
 		CreatedAt:   u.CreatedAt,
 		UpdatedAt:   u.UpdatedAt,
 	}
@@ -191,6 +195,7 @@ type TeamDTO struct {
 type TeamMemberDTO struct {
 	TeamID   string    `json:"team_id"`
 	UserID   string    `json:"user_id"`
+	Role     string    `json:"role"`
 	JoinedAt time.Time `json:"joined_at"`
 }
 
@@ -217,6 +222,17 @@ type AddTeamMemberRequestDTO struct {
 	UserID string `json:"user_id"`
 }
 
+// UpdateTeamOwnerStatusRequestDTO はグローバルチームオーナー権限更新リクエストのDTOです。
+type UpdateTeamOwnerStatusRequestDTO struct {
+	IsTeamOwner bool `json:"is_team_owner"`
+	MaxTeams    int  `json:"max_teams"`
+}
+
+// ChangeMemberRoleRequestDTO はチームメンバーロール変更リクエストのDTOです。
+type ChangeMemberRoleRequestDTO struct {
+	Role string `json:"role"`
+}
+
 // toTeamDTO はドメインエンティティをAPIレスポンス用DTOに変換します。
 func toTeamDTO(t *domain.Team) TeamDTO {
 	return TeamDTO{
@@ -234,6 +250,7 @@ func toTeamMemberDTO(m *domain.TeamMember) TeamMemberDTO {
 	return TeamMemberDTO{
 		TeamID:   m.TeamID,
 		UserID:   m.UserID,
+		Role:     string(m.Role),
 		JoinedAt: m.JoinedAt,
 	}
 }

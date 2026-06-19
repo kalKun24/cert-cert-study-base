@@ -261,6 +261,44 @@ func (h *UserHandler) HandleChangeMyPassword(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusOK, response{})
 }
 
+// HandleUpdateTeamOwnerStatus は PATCH /api/v1/admin/users/{id}/team-owner を処理します（admin のみ）。
+// ユーザーのグローバルチームオーナー権限と作成可能チーム数の上限を更新します。
+func (h *UserHandler) HandleUpdateTeamOwnerStatus(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "ユーザーIDは必須です"})
+		return
+	}
+
+	var req UpdateTeamOwnerStatusRequestDTO
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
+		return
+	}
+
+	if req.MaxTeams < 0 {
+		writeJSON(w, http.StatusBadRequest, response{Error: "max_teams は0以上の値を指定してください"})
+		return
+	}
+
+	user, err := h.userUC.UpdateTeamOwnerStatus(usecase.UpdateTeamOwnerStatusInput{
+		UserID:      id,
+		IsTeamOwner: req.IsTeamOwner,
+		MaxTeams:    req.MaxTeams,
+	})
+	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			writeJSON(w, http.StatusNotFound, response{Error: "ユーザーが見つかりません"})
+			return
+		}
+		slog.Error("チームオーナー権限更新でエラーが発生しました", "id", id, "error", err)
+		writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, response{Data: toUserDTO(user)})
+}
+
 // HandleUpdateUserStatus は PATCH /api/v1/users/{id}/status を処理します（admin のみ）。
 func (h *UserHandler) HandleUpdateUserStatus(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
