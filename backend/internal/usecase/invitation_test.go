@@ -480,6 +480,10 @@ func TestInvitationUseCase_RespondInvitation_Accept_AlreadyProcessed(t *testing.
 	}
 }
 
+// TestInvitationUseCase_RespondInvitation_Accept_MemberAlreadyExists は
+// 招待受諾時に対象ユーザーが既にメンバーだった場合、エラーを返さずに
+// 招待ステータスを accepted に更新して正常終了することを検証します。
+// （重複受諾防止のため、ErrMemberAlreadyExists は無視して正常終了とする設計）
 func TestInvitationUseCase_RespondInvitation_Accept_MemberAlreadyExists(t *testing.T) {
 	teamRepo := newMockTeamRepository()
 	userRepo := newMockUserRepository()
@@ -500,14 +504,19 @@ func TestInvitationUseCase_RespondInvitation_Accept_MemberAlreadyExists(t *testi
 
 	uc := usecase.NewInvitationUseCase(invRepo, teamRepo, userRepo)
 
-	_, err := uc.RespondInvitation(context.Background(), usecase.RespondInvitationInput{
+	result, err := uc.RespondInvitation(context.Background(), usecase.RespondInvitationInput{
 		CallerID:     "invitee-1",
 		InvitationID: invID,
 		Status:       domain.StatusAccepted,
 	})
 
-	if !errors.Is(err, domain.ErrMemberAlreadyExists) {
-		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrMemberAlreadyExists)
+	// ErrMemberAlreadyExists は無視して正常終了（nil エラー）を期待する
+	if err != nil {
+		t.Errorf("エラーは期待しないが got: %v", err)
+	}
+	// 招待ステータスが accepted に更新されていることを確認
+	if result != nil && result.Status != domain.StatusAccepted {
+		t.Errorf("招待ステータスが期待値と異なります: got %v, want %v", result.Status, domain.StatusAccepted)
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -177,11 +178,13 @@ type RespondInvitationInput struct {
 }
 
 // RespondInvitation は招待を受諾または拒否します。
-// - 招待が存在しなければ ErrInvitationNotFound を返します。
-// - CallerID が invitee_user_id と一致しなければ ErrPermissionDenied を返します。
-// - status が pending でなければ ErrInvitationNotPending を返します。
-// - accepted の場合: TeamMember に追加（既にメンバーなら ErrMemberAlreadyExists）→ status を更新。
-// - rejected の場合: status を rejected に更新のみ。
+//   - 招待が存在しなければ ErrInvitationNotFound を返します。
+//   - CallerID が invitee_user_id と一致しなければ ErrPermissionDenied を返します。
+//   - status が pending でなければ ErrInvitationNotPending を返します。
+//   - accepted の場合: 先に招待ステータスを accepted に更新してから TeamMember に追加する。
+//     これにより Save 失敗時は AddMember が呼ばれず、AddMember 失敗時も招待は accepted 済みのため
+//     次回リクエストで ErrInvitationNotPending（処理済み）が返りリトライ不能にならない。
+//   - rejected の場合: status を rejected に更新のみ。
 func (uc *InvitationUseCase) RespondInvitation(ctx context.Context, input RespondInvitationInput) (*domain.Invitation, error) {
 	inv, err := uc.invitationRepo.FindByID(ctx, input.InvitationID)
 	if err != nil {
@@ -198,6 +201,12 @@ func (uc *InvitationUseCase) RespondInvitation(ctx context.Context, input Respon
 		return nil, domain.ErrInvitationNotPending
 	}
 
+	// 先に招待ステータスを更新する（Save 失敗時は AddMember を呼ばない）
+	inv.Status = input.Status
+	if err := uc.invitationRepo.Save(ctx, inv); err != nil {
+		return nil, fmt.Errorf("招待の更新に失敗しました: %w", err)
+	}
+
 	if input.Status == domain.StatusAccepted {
 		// チームにメンバーとして追加
 		member := &domain.TeamMember{
@@ -207,14 +216,16 @@ func (uc *InvitationUseCase) RespondInvitation(ctx context.Context, input Respon
 			JoinedAt: time.Now().UTC(),
 		}
 		if err := uc.teamRepo.AddMember(ctx, member); err != nil {
-			return nil, fmt.Errorf("メンバー追加に失敗しました: %w", err)
+			if !errors.Is(err, domain.ErrMemberAlreadyExists) {
+				return nil, fmt.Errorf("メンバー追加に失敗しました: %w", err)
+			}
+			// 招待は accepted に更新済みのため、既にメンバーの場合は正常終了とする
+			slog.Info("招待受諾済みのユーザーが既にメンバーでした（重複受諾の可能性）",
+				"invitation_id", inv.ID,
+				"team_id", inv.TeamID,
+				"user_id", input.CallerID,
+			)
 		}
-	}
-
-	// ステータスを更新
-	inv.Status = input.Status
-	if err := uc.invitationRepo.Save(ctx, inv); err != nil {
-		return nil, fmt.Errorf("招待の更新に失敗しました: %w", err)
 	}
 
 	return inv, nil

@@ -31,7 +31,7 @@ func (h *InvitationHandler) HandleSendInvitation(w http.ResponseWriter, r *http.
 	}
 
 	var req SendInvitationRequestDTO
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
 		return
 	}
@@ -52,13 +52,14 @@ func (h *InvitationHandler) HandleSendInvitation(w http.ResponseWriter, r *http.
 		case errors.Is(err, domain.ErrTeamNotFound):
 			writeJSON(w, http.StatusNotFound, response{Error: "チームが見つかりません"})
 		case errors.Is(err, domain.ErrUserNotFound):
-			writeJSON(w, http.StatusNotFound, response{Error: "ユーザーが見つかりません"})
+			// ユーザー列挙攻撃を防ぐため 422 で返し、存在有無を推測させない
+			writeJSON(w, http.StatusUnprocessableEntity, response{Error: "指定した識別子のユーザーを招待できませんでした"})
 		case errors.Is(err, domain.ErrPermissionDenied):
-			writeJSON(w, http.StatusForbidden, response{Error: err.Error()})
+			writeJSON(w, http.StatusForbidden, response{Error: "この操作を行う権限がありません"})
 		case errors.Is(err, domain.ErrMemberAlreadyExists):
-			writeJSON(w, http.StatusConflict, response{Error: err.Error()})
+			writeJSON(w, http.StatusConflict, response{Error: "このユーザーはすでにチームのメンバーです"})
 		case errors.Is(err, domain.ErrInvitationAlreadyExists):
-			writeJSON(w, http.StatusConflict, response{Error: err.Error()})
+			writeJSON(w, http.StatusConflict, response{Error: "同一チームへの招待がすでに存在します"})
 		default:
 			slog.Error("招待送信でエラーが発生しました", "team_id", teamID, "error", err)
 			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
@@ -101,7 +102,7 @@ func (h *InvitationHandler) HandleRespondInvitation(w http.ResponseWriter, r *ht
 	}
 
 	var req RespondInvitationRequestDTO
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
 		return
 	}
@@ -127,11 +128,11 @@ func (h *InvitationHandler) HandleRespondInvitation(w http.ResponseWriter, r *ht
 		case errors.Is(err, domain.ErrInvitationNotFound):
 			writeJSON(w, http.StatusNotFound, response{Error: "招待が見つかりません"})
 		case errors.Is(err, domain.ErrPermissionDenied):
-			writeJSON(w, http.StatusForbidden, response{Error: err.Error()})
+			writeJSON(w, http.StatusForbidden, response{Error: "この操作を行う権限がありません"})
 		case errors.Is(err, domain.ErrInvitationNotPending):
-			writeJSON(w, http.StatusUnprocessableEntity, response{Error: err.Error()})
+			writeJSON(w, http.StatusUnprocessableEntity, response{Error: "この招待はすでに処理済みです"})
 		case errors.Is(err, domain.ErrMemberAlreadyExists):
-			writeJSON(w, http.StatusConflict, response{Error: err.Error()})
+			writeJSON(w, http.StatusConflict, response{Error: "このユーザーはすでにチームのメンバーです"})
 		default:
 			slog.Error("招待応答でエラーが発生しました", "invitation_id", invitationID, "error", err)
 			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
