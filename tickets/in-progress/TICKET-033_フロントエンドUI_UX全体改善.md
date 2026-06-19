@@ -46,20 +46,20 @@
 
 ## サブチケット（コミット単位）
 
-- [ ] `fix(style): デザイントークンの不整合を修正（text-muted・border・success・error）`
-- [ ] `fix(style): 問題作成・編集フォームの未定義CSSクラスを追加`
-- [ ] `fix(editor): MDEditorをダークモードに切り替え`
-- [ ] `feat(style): ボタンのhover/active状態を強化`
-- [ ] `feat(style): コンテンツ幅クラスを追加し各ページに適用`
-- [ ] `feat(layout): サイドバーにアイコンとグルーピングラベルを追加`
-- [ ] `feat(component): AccordionSectionコンポーネントを実装`
-- [ ] `feat(question): 問題詳細の解答・解説を折りたたみ式に変更`
-- [ ] `feat(style): 問題詳細セクションの視覚的差別化（左ボーダー色分け）`
-- [ ] `feat(style): TagChipの選択状態を塗りつぶしスタイルに変更`
-- [ ] `feat(style): スケルトンローディングを主要画面に追加`
-- [ ] `feat(home): ホーム画面をダッシュボードとして実装`
-- [ ] `feat(style): モバイルテーブルをカードリスト表示に変更`
-- [ ] `fix(a11y): CommentSection・QuestionDetailPage・TagChipのアクセシビリティ修正`
+- [x] `fix(style): デザイントークンの不整合を修正（text-muted・border・success・error）`
+- [x] `fix(style): 問題作成・編集フォームの未定義CSSクラスを追加`
+- [x] `fix(editor): MDEditorをダークモードに切り替え`
+- [x] `feat(style): ボタンのhover/active状態を強化`
+- [x] `feat(style): コンテンツ幅クラスを追加し各ページに適用`
+- [x] `feat(layout): サイドバーにアイコンとグルーピングラベルを追加`
+- [x] `feat(component): AccordionSectionコンポーネントを実装`
+- [x] `feat(question): 問題詳細の解答・解説を折りたたみ式に変更`
+- [x] `feat(style): 問題詳細セクションの視覚的差別化（左ボーダー色分け）`
+- [x] `feat(style): TagChipの選択状態を塗りつぶしスタイルに変更`
+- [x] `feat(style): スケルトンローディングを主要画面に追加`
+- [x] `feat(home): ホーム画面をダッシュボードとして実装`
+- [x] `feat(style): モバイルテーブルをカードリスト表示に変更`
+- [x] `fix(a11y): CommentSection・QuestionDetailPage・TagChipのアクセシビリティ修正`
 
 ---
 
