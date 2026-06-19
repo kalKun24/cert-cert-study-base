@@ -1329,6 +1329,92 @@ img {
 }
 
 /* =============================================================================
+   AccordionSection コンポーネント
+   ============================================================================= */
+
+.accordion-section {
+  background-color: var(--color-bg-card);
+  border: var(--border-width-base) solid var(--color-border-default);
+  border-radius: var(--border-radius-lg);
+  margin-bottom: var(--space-4);
+  overflow: hidden;
+}
+
+.accordion-heading {
+  margin: 0;
+}
+
+.accordion-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-4) var(--space-6);
+  background: transparent;
+  border: none;
+  border-bottom: var(--border-width-base) solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.accordion-trigger:hover {
+  background-color: rgba(249, 188, 96, 0.04);
+}
+
+.accordion-trigger[aria-expanded="true"] {
+  border-bottom-color: var(--color-border-default);
+}
+
+.accordion-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
+  line-height: var(--line-height-tight);
+}
+
+.accordion-icon {
+  display: flex;
+  align-items: center;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  margin-left: var(--space-2);
+}
+
+/* シェブロンアイコンのアニメーション */
+.accordion-chevron {
+  transition: transform var(--transition-base);
+  transform: rotate(0deg);
+}
+
+.accordion-chevron--open {
+  transform: rotate(180deg);
+}
+
+/* アコーディオンパネル: max-heightによるCSS遷移 */
+.accordion-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--transition-base);
+  /* grid-template-rowsのアニメーション（モダンブラウザ対応） */
+}
+
+.accordion-panel--open {
+  grid-template-rows: 1fr;
+}
+
+.accordion-panel-inner {
+  overflow: hidden;
+  padding: 0;
+  transition: padding var(--transition-base);
+}
+
+.accordion-panel--open .accordion-panel-inner {
+  padding: var(--space-6);
+}
+
+/* =============================================================================
    コメントセクション
    ============================================================================= */
 
