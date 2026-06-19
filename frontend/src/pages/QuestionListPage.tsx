@@ -5,6 +5,7 @@ import { fetchQuestions } from '../utils/questionApi';
 import { fetchTags } from '../utils/tagApi';
 import { Question } from '../types/question';
 import { Tag } from '../types/tag';
+import TagChip from '../components/TagChip';
 
 const PER_PAGE = 20;
 
@@ -103,16 +104,18 @@ export default function QuestionListPage() {
         />
 
         {tags.length > 0 && (
-          <div className="filter-tags" aria-label={t('question.filter.tagPlaceholder')}>
+          <div
+            className="filter-tags"
+            role="group"
+            aria-label={t('question.filter.tagPlaceholder')}
+          >
             {tags.map((tag) => (
-              <label key={tag.id} className="filter-tag-label">
-                <input
-                  type="checkbox"
-                  checked={selectedTagIds.includes(tag.id)}
-                  onChange={() => handleTagToggle(tag.id)}
-                />
-                {tag.name}
-              </label>
+              <TagChip
+                key={tag.id}
+                tag={tag}
+                selected={selectedTagIds.includes(tag.id)}
+                onToggle={handleTagToggle}
+              />
             ))}
           </div>
         )}
