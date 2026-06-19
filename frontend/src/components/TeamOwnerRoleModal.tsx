@@ -6,6 +6,7 @@ interface TeamOwnerRoleModalProps {
   action: 'grant' | 'revoke';
   onConfirm: () => void;
   onCancel: () => void;
+  isLoading?: boolean;
 }
 
 export default function TeamOwnerRoleModal({
@@ -13,9 +14,11 @@ export default function TeamOwnerRoleModal({
   action,
   onConfirm,
   onCancel,
+  isLoading = false,
 }: TeamOwnerRoleModalProps) {
   const { t } = useTranslation();
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
   const titleId = 'team-owner-role-modal-title';
 
   // 初期フォーカスをキャンセルボタンに当てる
@@ -34,6 +37,42 @@ export default function TeamOwnerRoleModal({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [onCancel]);
 
+  // フォーカストラップ
+  useEffect(() => {
+    const modalEl = modalRef.current;
+    if (!modalEl) return;
+
+    const focusableSelectors =
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    const handleTabKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const focusableElements = Array.from(
+        modalEl.querySelectorAll<HTMLElement>(focusableSelectors),
+      ).filter((el) => el.offsetParent !== null);
+
+      if (focusableElements.length === 0) return;
+
+      const firstEl = focusableElements[0];
+      const lastEl = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstEl) {
+          e.preventDefault();
+          lastEl.focus();
+        }
+      } else {
+        if (document.activeElement === lastEl) {
+          e.preventDefault();
+          firstEl.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleTabKey);
+    return () => document.removeEventListener('keydown', handleTabKey);
+  }, []);
+
   const isGrant = action === 'grant';
   const title = isGrant
     ? t('team.ownerModal.grantTitle')
@@ -47,6 +86,7 @@ export default function TeamOwnerRoleModal({
         onClick={onCancel}
       />
       <div
+        ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -93,6 +133,8 @@ export default function TeamOwnerRoleModal({
             type="button"
             className={isGrant ? 'btn btn-primary' : 'btn btn-danger'}
             onClick={onConfirm}
+            disabled={isLoading}
+            aria-busy={isLoading}
           >
             {isGrant ? t('team.ownerModal.grantButton') : t('team.ownerModal.revokeButton')}
           </button>

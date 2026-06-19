@@ -355,6 +355,7 @@ export default function TeamDetailPage() {
           action={roleModal.action}
           onConfirm={handleRoleChangeConfirm}
           onCancel={() => setRoleModal(null)}
+          isLoading={isRoleChanging}
         />
       )}
     </section>
