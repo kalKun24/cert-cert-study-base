@@ -10,8 +10,8 @@
 | 着手日 | 2026-06-19 |
 | 完了日 | - |
 | ブランチ名 | `feature/frontend-tag-filter` |
-| PR番号 | - |
-| PRリンク | - |
+| PR番号 | #14 |
+| PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/14 |
 
 ---
 
