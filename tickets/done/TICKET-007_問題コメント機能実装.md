@@ -5,10 +5,10 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-007 |
-| ステータス | 🟡 作業中 |
+| ステータス | ✅ 完了 |
 | 作成日 | 2026-06-17 |
 | 着手日 | 2026-06-18 |
-| 完了日 | - |
+| 完了日 | 2026-06-18 |
 | ブランチ名 | `feature/question-comment` |
 | PR番号 | #10 |
 | PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/10 |

@@ -6,6 +6,7 @@ import { fetchTags } from '../utils/tagApi';
 import { Question } from '../types/question';
 import { Tag } from '../types/tag';
 import TagChip from '../components/TagChip';
+import Paginator from '../components/Paginator';
 
 const PER_PAGE = 20;
 
@@ -75,7 +76,10 @@ export default function QuestionListPage() {
           }
         })
         .catch(() => {
-          if (isMounted) setLoadError(t('question.error.fetchFailed'));
+          if (isMounted) {
+            setLoadError(t('question.error.fetchFailed'));
+            setTotalPages(1);
+          }
         })
         .finally(() => {
           if (isMounted) setIsLoading(false);
@@ -95,6 +99,10 @@ export default function QuestionListPage() {
         // タグ取得エラーは非致命的。無視して続行。
       });
   }, []);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [page]);
 
   useEffect(() => {
     syncSearchParams(page, keyword, selectedTagNames);
@@ -187,31 +195,7 @@ export default function QuestionListPage() {
             ))}
           </ul>
 
-          {totalPages > 1 && (
-            <div className="pagination" role="navigation" aria-label={t('question.pagination.navLabel')}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                aria-label={t('question.pagination.prev')}
-              >
-                {t('question.pagination.prev')}
-              </button>
-              <span className="pagination-info">
-                {t('question.pagination.pageInfo', { page, total: totalPages })}
-              </span>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                aria-label={t('question.pagination.next')}
-              >
-                {t('question.pagination.next')}
-              </button>
-            </div>
-          )}
+          <Paginator page={page} totalPages={totalPages} onPageChange={setPage} />
         </>
       )}
     </section>
