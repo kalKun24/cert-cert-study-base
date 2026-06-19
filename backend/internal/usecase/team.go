@@ -355,6 +355,45 @@ func (uc *TeamUseCase) ChangeMemberRole(ctx context.Context, input ChangeMemberR
 	return nil, domain.ErrMemberNotFound
 }
 
+// LeaveTeam はログインユーザーが自分自身をチームから脱退させます。
+// - チームが存在しなければ ErrTeamNotFound を返します。
+// - 自分がメンバーでなければ ErrMemberNotFound を返します。
+// - 自分が唯一の per-team owner なら ErrLastTeamOwner を返します。
+func (uc *TeamUseCase) LeaveTeam(ctx context.Context, callerID string, teamID string) error {
+	// チームの存在確認
+	if _, err := uc.teamRepo.FindByID(ctx, teamID); err != nil {
+		return fmt.Errorf("チーム取得に失敗しました: %w", err)
+	}
+
+	// 自分がメンバーかどうか確認
+	isMember, err := uc.teamRepo.IsMember(ctx, teamID, callerID)
+	if err != nil {
+		return fmt.Errorf("メンバー確認に失敗しました: %w", err)
+	}
+	if !isMember {
+		return domain.ErrMemberNotFound
+	}
+
+	// 唯一の per-team owner による脱退は禁止
+	owners, err := uc.teamRepo.FindOwners(ctx, teamID)
+	if err != nil {
+		return fmt.Errorf("チームオーナー取得に失敗しました: %w", err)
+	}
+	if len(owners) <= 1 {
+		for _, o := range owners {
+			if o.UserID == callerID {
+				return domain.ErrLastTeamOwner
+			}
+		}
+	}
+
+	if err := uc.teamRepo.RemoveMember(ctx, teamID, callerID); err != nil {
+		return fmt.Errorf("チームからの脱退に失敗しました: %w", err)
+	}
+
+	return nil
+}
+
 // RemoveMember は指定チームからユーザーを除外します。
 // - per-team owner または admin のみ実行可能です。
 // - 除外対象が唯一の per-team owner の場合は ErrLastTeamOwner を返します。
