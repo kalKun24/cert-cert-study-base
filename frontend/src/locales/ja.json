@@ -225,6 +225,7 @@
       "usernameRequired": "ユーザー名を入力してください",
       "displayNameRequired": "表示名を入力してください",
       "emailRequired": "メールアドレスを入力してください",
+      "emailInvalid": "正しいメールアドレスの形式で入力してください",
       "roleRequired": "ロールを選択してください",
       "passwordRequired": "パスワードを入力してください",
       "passwordTooShort": "パスワードは8文字以上で入力してください"

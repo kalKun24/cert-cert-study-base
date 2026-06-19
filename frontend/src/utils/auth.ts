@@ -1,7 +1,9 @@
+import { UserRole } from '../types/user';
+
+export type { UserRole };
+
 const TOKEN_KEY = 'cert_study_token';
 const USER_KEY = 'cert_study_user';
-
-export type UserRole = 'admin' | 'teamowner' | 'user';
 
 export interface AuthUser {
   id: string;

@@ -54,8 +54,11 @@ export default function UserForm({
     if (!displayName.trim()) {
       errors.displayName = t('user.validation.displayNameRequired');
     }
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email.trim()) {
       errors.email = t('user.validation.emailRequired');
+    } else if (!EMAIL_RE.test(email.trim())) {
+      errors.email = t('user.validation.emailInvalid');
     }
     if (!role) {
       errors.role = t('user.validation.roleRequired');
@@ -229,7 +232,7 @@ export default function UserForm({
           aria-describedby={validationErrors.password ? 'user-password-error' : undefined}
           aria-invalid={!!validationErrors.password}
           disabled={isSubmitting}
-          autoComplete={isCreate ? 'new-password' : 'new-password'}
+          autoComplete="new-password"
         />
         {validationErrors.password && (
           <p id="user-password-error" role="alert" className="form-error">
