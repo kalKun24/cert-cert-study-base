@@ -28,6 +28,8 @@ type userRecord struct {
 	PasswordHash string    `json:"password_hash"`
 	Role         string    `json:"role"`
 	IsActive     bool      `json:"is_active"`
+	IsTeamOwner  bool      `json:"is_team_owner"`
+	MaxTeams     int       `json:"max_teams"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
@@ -42,6 +44,8 @@ func toUserRecord(u *domain.User) userRecord {
 		PasswordHash: u.PasswordHash,
 		Role:         string(u.Role),
 		IsActive:     u.IsActive,
+		IsTeamOwner:  u.IsTeamOwner,
+		MaxTeams:     u.MaxTeams,
 		CreatedAt:    u.CreatedAt,
 		UpdatedAt:    u.UpdatedAt,
 	}
@@ -57,6 +61,8 @@ func toUser(r userRecord) *domain.User {
 		PasswordHash: r.PasswordHash,
 		Role:         domain.Role(r.Role),
 		IsActive:     r.IsActive,
+		IsTeamOwner:  r.IsTeamOwner,
+		MaxTeams:     r.MaxTeams,
 		CreatedAt:    r.CreatedAt,
 		UpdatedAt:    r.UpdatedAt,
 	}
