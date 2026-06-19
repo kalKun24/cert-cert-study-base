@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchQuestions } from '../utils/questionApi';
 import { fetchTags } from '../utils/tagApi';
@@ -9,17 +9,46 @@ import TagChip from '../components/TagChip';
 
 const PER_PAGE = 20;
 
+/** URL クエリの tag_ids パラメータ名 */
+const PARAM_TAG_IDS = 'tag_ids';
+/** URL クエリの keyword パラメータ名 */
+const PARAM_KEYWORD = 'keyword';
+/** URL クエリの page パラメータ名 */
+const PARAM_PAGE = 'page';
+
 export default function QuestionListPage() {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // URL クエリパラメータから初期値を復元
+  const initialTagIds = (): string[] => {
+    const raw = searchParams.get(PARAM_TAG_IDS);
+    if (!raw) return [];
+    return raw.split(',').filter(Boolean);
+  };
+  const initialKeyword = searchParams.get(PARAM_KEYWORD) ?? '';
+  const initialPage = parseInt(searchParams.get(PARAM_PAGE) ?? '1', 10) || 1;
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
-  const [keyword, setKeyword] = useState('');
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-  const [page, setPage] = useState(1);
+  const [keyword, setKeyword] = useState(initialKeyword);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(initialTagIds);
+  const [page, setPage] = useState(initialPage);
   const [totalPages, setTotalPages] = useState(1);
+
+  /** URL クエリパラメータを現在の状態で同期する */
+  const syncSearchParams = useCallback(
+    (currentPage: number, currentKeyword: string, currentTagIds: string[]) => {
+      const next = new URLSearchParams();
+      if (currentKeyword.trim()) next.set(PARAM_KEYWORD, currentKeyword.trim());
+      if (currentTagIds.length > 0) next.set(PARAM_TAG_IDS, currentTagIds.join(','));
+      if (currentPage > 1) next.set(PARAM_PAGE, String(currentPage));
+      setSearchParams(next, { replace: true });
+    },
+    [setSearchParams]
+  );
 
   const loadQuestions = useCallback(
     (currentPage: number, currentKeyword: string, currentTagIds: string[]) => {
@@ -68,9 +97,10 @@ export default function QuestionListPage() {
   }, []);
 
   useEffect(() => {
+    syncSearchParams(page, keyword, selectedTagIds);
     const cleanup = loadQuestions(page, keyword, selectedTagIds);
     return cleanup;
-  }, [page, keyword, selectedTagIds, loadQuestions]);
+  }, [page, keyword, selectedTagIds, loadQuestions, syncSearchParams]);
 
   const handleTagToggle = (tagId: string) => {
     setSelectedTagIds((prev) =>
