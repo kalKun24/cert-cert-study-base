@@ -228,6 +228,61 @@ func (h *TeamHandler) HandleAddTeamMember(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusCreated, response{Data: toTeamMemberDTO(member)})
 }
 
+// HandleChangeMemberRole は PATCH /api/v1/teams/{id}/members/{user_id}/role を処理します。
+// チームの per-team owner または admin のみが実行可能です。
+func (h *TeamHandler) HandleChangeMemberRole(w http.ResponseWriter, r *http.Request) {
+	callerID, callerRole := callerInfo(r)
+	teamID := r.PathValue("id")
+	userID := r.PathValue("user_id")
+	if teamID == "" || userID == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDとユーザーIDは必須です"})
+		return
+	}
+
+	var req ChangeMemberRoleRequestDTO
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
+		return
+	}
+
+	if req.Role == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "role は必須です"})
+		return
+	}
+
+	role := domain.MemberRole(req.Role)
+	if !role.IsValid() {
+		writeJSON(w, http.StatusBadRequest, response{Error: "role は owner または member を指定してください"})
+		return
+	}
+
+	member, err := h.teamUC.ChangeMemberRole(r.Context(), usecase.ChangeMemberRoleInput{
+		CallerID:     callerID,
+		CallerRole:   callerRole,
+		TeamID:       teamID,
+		TargetUserID: userID,
+		Role:         role,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, domain.ErrPermissionDenied):
+			writeJSON(w, http.StatusForbidden, response{Error: err.Error()})
+		case errors.Is(err, domain.ErrTeamNotFound):
+			writeJSON(w, http.StatusNotFound, response{Error: "チームが見つかりません"})
+		case errors.Is(err, domain.ErrMemberNotFound):
+			writeJSON(w, http.StatusNotFound, response{Error: "メンバーが見つかりません"})
+		case errors.Is(err, domain.ErrLastTeamOwner):
+			writeJSON(w, http.StatusUnprocessableEntity, response{Error: err.Error()})
+		default:
+			slog.Error("メンバーロール変更でエラーが発生しました", "team_id", teamID, "user_id", userID, "error", err)
+			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, response{Data: toTeamMemberDTO(member)})
+}
+
 // HandleRemoveTeamMember は DELETE /api/v1/teams/{id}/members/{user_id} を処理します。
 func (h *TeamHandler) HandleRemoveTeamMember(w http.ResponseWriter, r *http.Request) {
 	callerID, callerRole := callerInfo(r)

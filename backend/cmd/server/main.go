@@ -150,6 +150,8 @@ func main() {
 	mux.Handle("PUT /api/v1/users/{id}", withAdmin(userHandler.HandleUpdateUser))
 	mux.Handle("DELETE /api/v1/users/{id}", withAdmin(userHandler.HandleDeleteUser))
 	mux.Handle("PATCH /api/v1/users/{id}/status", withAdmin(userHandler.HandleUpdateUserStatus))
+	// グローバルチームオーナー権限付与・剥奪（admin のみ）
+	mux.Handle("PATCH /api/v1/admin/users/{id}/team-owner", withAdmin(userHandler.HandleUpdateTeamOwnerStatus))
 
 	// 認証済みユーザーのみ許可するミドルウェアチェーンを組み立てるヘルパー
 	withAuth := func(h http.HandlerFunc) http.Handler {
@@ -185,6 +187,8 @@ func main() {
 	mux.Handle("DELETE /api/v1/teams/{id}", withAuth(teamHandler.HandleDeleteTeam))
 	mux.Handle("POST /api/v1/teams/{id}/members", withAuth(teamHandler.HandleAddTeamMember))
 	mux.Handle("DELETE /api/v1/teams/{id}/members/{user_id}", withAuth(teamHandler.HandleRemoveTeamMember))
+	// チーム内メンバーロール変更（認証済みユーザー、認可はユースケース層で実施）
+	mux.Handle("PATCH /api/v1/teams/{id}/members/{user_id}/role", withAuth(teamHandler.HandleChangeMemberRole))
 
 	// タグ管理（一覧取得は認証済み全ユーザー、作成・更新・削除は admin のみ）
 	mux.Handle("GET /api/v1/tags", withAuth(tagHandler.HandleListTags))
