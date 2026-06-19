@@ -135,9 +135,30 @@
       "inviteTitle": "メンバーを招待",
       "userIdLabel": "ユーザーID（UUID）",
       "userIdPlaceholder": "招待するユーザーのIDを入力",
+      "inviteIdentifierLabel": "ユーザーID / UUID / メールアドレス",
+      "inviteIdentifierPlaceholder": "UUID・ユーザーID・メールアドレスのいずれかで入力",
       "inviteButton": "招待",
       "removeButton": "除外",
-      "removeConfirm": "このメンバーをチームから除外しますか？"
+      "removeConfirm": "このメンバーをチームから除外しますか？",
+      "role": {
+        "owner": "オーナー",
+        "member": "メンバー"
+      },
+      "grantOwner": "オーナーにする",
+      "revokeOwner": "オーナーを外す",
+      "grantOwnerDisabledTooltip": "あなたはこのチームの唯一のオーナーです"
+    },
+    "ownerModal": {
+      "grantTitle": "チームオーナー権限の付与",
+      "revokeTitle": "チームオーナー権限の剥奪",
+      "targetUser": "対象ユーザー",
+      "ownerCapabilities": "チームオーナーにできること",
+      "capabilitiesList": "メンバーの招待・退会、問題・タグの編集・削除、チーム内オーナーの付与",
+      "abuseWarning": "不正なメンバーへの付与はチームデータの改ざんにつながります。付与先を十分に確認してください。",
+      "revokeConfirm": "{{name}} からチームオーナー権限を剥奪します。よろしいですか？",
+      "grantButton": "付与する",
+      "revokeButton": "外す",
+      "cancelButton": "キャンセル"
     },
     "error": {
       "fetchFailed": "チームの読み込みに失敗しました。再試行してください",
@@ -145,7 +166,8 @@
       "updateFailed": "チームの更新に失敗しました。再試行してください",
       "deleteFailed": "チームの削除に失敗しました。再試行してください",
       "inviteFailed": "メンバーの招待に失敗しました。再試行してください",
-      "removeFailed": "メンバーの除外に失敗しました。再試行してください"
+      "removeFailed": "メンバーの除外に失敗しました。再試行してください",
+      "roleChangeFailed": "ロールの変更に失敗しました。再試行してください"
     },
     "validation": {
       "nameRequired": "チーム名を入力してください",
@@ -258,6 +280,15 @@
       "updateFailed": "ユーザーの更新に失敗しました。再試行してください",
       "deleteFailed": "ユーザーの削除に失敗しました",
       "statusUpdateFailed": "ステータスの変更に失敗しました。再試行してください"
+    },
+    "teamOwner": {
+      "label": "チーム作成権限（グローバルオーナー）",
+      "enabledLabel": "チーム作成を許可する",
+      "maxTeamsLabel": "チーム作成上限数",
+      "maxTeamsPlaceholder": "例: 3",
+      "saveButton": "権限を保存",
+      "saveFailed": "権限の保存に失敗しました。再試行してください",
+      "saveSuccess": "権限を更新しました"
     },
     "validation": {
       "usernameRequired": "ユーザー名を入力してください",

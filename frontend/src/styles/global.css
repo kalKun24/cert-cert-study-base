@@ -2172,6 +2172,209 @@ img {
 }
 
 /* =============================================================================
+   モーダル
+   ============================================================================= */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  z-index: 200;
+}
+
+.modal-box {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 201;
+  background-color: var(--color-bg-card);
+  border: var(--border-width-base) solid var(--color-border);
+  border-radius: var(--border-radius-xl);
+  padding: var(--space-8);
+  width: 100%;
+  max-width: 480px;
+  box-shadow: var(--shadow-lg);
+}
+
+.modal-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-5);
+}
+
+.modal-target-user {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-body);
+  margin-bottom: var(--space-4);
+}
+
+.modal-field-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+}
+
+.modal-capabilities-block {
+  background-color: var(--color-primary-light);
+  border: var(--border-width-base) solid rgba(0, 137, 123, 0.20);
+  border-radius: var(--border-radius-base);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.modal-capabilities-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-body);
+  margin: var(--space-1) 0 0;
+}
+
+.modal-abuse-warning {
+  margin-bottom: var(--space-5);
+}
+
+.modal-revoke-confirm {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-body);
+  margin-bottom: var(--space-5);
+}
+
+.modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+/* =============================================================================
+   メンバーロールバッジ
+   ============================================================================= */
+
+.member-role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+}
+
+.member-role-badge--owner {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  border: 1px solid rgba(0, 137, 123, 0.30);
+}
+
+.member-role-badge--member {
+  background-color: rgba(0, 0, 0, 0.06);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+/* =============================================================================
+   ツールチップ
+   ============================================================================= */
+
+.tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + var(--space-1));
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 180px;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-text-primary);
+  color: #ffffff;
+  font-size: var(--font-size-xs);
+  border-radius: var(--border-radius-base);
+  white-space: normal;
+  z-index: 10;
+  pointer-events: none;
+  text-align: center;
+}
+
+.tooltip-wrapper:hover .tooltip,
+.tooltip-wrapper:focus-within .tooltip {
+  display: block;
+}
+
+/* =============================================================================
+   チームオーナー権限セクション（UserEditPage）
+   ============================================================================= */
+
+.team-owner-section {
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: var(--border-width-base) solid var(--color-border);
+}
+
+.team-owner-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.team-owner-toggle-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-body);
+}
+
+/* トグルスイッチ */
+.toggle-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 44px;
+  height: 24px;
+  padding: 0;
+  background-color: var(--color-border);
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.toggle-switch--on {
+  background-color: var(--color-primary);
+}
+
+.toggle-switch-thumb {
+  position: absolute;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-fast);
+}
+
+.toggle-switch--on .toggle-switch-thumb {
+  transform: translateX(20px);
+}
+
+/* 招待フォームラッパー */
+.team-invite-form-wrapper {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: var(--border-width-base) solid var(--color-border);
+}
+
+.team-invite-form {
+  max-width: 480px;
+}
+
+/* =============================================================================
    MDEditor ライトモード調整（Ocean Teal パレットとの視覚的一致）
    ============================================================================= */
 
