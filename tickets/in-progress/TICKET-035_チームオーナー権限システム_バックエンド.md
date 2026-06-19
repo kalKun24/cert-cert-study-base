@@ -10,8 +10,8 @@
 | 着手日 | 2026-06-20 |
 | 完了日 | - |
 | ブランチ名 | `feature/team-owner-role-backend` |
-| PR番号 | - |
-| PRリンク | - |
+| PR番号 | #24 |
+| PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/24 |
 
 ---
 
@@ -54,15 +54,15 @@
 
 ## サブチケット（コミット単位）
 
-- [ ] `feat(domain): ユーザーエンティティに is_team_owner・max_teams フィールドを追加`
-- [ ] `feat(domain): チームメンバーシップに role フィールドを追加`
-- [ ] `feat(usecase): 管理者によるグローバル team_owner 権限付与・剥奪ユースケースを実装`
-- [ ] `feat(usecase): チーム作成時の team_owner 権限・上限チェックを追加（作成者を owner に設定）`
-- [ ] `feat(usecase): チーム内メンバーへのオーナーロール付与・剥奪ユースケースを実装`
-- [ ] `feat(interface): 管理者向けグローバル権限変更エンドポイントを追加`
-- [ ] `feat(interface): チーム内オーナーロール変更エンドポイントを追加`
-- [ ] `docs(api): openapi.yaml を更新`
-- [ ] `test(usecase): 権限付与・ロール変更ユースケースのユニットテストを作成`
+- [x] `feat(domain): ユーザーエンティティに is_team_owner・max_teams フィールドを追加`
+- [x] `feat(domain): チームメンバーシップに role フィールドを追加`
+- [x] `feat(usecase): 管理者によるグローバル team_owner 権限付与・剥奪ユースケースを実装`
+- [x] `feat(usecase): チーム作成時の team_owner 権限・上限チェックを追加（作成者を owner に設定）`
+- [x] `feat(usecase): チーム内メンバーへのオーナーロール付与・剥奪ユースケースを実装`
+- [x] `feat(interface): 管理者向けグローバル権限変更エンドポイントを追加`
+- [x] `feat(interface): チーム内オーナーロール変更エンドポイントを追加`
+- [x] `docs(api): openapi.yaml を更新`
+- [x] `test(usecase): 権限付与・ロール変更ユースケースのユニットテストを作成`
 
 ---
 
