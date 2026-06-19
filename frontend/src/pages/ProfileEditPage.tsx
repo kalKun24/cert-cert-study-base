@@ -47,6 +47,7 @@ export default function ProfileEditPage() {
     if (!currentPassword) return t('profile.validation.currentPasswordRequired');
     if (!newPassword) return t('profile.validation.newPasswordRequired');
     if (newPassword.length < 8) return t('profile.validation.newPasswordTooShort');
+    if (newPassword.length > 72) return t('profile.validation.newPasswordTooLong');
     if (!confirmPassword) return t('profile.validation.confirmPasswordRequired');
     if (newPassword !== confirmPassword) return t('profile.validation.passwordMismatch');
     return '';

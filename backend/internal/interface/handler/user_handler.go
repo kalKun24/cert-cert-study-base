@@ -234,6 +234,11 @@ func (h *UserHandler) HandleChangeMyPassword(w http.ResponseWriter, r *http.Requ
 		writeJSON(w, http.StatusBadRequest, response{Error: "新しいパスワードは8文字以上で入力してください"})
 		return
 	}
+	// bcrypt は 72 バイトで入力を切り捨てるため、超過分は無効化される
+	if len(req.NewPassword) > 72 {
+		writeJSON(w, http.StatusBadRequest, response{Error: "新しいパスワードは72文字以下で入力してください"})
+		return
+	}
 
 	err := h.userUC.ChangePassword(usecase.ChangePasswordInput{
 		UserID:          userID,
