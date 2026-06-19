@@ -346,3 +346,36 @@ func (uc *UserUseCase) UpdateUserStatus(id string, isActive bool) (*domain.User,
 
 	return user, nil
 }
+
+// UpdateTeamOwnerStatusInput はグローバルチームオーナー権限更新ユースケースの入力です。
+type UpdateTeamOwnerStatusInput struct {
+	// UserID は更新対象のユーザーID
+	UserID string
+	// IsTeamOwner はチームを作成できるグローバル権限を付与する場合は true
+	IsTeamOwner bool
+	// MaxTeams は作成可能なチームの上限数（0 = 制限なし）
+	MaxTeams int
+}
+
+// UpdateTeamOwnerStatus はユーザーのグローバルチームオーナー権限を更新します（admin のみ呼び出し可）。
+// 指定ユーザーが存在しない場合は ErrUserNotFound を返します。
+func (uc *UserUseCase) UpdateTeamOwnerStatus(input UpdateTeamOwnerStatusInput) (*domain.User, error) {
+	if input.MaxTeams < 0 {
+		return nil, fmt.Errorf("max_teams は0以上の値を指定してください")
+	}
+
+	user, err := uc.userRepo.FindByID(context.TODO(), input.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("ユーザー取得に失敗しました: %w", err)
+	}
+
+	user.IsTeamOwner = input.IsTeamOwner
+	user.MaxTeams = input.MaxTeams
+	user.UpdatedAt = time.Now().UTC()
+
+	if err := uc.userRepo.Save(context.TODO(), user); err != nil {
+		return nil, fmt.Errorf("ユーザーの保存に失敗しました: %w", err)
+	}
+
+	return user, nil
+}
