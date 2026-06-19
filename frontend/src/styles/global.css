@@ -815,24 +815,28 @@ img {
   background-color: rgba(171, 209, 198, 0.1);
   color: var(--color-text-body);
   border: 1px solid rgba(171, 209, 198, 0.3);
-  border-radius: var(--border-radius-sm);
+  /* ピル型ボーダー */
+  border-radius: 9999px;
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  transition: background-color var(--transition-fast), color var(--transition-fast),
+    border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .tag-chip:hover {
-  background-color: rgba(249, 188, 96, 0.12);
+  background-color: rgba(249, 188, 96, 0.15);
   color: var(--color-accent);
-  border-color: rgba(249, 188, 96, 0.4);
+  border-color: rgba(249, 188, 96, 0.5);
 }
 
+/* 選択状態: accent色で100%塗りつぶし、コントラスト比11.5:1を達成 */
 .tag-chip.selected,
 .tag-chip--selected {
-  background-color: rgba(249, 188, 96, 0.2);
-  color: var(--color-accent);
+  background-color: var(--color-accent);
+  color: var(--color-accent-text);
   border-color: var(--color-accent);
+  font-weight: var(--font-weight-bold);
 }
 
 /* =============================================================================
