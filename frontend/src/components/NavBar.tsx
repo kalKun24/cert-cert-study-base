@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTeam } from '../context/TeamContext';
 import apiClient from '../utils/apiClient';
 
 // ロールの表示ラベル（翻訳ファイルではなく内部マッピング）
@@ -26,6 +27,7 @@ interface NavBarProps {
 export default function NavBar({ isMobileMenuOpen, onMobileMenuToggle }: NavBarProps) {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
+  const { teams, activeTeam, setActiveTeam } = useTeam();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -36,6 +38,13 @@ export default function NavBar({ isMobileMenuOpen, onMobileMenuToggle }: NavBarP
     }
     logout();
     navigate('/login', { replace: true });
+  };
+
+  const handleTeamChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selected = teams.find((t) => t.id === e.target.value);
+    if (selected) {
+      setActiveTeam(selected);
+    }
   };
 
   return (
@@ -81,7 +90,37 @@ export default function NavBar({ isMobileMenuOpen, onMobileMenuToggle }: NavBarP
               </NavLink>
             </li>
           )}
+          {/* チームオーナーのみ「チームを作成」リンクを表示 */}
+          {user?.is_team_owner === true && (
+            <li>
+              <NavLink to="/teams/new" className={({ isActive }) => isActive ? 'topbar-nav-link topbar-nav-link--active' : 'topbar-nav-link'}>
+                {t('nav.createTeam')}
+              </NavLink>
+            </li>
+          )}
         </ul>
+
+        {/* チーム切り替えエリア（デスクトップのみ） */}
+        {teams.length > 0 && (
+          <div className="topbar-team-area">
+            <label htmlFor="topbar-team-select" className="topbar-team-label">
+              {t('nav.activeTeam')}
+            </label>
+            <select
+              id="topbar-team-select"
+              className="topbar-team-select"
+              value={activeTeam?.id ?? ''}
+              onChange={handleTeamChange}
+              aria-label={t('nav.switchTeam')}
+            >
+              {teams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* ユーザーメニュー（右端） */}
         <div className="topbar-user">
