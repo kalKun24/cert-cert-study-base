@@ -1,6 +1,7 @@
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { TeamProvider } from './context/TeamContext';
+import { TeamProvider, useTeam } from './context/TeamContext';
 import PrivateRoute from './components/PrivateRoute';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
@@ -20,8 +21,6 @@ import UserListPage from './pages/UserListPage';
 import UserCreatePage from './pages/UserCreatePage';
 import UserEditPage from './pages/UserEditPage';
 import ProfileEditPage from './pages/ProfileEditPage';
-import { useTeam } from './context/TeamContext';
-import { useEffect, useState } from 'react';
 import { fetchMyInvitations } from './utils/invitationApi';
 
 /**
