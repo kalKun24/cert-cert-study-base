@@ -118,7 +118,8 @@ export default function QuestionDetailPage() {
                 className="btn btn-danger"
                 onClick={handleDelete}
                 disabled={isDeleting}
-                aria-label={t('common.delete')}
+                aria-label={`${t('common.delete')} - ${question.title}`}
+                aria-busy={isDeleting}
               >
                 {t('common.delete')}
               </button>
@@ -131,9 +132,9 @@ export default function QuestionDetailPage() {
           </span>
           <span className="question-status">{t(`question.status.${question.status}`)}</span>
           {question.tags.length > 0 && (
-            <ul className="question-tags" aria-label={t('question.tagsLabel')}>
+            <ul className="question-tags" aria-label={t('question.tagsLabel')} role="list">
               {question.tags.map((tag) => (
-                <li key={tag} className="tag-badge">
+                <li key={tag} className="tag-badge" role="listitem">
                   {tag}
                 </li>
               ))}

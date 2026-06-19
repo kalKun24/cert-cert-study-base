@@ -42,7 +42,8 @@
     "delete": "削除",
     "edit": "編集",
     "create": "作成",
-    "search": "検索"
+    "search": "検索",
+    "selected": "選択中"
   },
   "errors": {
     "notFound": "ページが見つかりません",
