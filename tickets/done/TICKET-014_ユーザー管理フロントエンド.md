@@ -5,10 +5,10 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-014 |
-| ステータス | 🟡 作業中 |
+| ステータス | ✅ 完了 |
 | 作成日 | 2026-06-17 |
 | 着手日 | 2026-06-19 |
-| 完了日 | - |
+| 完了日 | 2026-06-19 |
 | ブランチ名 | `feature/frontend-user-admin` |
 | PR番号 | #15 |
 | PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/15 |

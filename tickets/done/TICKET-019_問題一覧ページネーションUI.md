@@ -5,10 +5,10 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-019 |
-| ステータス | 🟡 作業中 |
+| ステータス | ✅ 完了 |
 | 作成日 | 2026-06-19 |
 | 着手日 | 2026-06-19 |
-| 完了日 | - |
+| 完了日 | 2026-06-19 |
 | ブランチ名 | `feature/question-list-pagination` |
 | PR番号 | #16 |
 | PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/16 |
