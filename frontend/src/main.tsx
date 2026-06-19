@@ -4,6 +4,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import App from './App';
 import ja from './locales/ja.json';
+import './styles/global.css';
 
 // i18next の初期化
 i18n.use(initReactI18next).init({
