@@ -21,7 +21,7 @@ export default function QuestionListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // URL クエリパラメータから初期値を復元
-  const initialTagIds = (): string[] => {
+  const initialTagNames = (): string[] => {
     const raw = searchParams.get(PARAM_TAG_IDS);
     if (!raw) return [];
     return raw.split(',').filter(Boolean);
@@ -34,16 +34,16 @@ export default function QuestionListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [keyword, setKeyword] = useState(initialKeyword);
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(initialTagIds);
+  const [selectedTagNames, setSelectedTagNames] = useState<string[]>(initialTagNames);
   const [page, setPage] = useState(initialPage);
   const [totalPages, setTotalPages] = useState(1);
 
   /** URL クエリパラメータを現在の状態で同期する */
   const syncSearchParams = useCallback(
-    (currentPage: number, currentKeyword: string, currentTagIds: string[]) => {
+    (currentPage: number, currentKeyword: string, currentTagNames: string[]) => {
       const next = new URLSearchParams();
       if (currentKeyword.trim()) next.set(PARAM_KEYWORD, currentKeyword.trim());
-      if (currentTagIds.length > 0) next.set(PARAM_TAG_IDS, currentTagIds.join(','));
+      if (currentTagNames.length > 0) next.set(PARAM_TAG_IDS, currentTagNames.join(','));
       if (currentPage > 1) next.set(PARAM_PAGE, String(currentPage));
       setSearchParams(next, { replace: true });
     },
@@ -51,7 +51,7 @@ export default function QuestionListPage() {
   );
 
   const loadQuestions = useCallback(
-    (currentPage: number, currentKeyword: string, currentTagIds: string[]) => {
+    (currentPage: number, currentKeyword: string, currentTagNames: string[]) => {
       let isMounted = true;
       setIsLoading(true);
       setLoadError('');
@@ -63,8 +63,8 @@ export default function QuestionListPage() {
       if (currentKeyword.trim()) {
         params.keyword = currentKeyword.trim();
       }
-      if (currentTagIds.length > 0) {
-        params.tag_ids = currentTagIds.join(',');
+      if (currentTagNames.length > 0) {
+        params.tag_ids = currentTagNames.join(',');
       }
 
       fetchQuestions(params)
@@ -97,14 +97,14 @@ export default function QuestionListPage() {
   }, []);
 
   useEffect(() => {
-    syncSearchParams(page, keyword, selectedTagIds);
-    const cleanup = loadQuestions(page, keyword, selectedTagIds);
+    syncSearchParams(page, keyword, selectedTagNames);
+    const cleanup = loadQuestions(page, keyword, selectedTagNames);
     return cleanup;
-  }, [page, keyword, selectedTagIds, loadQuestions, syncSearchParams]);
+  }, [page, keyword, selectedTagNames, loadQuestions, syncSearchParams]);
 
-  const handleTagToggle = (tagId: string) => {
-    setSelectedTagIds((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+  const handleTagToggle = (tagName: string) => {
+    setSelectedTagNames((prev) =>
+      prev.includes(tagName) ? prev.filter((n) => n !== tagName) : [...prev, tagName]
     );
     setPage(1);
   };
@@ -143,7 +143,7 @@ export default function QuestionListPage() {
               <TagChip
                 key={tag.id}
                 tag={tag}
-                selected={selectedTagIds.includes(tag.id)}
+                selected={selectedTagNames.includes(tag.name)}
                 onToggle={handleTagToggle}
               />
             ))}
@@ -188,7 +188,7 @@ export default function QuestionListPage() {
           </ul>
 
           {totalPages > 1 && (
-            <div className="pagination" role="navigation" aria-label="ページネーション">
+            <div className="pagination" role="navigation" aria-label={t('question.pagination.navLabel')}>
               <button
                 type="button"
                 className="btn btn-secondary"
