@@ -271,6 +271,19 @@
       "passwordMismatch": "新しいパスワードと確認用パスワードが一致しません"
     }
   },
+  "home": {
+    "title": "ダッシュボード",
+    "stats": {
+      "questions": "問題数",
+      "tags": "タグ数",
+      "teams": "チーム数"
+    },
+    "recentQuestions": {
+      "title": "最近の問題",
+      "empty": "問題がまだありません",
+      "viewAll": "すべて見る"
+    }
+  },
   "comment": {
     "section": {
       "title": "コメント",
