@@ -172,6 +172,95 @@ func (h *UserHandler) HandleDeleteUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, response{Data: map[string]string{"message": "ユーザーを削除しました"}})
 }
 
+// HandleUpdateMyProfile は PATCH /api/v1/users/me/profile を処理します（全ロール可）。
+// ログイン中のユーザー自身の display_name を変更します。
+func (h *UserHandler) HandleUpdateMyProfile(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(ContextKeyUserID).(string)
+	if !ok || userID == "" {
+		writeJSON(w, http.StatusUnauthorized, response{Error: "認証情報が不正です"})
+		return
+	}
+
+	var req UpdateMyProfileRequestDTO
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
+		return
+	}
+
+	if req.DisplayName == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "display_name は必須です"})
+		return
+	}
+
+	user, err := h.userUC.UpdateProfile(usecase.UpdateProfileInput{
+		UserID:      userID,
+		DisplayName: req.DisplayName,
+	})
+	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			writeJSON(w, http.StatusNotFound, response{Error: "ユーザーが見つかりません"})
+			return
+		}
+		slog.Error("プロフィール更新でエラーが発生しました", "user_id", userID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, response{Data: toUserDTO(user)})
+}
+
+// HandleChangeMyPassword は PATCH /api/v1/users/me/password を処理します（全ロール可）。
+// ログイン中のユーザー自身のパスワードを変更します。
+// 現在のパスワードが誤っている場合は HTTP 422 を返します。
+func (h *UserHandler) HandleChangeMyPassword(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(ContextKeyUserID).(string)
+	if !ok || userID == "" {
+		writeJSON(w, http.StatusUnauthorized, response{Error: "認証情報が不正です"})
+		return
+	}
+
+	var req ChangeMyPasswordRequestDTO
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
+		return
+	}
+
+	if req.CurrentPassword == "" || req.NewPassword == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "current_password と new_password は必須です"})
+		return
+	}
+
+	if len(req.NewPassword) < 8 {
+		writeJSON(w, http.StatusBadRequest, response{Error: "新しいパスワードは8文字以上で入力してください"})
+		return
+	}
+	// bcrypt は 72 バイトで入力を切り捨てるため、超過分は無効化される
+	if len(req.NewPassword) > 72 {
+		writeJSON(w, http.StatusBadRequest, response{Error: "新しいパスワードは72文字以下で入力してください"})
+		return
+	}
+
+	err := h.userUC.ChangePassword(usecase.ChangePasswordInput{
+		UserID:          userID,
+		CurrentPassword: req.CurrentPassword,
+		NewPassword:     req.NewPassword,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, domain.ErrCurrentPasswordIncorrect):
+			writeJSON(w, http.StatusUnprocessableEntity, response{Error: "現在のパスワードが正しくありません"})
+		case errors.Is(err, domain.ErrUserNotFound):
+			writeJSON(w, http.StatusNotFound, response{Error: "ユーザーが見つかりません"})
+		default:
+			slog.Error("パスワード変更でエラーが発生しました", "user_id", userID, "error", err)
+			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, response{})
+}
+
 // HandleUpdateUserStatus は PATCH /api/v1/users/{id}/status を処理します（admin のみ）。
 func (h *UserHandler) HandleUpdateUserStatus(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")

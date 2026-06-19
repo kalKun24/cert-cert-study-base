@@ -69,6 +69,8 @@ var (
 	ErrInvalidRole = errors.New("無効なロールです")
 	// ErrPermissionDenied は操作に必要な権限がない場合のエラーです。
 	ErrPermissionDenied = errors.New("この操作を行う権限がありません")
+	// ErrCurrentPasswordIncorrect は現在のパスワードが正しくない場合のエラーです。
+	ErrCurrentPasswordIncorrect = errors.New("current password is incorrect")
 )
 
 // UserRepository はユーザーの永続化操作を抽象化するインターフェースです。

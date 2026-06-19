@@ -44,6 +44,9 @@ export default function NavBar() {
               {user.display_name}
               <span className="role-badge">{ROLE_LABELS[user.role] ?? user.role}</span>
             </span>
+            <Link to="/profile/edit" className="btn btn-secondary">
+              {t('nav.profile')}
+            </Link>
             <button onClick={handleLogout} className="btn btn-secondary">
               {t('nav.logout')}
             </button>

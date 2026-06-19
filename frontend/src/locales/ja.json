@@ -11,7 +11,8 @@
     "teams": "チーム一覧",
     "users": "ユーザー管理",
     "login": "ログイン",
-    "logout": "ログアウト"
+    "logout": "ログアウト",
+    "profile": "プロフィール編集"
   },
   "login": {
     "username": "ユーザー名",
@@ -229,6 +230,38 @@
       "roleRequired": "ロールを選択してください",
       "passwordRequired": "パスワードを入力してください",
       "passwordTooShort": "パスワードは8文字以上で入力してください"
+    }
+  },
+  "profile": {
+    "pageTitle": "プロフィール編集",
+    "displayName": {
+      "sectionTitle": "表示名の変更",
+      "label": "表示名",
+      "placeholder": "表示名を入力してください",
+      "saveButton": "表示名を保存",
+      "success": "表示名を更新しました"
+    },
+    "password": {
+      "sectionTitle": "パスワードの変更",
+      "currentLabel": "現在のパスワード",
+      "newLabel": "新しいパスワード",
+      "confirmLabel": "新しいパスワード（確認）",
+      "changeButton": "パスワードを変更",
+      "successMessage": "パスワードを変更しました。再度ログインしてください。"
+    },
+    "error": {
+      "displayNameUpdateFailed": "表示名の更新に失敗しました。再試行してください",
+      "currentPasswordIncorrect": "現在のパスワードが正しくありません",
+      "passwordChangeFailed": "パスワードの変更に失敗しました。再試行してください"
+    },
+    "validation": {
+      "displayNameRequired": "表示名を入力してください",
+      "currentPasswordRequired": "現在のパスワードを入力してください",
+      "newPasswordRequired": "新しいパスワードを入力してください",
+      "newPasswordTooShort": "新しいパスワードは8文字以上で入力してください",
+      "newPasswordTooLong": "新しいパスワードは72文字以下で入力してください",
+      "confirmPasswordRequired": "確認用パスワードを入力してください",
+      "passwordMismatch": "新しいパスワードと確認用パスワードが一致しません"
     }
   },
   "comment": {

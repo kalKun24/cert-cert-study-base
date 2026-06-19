@@ -16,6 +16,7 @@ import TagManagePage from './pages/TagManagePage';
 import UserListPage from './pages/UserListPage';
 import UserCreatePage from './pages/UserCreatePage';
 import UserEditPage from './pages/UserEditPage';
+import ProfileEditPage from './pages/ProfileEditPage';
 
 export default function App() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
               </Route>
               <Route path="/teams/:id" element={<TeamDetailPage />} />
               <Route path="/teams/:id/edit" element={<TeamEditPage />} />
+              <Route path="/profile/edit" element={<ProfileEditPage />} />
               <Route element={<PrivateRoute requiredRoles={['admin']} />}>
                 <Route path="/admin/users" element={<UserListPage />} />
                 <Route path="/admin/users/new" element={<UserCreatePage />} />

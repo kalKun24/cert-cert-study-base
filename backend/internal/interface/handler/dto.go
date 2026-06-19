@@ -76,6 +76,17 @@ type UpdateUserStatusRequestDTO struct {
 	IsActive bool `json:"is_active"`
 }
 
+// UpdateMyProfileRequestDTO はプロフィール編集リクエストのDTOです。
+type UpdateMyProfileRequestDTO struct {
+	DisplayName string `json:"display_name"`
+}
+
+// ChangeMyPasswordRequestDTO はパスワード変更リクエストのDTOです。
+type ChangeMyPasswordRequestDTO struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}
+
 // QuestionDTO はAPIレスポンス用の問題DTOです。
 type QuestionDTO struct {
 	ID               string    `json:"id"`

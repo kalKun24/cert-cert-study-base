@@ -527,3 +527,147 @@ func TestUserUseCase_UpdateUserStatus_NotFound(t *testing.T) {
 		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrUserNotFound)
 	}
 }
+
+// --- UpdateProfile のテスト ---
+
+func TestUserUseCase_UpdateProfile_Success(t *testing.T) {
+	repo := newMockUserRepository()
+	user := testUser("id-1", "alice", "alice@example.com", domain.RoleUser, true)
+	repo.addUser(user)
+
+	hasher := &mockPasswordHasher{}
+	uc := usecase.NewUserUseCase(repo, hasher)
+
+	got, err := uc.UpdateProfile(usecase.UpdateProfileInput{
+		UserID:      "id-1",
+		DisplayName: "Alice New Name",
+	})
+
+	if err != nil {
+		t.Fatalf("プロフィール更新に失敗しました: %v", err)
+	}
+	if got.DisplayName != "Alice New Name" {
+		t.Errorf("DisplayNameが期待値と異なります: got %s, want Alice New Name", got.DisplayName)
+	}
+}
+
+func TestUserUseCase_UpdateProfile_EmptyDisplayName(t *testing.T) {
+	repo := newMockUserRepository()
+	user := testUser("id-1", "alice", "alice@example.com", domain.RoleUser, true)
+	repo.addUser(user)
+
+	hasher := &mockPasswordHasher{}
+	uc := usecase.NewUserUseCase(repo, hasher)
+
+	_, err := uc.UpdateProfile(usecase.UpdateProfileInput{
+		UserID:      "id-1",
+		DisplayName: "", // 空文字は不可
+	})
+
+	if err == nil {
+		t.Fatal("エラーが返されませんでした。display_name が空の場合はエラーを返すべきです")
+	}
+}
+
+func TestUserUseCase_UpdateProfile_UserNotFound(t *testing.T) {
+	repo := newMockUserRepository()
+	hasher := &mockPasswordHasher{}
+	uc := usecase.NewUserUseCase(repo, hasher)
+
+	_, err := uc.UpdateProfile(usecase.UpdateProfileInput{
+		UserID:      "nonexistent-id",
+		DisplayName: "New Name",
+	})
+
+	if !errors.Is(err, domain.ErrUserNotFound) {
+		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrUserNotFound)
+	}
+}
+
+// --- ChangePassword のテスト ---
+
+func TestUserUseCase_ChangePassword_Success(t *testing.T) {
+	repo := newMockUserRepository()
+	user := testUser("id-1", "alice", "alice@example.com", domain.RoleUser, true)
+	repo.addUser(user)
+
+	// 現在のパスワード検証が成功するようにモックを設定
+	hasher := &mockPasswordHasher{verifyResult: true}
+	uc := usecase.NewUserUseCase(repo, hasher)
+
+	err := uc.ChangePassword(usecase.ChangePasswordInput{
+		UserID:          "id-1",
+		CurrentPassword: "currentpassword123",
+		NewPassword:     "newpassword456",
+	})
+
+	if err != nil {
+		t.Fatalf("パスワード変更に失敗しました: %v", err)
+	}
+
+	// 保存後のユーザーのPasswordHashが更新されていることを確認
+	saved, _ := repo.FindByID(context.Background(), "id-1")
+	// Hash() は "hashed:" + password を返すモック実装
+	if saved.PasswordHash == "hashed:password123" {
+		t.Error("PasswordHashが更新されていません")
+	}
+}
+
+func TestUserUseCase_ChangePassword_WrongCurrentPassword(t *testing.T) {
+	repo := newMockUserRepository()
+	user := testUser("id-1", "alice", "alice@example.com", domain.RoleUser, true)
+	repo.addUser(user)
+
+	// 現在のパスワード検証が失敗するようにモックを設定
+	hasher := &mockPasswordHasher{verifyResult: false}
+	uc := usecase.NewUserUseCase(repo, hasher)
+
+	err := uc.ChangePassword(usecase.ChangePasswordInput{
+		UserID:          "id-1",
+		CurrentPassword: "wrongpassword",
+		NewPassword:     "newpassword456",
+	})
+
+	if !errors.Is(err, domain.ErrCurrentPasswordIncorrect) {
+		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrCurrentPasswordIncorrect)
+	}
+}
+
+func TestUserUseCase_ChangePassword_UserNotFound(t *testing.T) {
+	repo := newMockUserRepository()
+	hasher := &mockPasswordHasher{}
+	uc := usecase.NewUserUseCase(repo, hasher)
+
+	err := uc.ChangePassword(usecase.ChangePasswordInput{
+		UserID:          "nonexistent-id",
+		CurrentPassword: "currentpassword123",
+		NewPassword:     "newpassword456",
+	})
+
+	if !errors.Is(err, domain.ErrUserNotFound) {
+		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrUserNotFound)
+	}
+}
+
+func TestUserUseCase_ChangePassword_HashError(t *testing.T) {
+	repo := newMockUserRepository()
+	user := testUser("id-1", "alice", "alice@example.com", domain.RoleUser, true)
+	repo.addUser(user)
+
+	// ハッシュ化でエラーが発生するケース
+	hasher := &mockPasswordHasher{
+		verifyResult: true,
+		hashErr:      errors.New("bcrypt エラー"),
+	}
+	uc := usecase.NewUserUseCase(repo, hasher)
+
+	err := uc.ChangePassword(usecase.ChangePasswordInput{
+		UserID:          "id-1",
+		CurrentPassword: "currentpassword123",
+		NewPassword:     "newpassword456",
+	})
+
+	if err == nil {
+		t.Fatal("エラーが返されませんでした。ハッシュ化失敗時はエラーを返すべきです")
+	}
+}
