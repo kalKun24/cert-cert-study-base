@@ -387,6 +387,12 @@ img {
   cursor: not-allowed;
 }
 
+/* サイズバリアント */
+.btn-sm {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-xs);
+}
+
 /* プライマリボタン */
 .btn-primary {
   background-color: var(--color-accent);
@@ -596,12 +602,14 @@ img {
   line-height: 1;
 }
 
+.status-badge-active,
 .status-badge[data-status="active"] {
   background-color: rgba(171, 209, 198, 0.15);
   color: var(--color-success);
   border: 1px solid rgba(171, 209, 198, 0.4);
 }
 
+.status-badge-inactive,
 .status-badge[data-status="inactive"] {
   background-color: rgba(225, 97, 98, 0.15);
   color: var(--color-error);
@@ -784,7 +792,8 @@ img {
   border-color: rgba(249, 188, 96, 0.4);
 }
 
-.tag-chip.selected {
+.tag-chip.selected,
+.tag-chip--selected {
   background-color: rgba(249, 188, 96, 0.2);
   color: var(--color-accent);
   border-color: var(--color-accent);
@@ -794,7 +803,8 @@ img {
    ページネーター (Paginator)
    ============================================================================= */
 
-.paginator {
+.paginator,
+.pagination {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -802,7 +812,8 @@ img {
   margin-top: var(--space-8);
 }
 
-.paginator-info {
+.paginator-info,
+.pagination-info {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
@@ -817,13 +828,15 @@ img {
   border: var(--border-width-base) solid var(--color-border-default);
 }
 
-.data-table {
+.data-table,
+.user-table {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--font-size-sm);
 }
 
-.data-table th {
+.data-table th,
+.user-table th {
   background-color: var(--color-bg-sidebar);
   color: var(--color-text-muted);
   font-weight: var(--font-weight-medium);
@@ -833,22 +846,26 @@ img {
   white-space: nowrap;
 }
 
-.data-table td {
+.data-table td,
+.user-table td {
   color: var(--color-text-body);
   padding: var(--space-3) var(--space-4);
   border-bottom: var(--border-width-base) solid var(--color-border-default);
   vertical-align: middle;
 }
 
-.data-table tr:last-child td {
+.data-table tr:last-child td,
+.user-table tr:last-child td {
   border-bottom: none;
 }
 
-.data-table tr:hover td {
+.data-table tr:hover td,
+.user-table tr:hover td {
   background-color: rgba(249, 188, 96, 0.04);
 }
 
-.data-table .actions-cell {
+.data-table .actions-cell,
+.table-actions {
   display: flex;
   align-items: center;
   gap: var(--space-2);
