@@ -574,7 +574,20 @@ func TestTeamUseCase_AddMember_PermissionDenied_NotOwner(t *testing.T) {
 func TestTeamUseCase_RemoveMember_Success(t *testing.T) {
 	teamRepo := newMockTeamRepository()
 	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
-	_ = teamRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: "team-1", UserID: "user-2", JoinedAt: time.Now()})
+	// owner-1 を per-team owner として追加
+	_ = teamRepo.AddMember(context.Background(), &domain.TeamMember{
+		TeamID:   "team-1",
+		UserID:   "owner-1",
+		Role:     domain.MemberRoleOwner,
+		JoinedAt: time.Now(),
+	})
+	// user-2 を一般メンバーとして追加
+	_ = teamRepo.AddMember(context.Background(), &domain.TeamMember{
+		TeamID:   "team-1",
+		UserID:   "user-2",
+		Role:     domain.MemberRoleMember,
+		JoinedAt: time.Now(),
+	})
 	userRepo := newMockUserRepository()
 	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
 
@@ -591,6 +604,13 @@ func TestTeamUseCase_RemoveMember_Success(t *testing.T) {
 func TestTeamUseCase_RemoveMember_NotFound(t *testing.T) {
 	teamRepo := newMockTeamRepository()
 	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
+	// owner-1 を per-team owner として追加
+	_ = teamRepo.AddMember(context.Background(), &domain.TeamMember{
+		TeamID:   "team-1",
+		UserID:   "owner-1",
+		Role:     domain.MemberRoleOwner,
+		JoinedAt: time.Now(),
+	})
 	userRepo := newMockUserRepository()
 	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
 
@@ -598,6 +618,55 @@ func TestTeamUseCase_RemoveMember_NotFound(t *testing.T) {
 
 	if !errors.Is(err, domain.ErrMemberNotFound) {
 		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrMemberNotFound)
+	}
+}
+
+// TestTeamUseCase_RemoveMember_ErrLastTeamOwner は唯一の per-team owner を除外しようとするとエラーになることを確認します。
+func TestTeamUseCase_RemoveMember_ErrLastTeamOwner(t *testing.T) {
+	teamRepo := newMockTeamRepository()
+	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
+	// owner-1 のみが per-team owner
+	_ = teamRepo.AddMember(context.Background(), &domain.TeamMember{
+		TeamID:   "team-1",
+		UserID:   "owner-1",
+		Role:     domain.MemberRoleOwner,
+		JoinedAt: time.Now(),
+	})
+	userRepo := newMockUserRepository()
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+
+	// admin が唯一のオーナーを除外しようとする
+	err := uc.RemoveMember(context.Background(), "admin-id", domain.RoleAdmin, "team-1", "owner-1")
+
+	if !errors.Is(err, domain.ErrLastTeamOwner) {
+		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrLastTeamOwner)
+	}
+}
+
+// TestTeamUseCase_RemoveMember_PermissionDenied は per-team owner でも admin でもないユーザーが除外しようとするとエラーになることを確認します。
+func TestTeamUseCase_RemoveMember_PermissionDenied(t *testing.T) {
+	teamRepo := newMockTeamRepository()
+	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
+	_ = teamRepo.AddMember(context.Background(), &domain.TeamMember{
+		TeamID:   "team-1",
+		UserID:   "owner-1",
+		Role:     domain.MemberRoleOwner,
+		JoinedAt: time.Now(),
+	})
+	_ = teamRepo.AddMember(context.Background(), &domain.TeamMember{
+		TeamID:   "team-1",
+		UserID:   "member-1",
+		Role:     domain.MemberRoleMember,
+		JoinedAt: time.Now(),
+	})
+	userRepo := newMockUserRepository()
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+
+	// 一般メンバーが別のメンバーを除外しようとする
+	err := uc.RemoveMember(context.Background(), "member-1", domain.RoleUser, "team-1", "owner-1")
+
+	if !errors.Is(err, domain.ErrPermissionDenied) {
+		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrPermissionDenied)
 	}
 }
 
@@ -693,7 +762,7 @@ func TestTeamUseCase_ChangeMemberRole_PermissionDenied_NotTeamOwner(t *testing.T
 	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
 
 	_, err := uc.ChangeMemberRole(context.Background(), usecase.ChangeMemberRoleInput{
-		CallerID:     "member-1",  // 一般メンバーは変更できない
+		CallerID:     "member-1", // 一般メンバーは変更できない
 		CallerRole:   domain.RoleUser,
 		TeamID:       "team-1",
 		TargetUserID: "member-1",
@@ -753,71 +822,5 @@ func TestTeamUseCase_ChangeMemberRole_MemberNotFound(t *testing.T) {
 
 	if !errors.Is(err, domain.ErrMemberNotFound) {
 		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrMemberNotFound)
-	}
-}
-
-func TestTeamUseCase_UpdateTeamOwnerStatus_Success(t *testing.T) {
-	userRepo := newMockUserRepository()
-	user := testUser("user-1", "alice", "alice@example.com", domain.RoleUser, true)
-	userRepo.addUser(user)
-	hasher := &mockPasswordHasher{}
-	uc := usecase.NewUserUseCase(userRepo, hasher)
-
-	updated, err := uc.UpdateTeamOwnerStatus(usecase.UpdateTeamOwnerStatusInput{
-		UserID:      "user-1",
-		IsTeamOwner: true,
-		MaxTeams:    3,
-	})
-
-	if err != nil {
-		t.Fatalf("権限更新に失敗しました: %v", err)
-	}
-	if !updated.IsTeamOwner {
-		t.Error("IsTeamOwner が true になっていません")
-	}
-	if updated.MaxTeams != 3 {
-		t.Errorf("MaxTeams が期待値と異なります: got %d, want 3", updated.MaxTeams)
-	}
-}
-
-func TestTeamUseCase_UpdateTeamOwnerStatus_Revoke(t *testing.T) {
-	userRepo := newMockUserRepository()
-	user := testUser("user-1", "alice", "alice@example.com", domain.RoleUser, true)
-	user.IsTeamOwner = true
-	user.MaxTeams = 5
-	userRepo.addUser(user)
-	hasher := &mockPasswordHasher{}
-	uc := usecase.NewUserUseCase(userRepo, hasher)
-
-	updated, err := uc.UpdateTeamOwnerStatus(usecase.UpdateTeamOwnerStatusInput{
-		UserID:      "user-1",
-		IsTeamOwner: false,
-		MaxTeams:    0,
-	})
-
-	if err != nil {
-		t.Fatalf("権限剥奪に失敗しました: %v", err)
-	}
-	if updated.IsTeamOwner {
-		t.Error("IsTeamOwner が false になっていません")
-	}
-	if updated.MaxTeams != 0 {
-		t.Errorf("MaxTeams が期待値と異なります: got %d, want 0", updated.MaxTeams)
-	}
-}
-
-func TestTeamUseCase_UpdateTeamOwnerStatus_UserNotFound(t *testing.T) {
-	userRepo := newMockUserRepository()
-	hasher := &mockPasswordHasher{}
-	uc := usecase.NewUserUseCase(userRepo, hasher)
-
-	_, err := uc.UpdateTeamOwnerStatus(usecase.UpdateTeamOwnerStatusInput{
-		UserID:      "nonexistent-id",
-		IsTeamOwner: true,
-		MaxTeams:    3,
-	})
-
-	if !errors.Is(err, domain.ErrUserNotFound) {
-		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrUserNotFound)
 	}
 }

@@ -14,7 +14,10 @@ type Role string
 const (
 	// RoleAdmin は全機能・全チーム管理・ユーザー停止ができる管理者ロールです。
 	RoleAdmin Role = "admin"
-	// RoleTeamOwner はチーム作成・自チームのメンバー管理ができるロールです。
+	// RoleTeamOwner はチーム作成権限を持つグローバルロールです。
+	// 廃止予定: チーム作成権限は User.IsTeamOwner フラグで管理するため、
+	// このロールは後方互換のために残しているが、新規ユーザーには付与しない。
+	// 詳細は TICKET-035 を参照。今後のフォローアップで削除予定。
 	RoleTeamOwner Role = "teamowner"
 	// RoleUser はチーム参加・自身の問題CRUDができる一般ユーザーロールです。
 	RoleUser Role = "user"

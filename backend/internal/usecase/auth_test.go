@@ -671,3 +671,72 @@ func TestUserUseCase_ChangePassword_HashError(t *testing.T) {
 		t.Fatal("エラーが返されませんでした。ハッシュ化失敗時はエラーを返すべきです")
 	}
 }
+
+// --- UpdateTeamOwnerStatus のテスト ---
+// UserUseCase のメソッドであるため auth_test.go に配置します。
+
+func TestUserUseCase_UpdateTeamOwnerStatus_Success(t *testing.T) {
+	userRepo := newMockUserRepository()
+	user := testUser("user-1", "alice", "alice@example.com", domain.RoleUser, true)
+	userRepo.addUser(user)
+	hasher := &mockPasswordHasher{}
+	uc := usecase.NewUserUseCase(userRepo, hasher)
+
+	updated, err := uc.UpdateTeamOwnerStatus(usecase.UpdateTeamOwnerStatusInput{
+		UserID:      "user-1",
+		IsTeamOwner: true,
+		MaxTeams:    3,
+	})
+
+	if err != nil {
+		t.Fatalf("権限更新に失敗しました: %v", err)
+	}
+	if !updated.IsTeamOwner {
+		t.Error("IsTeamOwner が true になっていません")
+	}
+	if updated.MaxTeams != 3 {
+		t.Errorf("MaxTeams が期待値と異なります: got %d, want 3", updated.MaxTeams)
+	}
+}
+
+func TestUserUseCase_UpdateTeamOwnerStatus_Revoke(t *testing.T) {
+	userRepo := newMockUserRepository()
+	user := testUser("user-1", "alice", "alice@example.com", domain.RoleUser, true)
+	user.IsTeamOwner = true
+	user.MaxTeams = 5
+	userRepo.addUser(user)
+	hasher := &mockPasswordHasher{}
+	uc := usecase.NewUserUseCase(userRepo, hasher)
+
+	updated, err := uc.UpdateTeamOwnerStatus(usecase.UpdateTeamOwnerStatusInput{
+		UserID:      "user-1",
+		IsTeamOwner: false,
+		MaxTeams:    0,
+	})
+
+	if err != nil {
+		t.Fatalf("権限剥奪に失敗しました: %v", err)
+	}
+	if updated.IsTeamOwner {
+		t.Error("IsTeamOwner が false になっていません")
+	}
+	if updated.MaxTeams != 0 {
+		t.Errorf("MaxTeams が期待値と異なります: got %d, want 0", updated.MaxTeams)
+	}
+}
+
+func TestUserUseCase_UpdateTeamOwnerStatus_UserNotFound(t *testing.T) {
+	userRepo := newMockUserRepository()
+	hasher := &mockPasswordHasher{}
+	uc := usecase.NewUserUseCase(userRepo, hasher)
+
+	_, err := uc.UpdateTeamOwnerStatus(usecase.UpdateTeamOwnerStatusInput{
+		UserID:      "nonexistent-id",
+		IsTeamOwner: true,
+		MaxTeams:    3,
+	})
+
+	if !errors.Is(err, domain.ErrUserNotFound) {
+		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrUserNotFound)
+	}
+}

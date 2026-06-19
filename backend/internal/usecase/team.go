@@ -48,19 +48,16 @@ func (uc *TeamUseCase) CreateTeam(ctx context.Context, input CreateTeamInput) (*
 		}
 
 		// MaxTeams 上限チェック（0 は制限なし）
+		// MaxTeams は「per-team owner ロールを持つチームの数」を制限する。
+		// Team.OwnerID（作成者フィールド）は後方互換のために残しているが、
+		// カウントの基準は TeamMember.Role == "owner" のみとする。
 		if caller.MaxTeams > 0 {
 			ownedTeams, err := uc.teamRepo.ListByOwnerOrMember(ctx, input.CallerID)
 			if err != nil {
 				return nil, fmt.Errorf("チーム一覧取得に失敗しました: %w", err)
 			}
-			// per-team owner として所有するチームを数える
 			ownerCount := 0
 			for _, t := range ownedTeams {
-				// Team.OwnerID（グローバルオーナー）または per-team owner ロールのいずれかで確認
-				if t.OwnerID == input.CallerID {
-					ownerCount++
-					continue
-				}
 				owners, err := uc.teamRepo.FindOwners(ctx, t.ID)
 				if err != nil {
 					return nil, fmt.Errorf("チームオーナー取得に失敗しました: %w", err)
@@ -359,15 +356,44 @@ func (uc *TeamUseCase) ChangeMemberRole(ctx context.Context, input ChangeMemberR
 }
 
 // RemoveMember は指定チームからユーザーを除外します。
-// - owner_id 本人または admin のみ実行可能です。
+// - per-team owner または admin のみ実行可能です。
+// - 除外対象が唯一の per-team owner の場合は ErrLastTeamOwner を返します。
 func (uc *TeamUseCase) RemoveMember(ctx context.Context, callerID string, callerRole domain.Role, teamID, userID string) error {
 	team, err := uc.teamRepo.FindByID(ctx, teamID)
 	if err != nil {
 		return fmt.Errorf("チーム取得に失敗しました: %w", err)
 	}
 
-	if callerRole != domain.RoleAdmin && team.OwnerID != callerID {
-		return domain.ErrPermissionDenied
+	// 権限チェック: admin か per-team owner か
+	if callerRole != domain.RoleAdmin {
+		owners, err := uc.teamRepo.FindOwners(ctx, teamID)
+		if err != nil {
+			return fmt.Errorf("チームオーナー取得に失敗しました: %w", err)
+		}
+		isOwner := false
+		for _, o := range owners {
+			if o.UserID == callerID {
+				isOwner = true
+				break
+			}
+		}
+		// 後方互換: Team.OwnerID でも許可（将来削除予定）
+		if !isOwner && team.OwnerID != callerID {
+			return domain.ErrPermissionDenied
+		}
+	}
+
+	// 除外対象が唯一の per-team owner の場合は拒否
+	owners, err := uc.teamRepo.FindOwners(ctx, teamID)
+	if err != nil {
+		return fmt.Errorf("チームオーナー取得に失敗しました: %w", err)
+	}
+	if len(owners) <= 1 {
+		for _, o := range owners {
+			if o.UserID == userID {
+				return domain.ErrLastTeamOwner
+			}
+		}
 	}
 
 	if err := uc.teamRepo.RemoveMember(ctx, teamID, userID); err != nil {
