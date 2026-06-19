@@ -25,7 +25,7 @@ export default function Layout() {
             </li>
             {user?.role === 'admin' && (
               <li>
-                <Link to="/users">{t('nav.users')}</Link>
+                <Link to="/admin/users">{t('nav.users')}</Link>
               </li>
             )}
           </ul>
