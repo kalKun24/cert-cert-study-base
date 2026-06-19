@@ -76,7 +76,10 @@ export default function QuestionListPage() {
           }
         })
         .catch(() => {
-          if (isMounted) setLoadError(t('question.error.fetchFailed'));
+          if (isMounted) {
+            setLoadError(t('question.error.fetchFailed'));
+            setTotalPages(1);
+          }
         })
         .finally(() => {
           if (isMounted) setIsLoading(false);
