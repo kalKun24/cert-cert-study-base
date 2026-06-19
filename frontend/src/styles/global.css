@@ -203,67 +203,117 @@ img {
   min-height: 100vh;
 }
 
-/* NavBar 下のコンテンツエリア */
+/* Topbar 下のコンテンツエリア */
 .app-body {
   display: flex;
   flex: 1;
-  padding-top: var(--navbar-height);
+  padding-top: var(--topbar-height);
 }
 
 /* メインコンテンツ */
 .main-content {
   flex: 1;
-  padding: var(--space-8);
+  padding: 0 var(--space-6);
   min-width: 0; /* flex子要素のオーバーフロー防止 */
-  overflow-y: auto;
 }
 
 /* =============================================================================
-   ナビゲーションバー (NavBar)
+   Topbar（水平ナビゲーションバー）
+   高さ 52px、背景 #ffffff、下ボーダー #e0e0e0
    ============================================================================= */
 
-.navbar {
+.topbar {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: var(--navbar-height);
+  height: var(--topbar-height);
   z-index: 100;
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  padding: 0 var(--space-6);
-  background-color: var(--color-bg-sidebar);
-  border-bottom: var(--border-width-base) solid var(--color-border-default);
+  background-color: var(--color-bg-card);
+  border-bottom: var(--border-width-base) solid var(--color-border);
   box-shadow: var(--shadow-sm);
 }
 
-.navbar-brand a {
+/* Topbar 内部: 3列フレックス（ロゴ | ナビ | ユーザー） */
+.topbar-inner {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 var(--space-6);
+  gap: var(--space-6);
+}
+
+/* ロゴ（左端） */
+.topbar-logo {
+  flex-shrink: 0;
+}
+
+.topbar-logo-link {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
-  color: #f0fdfa;
+  color: var(--color-primary);
   text-decoration: none;
   white-space: nowrap;
+  letter-spacing: -0.01em;
 }
 
-.navbar-brand a:hover {
-  color: var(--color-accent);
+.topbar-logo-link:hover {
+  color: var(--color-primary-dark);
   text-decoration: none;
 }
 
-/* NavBar の右側ユーザー情報エリアをフレックス端に寄せる */
-.navbar-user {
+/* 水平ナビリンク（中央） */
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: 1;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.topbar-nav-link {
+  display: inline-flex;
+  align-items: center;
+  height: var(--topbar-height);
+  padding: 0 var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+  white-space: nowrap;
+  /* フォーカスリングの outline-offset を topbar 下端に合わせて調整 */
+  outline-offset: -2px;
+}
+
+.topbar-nav-link:hover {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+/* アクティブ状態: Teal 600 テキスト + 下ボーダー 2px */
+.topbar-nav-link--active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* ユーザーメニュー（右端） */
+.topbar-user {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   margin-left: auto;
+  flex-shrink: 0;
 }
 
-.user-info {
+.topbar-user-info {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  color: #a7f3d0;
+  color: var(--color-text-body);
   font-size: var(--font-size-sm);
   white-space: nowrap;
 }
@@ -277,131 +327,66 @@ img {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   line-height: 1;
-  /* デフォルト: ゴールド系 */
-  background-color: rgba(13, 148, 136, 0.12);
-  color: var(--color-accent);
-  border: 1px solid rgba(13, 148, 136, 0.30);
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  border: 1px solid rgba(0, 137, 123, 0.30);
 }
 
 .role-badge[data-role="admin"] {
-  /* adminは権限の高さを表すスカイブルーで表現（危険色を避ける） */
-  background-color: rgba(96, 180, 218, 0.15);
-  color: #60b4da;
-  border-color: rgba(96, 180, 218, 0.4);
+  /* admin は識別しやすいよう異なる色合いで表現 */
+  background-color: rgba(25, 118, 210, 0.10);
+  color: #1565c0;
+  border-color: rgba(25, 118, 210, 0.30);
 }
 
-/* ハンバーガーボタン（モバイルのみ表示） */
-.navbar-menu-toggle {
+/* ハンバーガーボタン（モバイルのみ表示・デスクトップは display:none） */
+.topbar-hamburger {
   display: none;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   background: transparent;
-  border: var(--border-width-base) solid rgba(204, 251, 241, 0.4);
+  border: var(--border-width-base) solid var(--color-border);
   border-radius: var(--border-radius-base);
-  color: #f0fdfa;
-  font-size: var(--font-size-xl);
+  color: var(--color-text-body);
   cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast);
+  transition: border-color var(--transition-fast), color var(--transition-fast),
+    background-color var(--transition-fast);
   flex-shrink: 0;
+  /* モバイルでは margin-left: auto で右端に配置 */
+  margin-left: auto;
 }
 
-.navbar-menu-toggle:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+.topbar-hamburger:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
 }
 
 /* =============================================================================
-   サイドバー
+   旧サイドバー互換スタブ（削除後の残存クラス参照を無効化）
    ============================================================================= */
 
+/* sidebar クラスは削除済みだが CSS 変数が --sidebar-width:0 になっているため
+   万一残存要素があっても幅 0 で非表示になる */
 .sidebar {
-  position: fixed;
-  top: var(--navbar-height);
-  left: 0;
-  width: var(--sidebar-width);
-  height: calc(100vh - var(--navbar-height));
-  overflow-y: auto;
-  background-color: var(--color-bg-sidebar);
-  border-right: var(--border-width-base) solid var(--color-border-default);
-  padding: var(--space-6) 0;
-  flex-shrink: 0;
-  transition: transform var(--transition-base);
-  z-index: 90;
+  display: none;
 }
 
-/* サイドバーが開いている分だけメインコンテンツにマージンを確保 */
-.app-body {
-  margin-left: var(--sidebar-width);
+.sidebar-overlay {
+  display: none;
 }
 
-.sidebar-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.sidebar-menu li {
-  width: 100%;
-}
-
-/* サイドバーグループラベル */
-.sidebar-group-label {
-  padding: var(--space-5) var(--space-6) var(--space-1);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  color: #5eead4;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin: 0;
-}
-
-.sidebar-menu a {
+/* 旧 .user-info は .topbar-user-info に移行したが後方互換のためスタブを残す */
+.user-info {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-6);
-  color: #ccfbf1;
+  color: var(--color-text-body);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  text-decoration: none;
-  border-left: 3px solid transparent;
-  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
-}
-
-.sidebar-menu a svg {
-  flex-shrink: 0;
-  opacity: 0.7;
-  transition: opacity var(--transition-fast);
-}
-
-.sidebar-menu a:hover svg,
-.sidebar-menu a.active svg {
-  opacity: 1;
-}
-
-.sidebar-menu a:hover {
-  background-color: rgba(13, 148, 136, 0.15);
-  color: #f0fdfa;
-  text-decoration: none;
-}
-
-/* NavLink active 状態 */
-.sidebar-menu a.active {
-  background-color: rgba(13, 148, 136, 0.22);
-  color: #ccfbf1;
-  border-left-color: #5eead4;
-}
-
-/* サイドバーオーバーレイ（モバイル時） */
-.sidebar-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.6);
-  z-index: 80;
+  white-space: nowrap;
 }
 
 /* =============================================================================

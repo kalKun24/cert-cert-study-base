@@ -7,7 +7,7 @@
   "nav": {
     "home": "ホーム",
     "questions": "問題一覧",
-    "tags": "タグ一覧",
+    "tags": "タグ",
     "teams": "チーム一覧",
     "users": "ユーザー管理",
     "login": "ログイン",
@@ -16,6 +16,8 @@
     "openMenu": "メニューを開く",
     "closeMenu": "メニューを閉じる",
     "sidebar": "サイドナビゲーション",
+    "topbar": "グローバルナビゲーション",
+    "mobileMenu": "モバイルメニュー",
     "group": {
       "content": "コンテンツ",
       "admin": "管理"
