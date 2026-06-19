@@ -399,11 +399,22 @@ img {
   background-color: var(--color-accent);
   color: var(--color-accent-text);
   border-color: var(--color-accent);
+  transition: background-color var(--transition-fast), color var(--transition-fast),
+    border-color var(--transition-fast), box-shadow var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .btn-primary:hover:not(:disabled) {
-  filter: brightness(1.08);
+  background: #fac84a;
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
   text-decoration: none;
+}
+
+.btn-primary:active:not(:disabled) {
+  background: #e8ab4e;
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 /* セカンダリボタン */
@@ -414,6 +425,7 @@ img {
 }
 
 .btn-secondary:hover:not(:disabled) {
+  background: rgba(171, 209, 198, 0.1);
   color: var(--color-text-primary);
   border-color: var(--color-text-primary);
   text-decoration: none;
