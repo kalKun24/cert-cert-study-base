@@ -215,7 +215,7 @@ export default function TeamDetailPage() {
                   <tr>
                     <th scope="col">{t('team.detail.userId')}</th>
                     <th scope="col">{t('team.detail.joinedAt')}</th>
-                    <th scope="col">{t('team.member.role.owner').replace('オーナー', '') || t('user.table.role')}</th>
+                    <th scope="col">{t('user.table.role')}</th>
                     {isOwnerOrAdmin && <th scope="col">{t('user.table.actions')}</th>}
                   </tr>
                 </thead>
