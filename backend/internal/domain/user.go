@@ -47,6 +47,10 @@ type User struct {
 	Role Role
 	// IsActive は有効ユーザーかどうか（false = 停止中）
 	IsActive bool
+	// IsTeamOwner はチームを作成できるグローバル権限（admin が付与）
+	IsTeamOwner bool
+	// MaxTeams は作成可能なチーム数の上限（0 = 制限なし）
+	MaxTeams int
 	// CreatedAt は作成日時
 	CreatedAt time.Time
 	// UpdatedAt は更新日時
