@@ -2,14 +2,16 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { User } from '../types/user';
 import UserStatusBadge from './UserStatusBadge';
+import UserToggleStatusButton from './UserToggleStatusButton';
+import UserDeleteButton from './UserDeleteButton';
 
 interface UserTableProps {
   users: User[];
-  onStatusToggle: (user: User) => void;
-  onDelete: (user: User) => void;
+  onStatusToggled: (updated: User) => void;
+  onDeleted: (deletedId: string) => void;
 }
 
-export default function UserTable({ users, onStatusToggle, onDelete }: UserTableProps) {
+export default function UserTable({ users, onStatusToggled, onDeleted }: UserTableProps) {
   const { t } = useTranslation();
 
   return (
@@ -43,20 +45,8 @@ export default function UserTable({ users, onStatusToggle, onDelete }: UserTable
                   >
                     {t('common.edit')}
                   </Link>
-                  <button
-                    type="button"
-                    className={`btn btn-sm ${user.is_active ? 'btn-warning' : 'btn-success'}`}
-                    onClick={() => onStatusToggle(user)}
-                  >
-                    {user.is_active ? t('user.action.deactivate') : t('user.action.activate')}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-danger btn-sm"
-                    onClick={() => onDelete(user)}
-                  >
-                    {t('common.delete')}
-                  </button>
+                  <UserToggleStatusButton user={user} onSuccess={onStatusToggled} />
+                  <UserDeleteButton user={user} onSuccess={onDeleted} />
                 </div>
               </td>
             </tr>
