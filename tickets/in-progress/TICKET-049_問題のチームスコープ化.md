@@ -5,10 +5,10 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-049 |
-| ステータス | 🟡 作業中 |
+| ステータス | ✅ 完了 |
 | 作成日 | 2026-06-20 |
 | 着手日 | 2026-06-20 |
-| 完了日 | - |
+| 完了日 | 2026-06-20 |
 | ブランチ名 | `feature/team-scoped-questions` |
 | PR番号 | - |
 | PRリンク | - |
@@ -44,10 +44,11 @@
 
 ## サブチケット（コミット単位）
 
-- [ ] `refactor(question): VisibilityScope廃止・TeamID追加・リポジトリIF変更（domain層）`
-- [ ] `refactor(question): チームスコープ対応・usecase層更新（テスト含む）`
-- [ ] `refactor(question): チームスコープ対応・handler/dto/repository/routing更新`
-- [ ] `refactor(question): フロントエンドをチームスコープAPI対応に更新`
+- [x] `refactor(question): VisibilityScope廃止・TeamID追加・リポジトリIF変更（domain層）`
+- [x] `refactor(question): チームスコープ対応・usecase層更新（テスト含む）`
+- [x] `refactor(question): チームスコープ対応・handler/dto/repository/routing更新`
+- [x] `refactor(question): フロントエンドをチームスコープAPI対応に更新`
+- [x] `test(e2e): 問題チームスコープ化のE2Eテストを追加`
 - [ ] `docs(api): openapi.yamlの問題エンドポイントをチームスコープに更新`
 
 ---
