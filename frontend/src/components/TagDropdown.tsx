@@ -19,6 +19,7 @@ export default function TagDropdown({ tags, selectedTagNames, onToggle }: TagDro
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
 
   // ドロップダウン外クリックで閉じる
   useEffect(() => {
@@ -56,6 +57,41 @@ export default function TagDropdown({ tags, selectedTagNames, onToggle }: TagDro
       ? selectedTagNames.join(', ')
       : t('question.tagSelectLabel');
 
+  /**
+   * リスト項目内での矢印キーナビゲーション（WCAG 2.1 SC 2.4.7 対応）
+   * ArrowDown: 次の項目、ArrowUp: 前の項目、Home: 先頭、End: 末尾
+   */
+  const handleItemKeyDown = (e: React.KeyboardEvent<HTMLLIElement>, index: number) => {
+    const items = itemRefs.current.filter((el): el is HTMLLIElement => el !== null);
+    const last = items.length - 1;
+
+    switch (e.key) {
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        onToggle(tags[index].name);
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        items[index < last ? index + 1 : 0]?.focus();
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        items[index > 0 ? index - 1 : last]?.focus();
+        break;
+      case 'Home':
+        e.preventDefault();
+        items[0]?.focus();
+        break;
+      case 'End':
+        e.preventDefault();
+        items[last]?.focus();
+        break;
+      default:
+        break;
+    }
+  };
+
   return (
     <div className="tag-dropdown" ref={containerRef}>
       <button
@@ -81,21 +117,17 @@ export default function TagDropdown({ tags, selectedTagNames, onToggle }: TagDro
               {t('tag.list.empty')}
             </li>
           )}
-          {tags.map((tag) => {
+          {tags.map((tag, index) => {
             const isSelected = selectedTagNames.includes(tag.name);
             return (
               <li
                 key={tag.id}
+                ref={(el) => { itemRefs.current[index] = el; }}
                 role="option"
                 aria-selected={isSelected}
                 className={`tag-dropdown-item${isSelected ? ' tag-dropdown-item--selected' : ''}`}
                 onClick={() => onToggle(tag.name)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onToggle(tag.name);
-                  }
-                }}
+                onKeyDown={(e) => handleItemKeyDown(e, index)}
                 tabIndex={0}
               >
                 <span className="tag-dropdown-checkbox" aria-hidden="true">

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import MDEditor from '@uiw/react-md-editor';
+import rehypeSanitize from 'rehype-sanitize';
 import { createQuestion } from '../utils/questionApi';
 import { fetchTags } from '../utils/tagApi';
 import { useTeam } from '../context/TeamContext';
@@ -187,7 +188,9 @@ export default function QuestionCreatePage() {
               key={tab}
               type="button"
               role="tab"
+              id={`tab-${tab}`}
               aria-selected={activeTab === tab}
+              aria-controls={`tabpanel-${tab}`}
               className={`editor-tab${activeTab === tab ? ' editor-tab--active' : ''}`}
               onClick={() => setActiveTab(tab)}
             >
@@ -204,12 +207,21 @@ export default function QuestionCreatePage() {
         )}
 
         {/* MDEditor（全幅・全高さ） */}
-        <div className="editor-wrapper" data-color-mode="light">
+        <div
+          className="editor-wrapper"
+          data-color-mode="light"
+          role="tabpanel"
+          id={`tabpanel-${activeTab}`}
+          aria-labelledby={`tab-${activeTab}`}
+        >
           <MDEditor
             value={form[activeTab]}
             onChange={handleEditorChange}
             height="100%"
             preview="live"
+            previewOptions={{
+              rehypePlugins: [[rehypeSanitize]],
+            }}
           />
         </div>
       </div>

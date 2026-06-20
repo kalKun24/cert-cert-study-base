@@ -245,7 +245,9 @@ export default function QuestionEditPage() {
               key={tab}
               type="button"
               role="tab"
+              id={`tab-${tab}`}
               aria-selected={activeTab === tab}
+              aria-controls={`tabpanel-${tab}`}
               className={`editor-tab${activeTab === tab ? ' editor-tab--active' : ''}`}
               onClick={() => setActiveTab(tab)}
             >
@@ -262,7 +264,13 @@ export default function QuestionEditPage() {
         )}
 
         {/* MDEditor（全幅・全高さ） */}
-        <div className="editor-wrapper" data-color-mode="light">
+        <div
+          className="editor-wrapper"
+          data-color-mode="light"
+          role="tabpanel"
+          id={`tabpanel-${activeTab}`}
+          aria-labelledby={`tab-${activeTab}`}
+        >
           <MDEditor
             value={form[activeTab]}
             onChange={handleEditorChange}

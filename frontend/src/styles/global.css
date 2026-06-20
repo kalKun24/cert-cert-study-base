@@ -2620,6 +2620,7 @@ img {
   color: var(--color-primary);
 }
 
+.tag-dropdown-item:focus,
 .tag-dropdown-item:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: -2px;
