@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchQuestions } from '../utils/questionApi';
 import { fetchTags } from '../utils/tagApi';
-import { fetchTeams } from '../utils/teamApi';
+import { fetchTeams, fetchTeamMemberStats } from '../utils/teamApi';
 import { useTeam } from '../context/TeamContext';
 import { Question } from '../types/question';
 import { DashboardSkeleton } from '../components/Skeleton';
@@ -12,6 +12,7 @@ interface DashboardStats {
   questions: number;
   tags: number;
   teams: number;
+  members: number;
 }
 
 export default function HomePage() {
@@ -29,13 +30,15 @@ export default function HomePage() {
       activeTeam ? fetchQuestions(activeTeam.id, { page: 1, per_page: 5 }) : Promise.resolve(null),
       activeTeam ? fetchTags(activeTeam.id) : Promise.resolve([]),
       fetchTeams(),
-    ]).then(([questionsResult, tagsResult, teamsResult]) => {
+      activeTeam ? fetchTeamMemberStats(activeTeam.id) : Promise.resolve([]),
+    ]).then(([questionsResult, tagsResult, teamsResult, membersResult]) => {
       if (!isMounted) return;
 
       setStats({
         questions: questionsResult.status === 'fulfilled' && questionsResult.value !== null ? questionsResult.value.total : 0,
         tags: tagsResult.status === 'fulfilled' ? tagsResult.value.length : 0,
         teams: teamsResult.status === 'fulfilled' ? teamsResult.value.length : 0,
+        members: membersResult.status === 'fulfilled' ? membersResult.value.length : 0,
       });
 
       if (questionsResult.status === 'fulfilled' && questionsResult.value !== null) {
@@ -76,6 +79,17 @@ export default function HomePage() {
             <span className="stat-label">{t('home.stats.teams')}</span>
             <span className="stat-value">{stats.teams}</span>
           </div>
+          {/* アクティブチームのメンバー数。クリックでメンバー一覧ページへ遷移 */}
+          {activeTeam !== null && (
+            <Link
+              to={`/teams/${activeTeam.id}/members`}
+              className="stat-card"
+              aria-label={t('home.stats.members')}
+            >
+              <span className="stat-label">{t('home.stats.members')}</span>
+              <span className="stat-value">{stats.members}</span>
+            </Link>
+          )}
         </div>
       )}
 

@@ -364,7 +364,8 @@
     "stats": {
       "questions": "問題数",
       "tags": "タグ数",
-      "teams": "チーム数"
+      "teams": "チーム数",
+      "members": "チームメンバー数"
     },
     "recentQuestions": {
       "title": "最近の問題",
