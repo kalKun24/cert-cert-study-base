@@ -880,6 +880,39 @@ paths:
           $ref: "#/components/responses/InternalServerError"
 
   /api/v1/teams/{id}/members:
+    get:
+      summary: チームメンバー一覧（統計情報付き）
+      description: チームメンバーごとの問題数・コメント数・最終ログイン日時を返す。admin またはチームメンバーのみアクセス可能。
+      operationId: listTeamMembers
+      tags:
+        - teams
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamPathID"
+      responses:
+        "200":
+          description: メンバー統計一覧取得成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TeamMemberStats"
+                  error:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
     post:
       summary: メンバー追加（owner_id 本人または admin のみ）
       operationId: addTeamMember
@@ -1645,6 +1678,52 @@ components:
           description: チーム内のロール
           example: "member"
 
+    TeamMemberStats:
+      type: object
+      description: チームメンバーの統計情報
+      required:
+        - user_id
+        - display_name
+        - role
+        - is_team_owner
+        - question_count
+        - comment_count
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: メンバーのユーザーID
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        display_name:
+          type: string
+          description: 表示名
+          example: "Alice"
+        role:
+          type: string
+          enum:
+            - owner
+            - member
+          description: チーム内のロール
+          example: "member"
+        is_team_owner:
+          type: boolean
+          description: グローバルチームオーナー権限を持つか
+          example: false
+        question_count:
+          type: integer
+          description: このチーム内で作成した問題数
+          example: 5
+        comment_count:
+          type: integer
+          description: このチーム内の問題に投稿したコメント数
+          example: 12
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: 最終ログイン日時（一度もログインしていない場合は null）
+          example: "2024-06-01T10:00:00Z"
+
     TeamDetail:
       allOf:
         - $ref: "#/components/schemas/Team"
@@ -1756,6 +1835,12 @@ components:
           format: date-time
           description: 更新日時
           example: "2024-01-01T00:00:00Z"
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: 最終ログイン日時（一度もログインしていない場合は null）
+          example: "2024-06-01T10:00:00Z"
 
     Question:
       type: object
