@@ -10,8 +10,8 @@
 | 着手日 | 2026-06-20 |
 | 完了日 | - |
 | ブランチ名 | `feature/e2e-playwright` |
-| PR番号 | - |
-| PRリンク | - |
+| PR番号 | #28 |
+| PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/28 |
 
 ---
 
