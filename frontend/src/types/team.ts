@@ -66,3 +66,18 @@ export interface UpdateTeamRequest {
 export interface AddMemberRequest {
   user_id: string;
 }
+
+export interface TeamMemberStats {
+  user_id: string;
+  display_name: string;
+  role: string;
+  is_team_owner: boolean;
+  question_count: number;
+  comment_count: number;
+  last_login_at: string | null;
+}
+
+export interface TeamMemberStatsResponse {
+  data: TeamMemberStats[];
+  error: string | null;
+}

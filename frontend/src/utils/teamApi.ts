@@ -8,6 +8,8 @@ import {
   CreateTeamRequest,
   UpdateTeamRequest,
   AddMemberRequest,
+  TeamMemberStats,
+  TeamMemberStatsResponse,
 } from '../types/team';
 
 export async function fetchTeams(): Promise<Team[]> {
@@ -48,4 +50,9 @@ export async function changeMemberRole(
   role: 'owner' | 'member',
 ): Promise<void> {
   await apiClient.patch(`/teams/${teamId}/members/${userId}/role`, { role });
+}
+
+export async function fetchTeamMemberStats(teamId: string): Promise<TeamMemberStats[]> {
+  const res = await apiClient.get<TeamMemberStatsResponse>(`/teams/${teamId}/members`);
+  return res.data.data;
 }

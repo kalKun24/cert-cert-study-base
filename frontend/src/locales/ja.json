@@ -199,6 +199,31 @@
       "confirm": "チーム「{{name}}」から脱退しますか？",
       "success": "チームから脱退しました",
       "failed": "脱退に失敗しました。再試行してください"
+    },
+    "members": {
+      "title": "メンバー一覧",
+      "backToTeam": "チームに戻る",
+      "columns": {
+        "displayName": "表示名",
+        "role": "チーム内ロール",
+        "isTeamOwner": "チームオーナー権限",
+        "questionCount": "問題数",
+        "commentCount": "コメント数",
+        "lastLoginAt": "最終ログイン"
+      },
+      "roles": {
+        "owner": "オーナー",
+        "member": "メンバー"
+      },
+      "isTeamOwner": {
+        "yes": "あり",
+        "no": "-"
+      },
+      "noLastLogin": "-",
+      "empty": "メンバーがいません",
+      "error": {
+        "fetchFailed": "メンバー一覧の読み込みに失敗しました。再試行してください"
+      }
     }
   },
   "tag": {
