@@ -38,6 +38,9 @@
   /* --- Topbarレイアウト寸法 --- */
   --topbar-height:        52px;
 
+  /* --- エディタメタバーレイアウト寸法 --- */
+  --editor-meta-bar-height: 52px;
+
   /* --- タイポグラフィ --- */
   --font-family-base:     'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
   --font-size-xs:         0.75rem;   /* 12px */
@@ -2416,3 +2419,4 @@ img {
   color: var(--color-text-body) !important;
   border-left: var(--border-width-base) solid var(--color-border-default) !important;
 }
+

@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTeam } from '../context/TeamContext';
 import { QuestionStatus } from '../types/question';
 import { Tag } from '../types/tag';
+import TagDropdown from '../components/TagDropdown';
 
 type EditorTab = 'body' | 'answer' | 'explanation' | 'memo';
 
@@ -158,89 +159,47 @@ export default function QuestionEditPage() {
   }
 
   return (
-    <section className="question-form-page content-narrow page-container-narrow">
-      <h1 className="page-title">{t('question.edit')}</h1>
-
-      <form onSubmit={handleSubmit} noValidate className="question-form">
-        <div className="form-field">
-          <label htmlFor="question-title" className="form-label">
-            {t('question.titleLabel')}
-          </label>
-          <input
-            id="question-title"
-            type="text"
-            className="form-input"
-            value={form.title}
-            onChange={(e) => setForm((prev) => prev ? { ...prev, title: e.target.value } : prev)}
-            aria-describedby={validationErrors.title ? 'title-error' : undefined}
-            aria-invalid={!!validationErrors.title}
-          />
-          {validationErrors.title && (
-            <p id="title-error" role="alert" className="form-error">
-              {validationErrors.title}
-            </p>
-          )}
-        </div>
-
-        <div className="form-field">
-          <div className="editor-tabs" role="tablist">
-            {EDITOR_TABS.map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === tab}
-                className={`editor-tab${activeTab === tab ? ' editor-tab--active' : ''}`}
-                onClick={() => setActiveTab(tab)}
-              >
-                {t(`question.${tab}Label`)}
-              </button>
-            ))}
-          </div>
-
-          <div data-color-mode="light">
-            <MDEditor
-              value={form[activeTab]}
-              onChange={handleEditorChange}
-              height={300}
-              preview="live"
-              previewOptions={{
-                rehypePlugins: [[rehypeSanitize]],
-              }}
+    // エディタページはレイアウト全体を占有するため、通常のコンテナを使わない
+    <div className="editor-page">
+      {/* ===== メタバー（sticky） ===== */}
+      <form onSubmit={handleSubmit} noValidate className="editor-meta-bar">
+        <div className="editor-meta-bar-inner">
+          {/* タイトル入力（flex:1 で横幅を最大化） */}
+          <div className="editor-meta-title-field">
+            <label htmlFor="question-title" className="sr-only">
+              {t('question.titleLabel')}
+            </label>
+            <input
+              id="question-title"
+              type="text"
+              className={`editor-meta-title-input${validationErrors.title ? ' editor-meta-title-input--error' : ''}`}
+              placeholder={t('question.titleLabel')}
+              value={form.title}
+              onChange={(e) => setForm((prev) => prev ? { ...prev, title: e.target.value } : prev)}
+              aria-describedby={validationErrors.title ? 'title-error' : undefined}
+              aria-invalid={!!validationErrors.title}
             />
+            {validationErrors.title && (
+              <p id="title-error" role="alert" className="editor-meta-field-error">
+                {validationErrors.title}
+              </p>
+            )}
           </div>
-          {validationErrors.body && (
-            <p role="alert" className="form-error">
-              {validationErrors.body}
-            </p>
-          )}
-        </div>
 
-        <div className="form-field">
-          <fieldset>
-            <legend className="form-label">{t('question.tagSelectLabel')}</legend>
-            <div className="tag-checkbox-list">
-              {tags.map((tag) => (
-                <label key={tag.id} className="tag-checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={form.selectedTagNames.includes(tag.name)}
-                    onChange={() => handleTagToggle(tag.name)}
-                  />
-                  {tag.name}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        </div>
+          {/* タグドロップダウン */}
+          <TagDropdown
+            tags={tags}
+            selectedTagNames={form.selectedTagNames}
+            onToggle={handleTagToggle}
+          />
 
-        <div className="form-field">
-          <label htmlFor="question-status" className="form-label">
+          {/* ステータス選択 */}
+          <label htmlFor="question-status" className="sr-only">
             {t('question.statusLabel')}
           </label>
           <select
             id="question-status"
-            className="form-select"
+            className="editor-meta-select"
             value={form.status}
             onChange={(e) =>
               setForm((prev) =>
@@ -252,28 +211,69 @@ export default function QuestionEditPage() {
             <option value="private">{t('question.status.private')}</option>
             <option value="published">{t('question.status.published')}</option>
           </select>
+
+          {/* アクションボタン */}
+          <div className="editor-meta-actions">
+            <button type="submit" className="btn btn-primary btn-sm" disabled={isSubmitting}>
+              {t('common.save')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => navigate(`/questions/${id}`)}
+              disabled={isSubmitting}
+            >
+              {t('common.cancel')}
+            </button>
+          </div>
         </div>
 
+        {/* 送信エラー */}
         {submitError && (
-          <p role="alert" className="alert alert-error">
+          <p role="alert" className="editor-meta-submit-error">
             {submitError}
           </p>
         )}
-
-        <div className="form-actions">
-          <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-            {t('common.save')}
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => navigate(`/questions/${id}`)}
-            disabled={isSubmitting}
-          >
-            {t('common.cancel')}
-          </button>
-        </div>
       </form>
-    </section>
+
+      {/* ===== エディタ本体（タブ + MDEditor） ===== */}
+      <div className="editor-body">
+        {/* タブ切り替え */}
+        <div className="editor-tabs editor-tabs--fullwidth" role="tablist">
+          {EDITOR_TABS.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab}
+              className={`editor-tab${activeTab === tab ? ' editor-tab--active' : ''}`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {t(`question.${tab}Label`)}
+            </button>
+          ))}
+        </div>
+
+        {/* バリデーションエラー（問題文タブ選択時のみ） */}
+        {activeTab === 'body' && validationErrors.body && (
+          <p role="alert" className="editor-body-error">
+            {validationErrors.body}
+          </p>
+        )}
+
+        {/* MDEditor（全幅・全高さ） */}
+        <div className="editor-wrapper" data-color-mode="light">
+          <MDEditor
+            value={form[activeTab]}
+            onChange={handleEditorChange}
+            height="100%"
+            preview="live"
+            previewOptions={{
+              rehypePlugins: [[rehypeSanitize]],
+            }}
+          />
+        </div>
+      </div>
+    </div>
   );
 }
