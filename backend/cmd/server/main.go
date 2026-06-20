@@ -101,7 +101,6 @@ func main() {
 
 	authUC := usecase.NewAuthUseCase(userRepo, bcryptHasher, jwtManager)
 	userUC := usecase.NewUserUseCase(userRepo, bcryptHasher)
-	teamUC := usecase.NewTeamUseCase(teamRepo, userRepo)
 	invitationUC := usecase.NewInvitationUseCase(invitationRepo, teamRepo, userRepo)
 
 	questionRepo := repository.NewGCSQuestionRepository(sc, gcsBucket)
@@ -109,6 +108,9 @@ func main() {
 
 	commentRepo := repository.NewGCSCommentRepository(sc, gcsBucket)
 	commentUC := usecase.NewCommentUseCase(commentRepo, questionRepo, userRepo, teamRepo)
+
+	// TeamUseCase はメンバー統計機能のために questionRepo / commentRepo も注入する
+	teamUC := usecase.NewTeamUseCaseWithStats(teamRepo, userRepo, questionRepo, commentRepo)
 
 	tagRepo := repository.NewGCSTagRepository(sc, gcsBucket, questionRepo)
 	tagUC := usecase.NewTagUseCase(tagRepo, teamRepo)
@@ -173,6 +175,7 @@ func main() {
 	mux.Handle("GET /api/v1/teams/{id}", withAuth(teamHandler.HandleGetTeam))
 	mux.Handle("PUT /api/v1/teams/{id}", withAuth(teamHandler.HandleUpdateTeam))
 	mux.Handle("DELETE /api/v1/teams/{id}", withAuth(teamHandler.HandleDeleteTeam))
+	mux.Handle("GET /api/v1/teams/{id}/members", withAuth(teamHandler.HandleListTeamMembers))
 	mux.Handle("POST /api/v1/teams/{id}/members", withAuth(teamHandler.HandleAddTeamMember))
 	// /members/me は /members/{user_id} より具体的なパターンが優先される（Go 1.22+ net/http）
 	mux.Handle("DELETE /api/v1/teams/{id}/members/me", withAuth(teamHandler.HandleLeaveTeam))
