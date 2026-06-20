@@ -24,18 +24,19 @@ import ProfileEditPage from './pages/ProfileEditPage';
 import { fetchMyInvitations } from './utils/invitationApi';
 
 /**
- * ログイン後のルーティング分岐コンポーネント。
- * "/" ルートにのみ適用し、所属チームと招待の状態に応じてページを振り分ける。
+ * チーム所属チェックゲート。
+ * 所属チームがない場合は /invitations または /no-team にリダイレクトし、
+ * すべてのコンテンツルートへの素通りを防ぐ。
  */
-function TeamSelectionGate() {
+function TeamGate() {
   const { teams, isLoading } = useTeam();
-  const [pendingCount, setPendingCount] = useState<number | null>(null);
-  const [invLoading, setInvLoading] = useState(true);
+  const [redirectTo, setRedirectTo] = useState<string | null>(null);
+  const [invLoading, setInvLoading] = useState(false);
 
   useEffect(() => {
     if (isLoading) return;
     if (teams.length > 0) {
-      setInvLoading(false);
+      setRedirectTo(null);
       return;
     }
     let cancelled = false;
@@ -43,11 +44,12 @@ function TeamSelectionGate() {
     fetchMyInvitations()
       .then((all) => {
         if (!cancelled) {
-          setPendingCount(all.filter((inv) => inv.status === 'pending').length);
+          const hasPending = all.some((inv) => inv.status === 'pending');
+          setRedirectTo(hasPending ? '/invitations' : '/no-team');
         }
       })
       .catch(() => {
-        if (!cancelled) setPendingCount(0);
+        if (!cancelled) setRedirectTo('/no-team');
       })
       .finally(() => {
         if (!cancelled) setInvLoading(false);
@@ -57,17 +59,15 @@ function TeamSelectionGate() {
     };
   }, [isLoading, teams.length]);
 
-  if (isLoading || invLoading) return null;
-
-  if (teams.length > 0) {
-    return <HomePage />;
+  if (isLoading || invLoading) {
+    return <p className="page-loading">読み込み中...</p>;
   }
 
-  if (pendingCount !== null && pendingCount > 0) {
-    return <InvitationListPage />;
+  if (redirectTo) {
+    return <Navigate to={redirectTo} replace />;
   }
 
-  return <NoTeamPage />;
+  return <Outlet />;
 }
 
 /** PrivateRoute内でTeamProviderをラップするためのラッパーコンポーネント */
@@ -89,25 +89,30 @@ export default function App() {
           <Route element={<PrivateRoute />}>
             <Route element={<PrivateWithTeam />}>
               <Route element={<Layout />}>
-                <Route path="/" element={<TeamSelectionGate />} />
+                {/* チーム所属不要なページ（TeamGate の外） */}
                 <Route path="/no-team" element={<NoTeamPage />} />
                 <Route path="/invitations" element={<InvitationListPage />} />
-                <Route path="/questions" element={<QuestionListPage />} />
-                <Route path="/questions/new" element={<QuestionCreatePage />} />
-                <Route path="/questions/:id" element={<QuestionDetailPage />} />
-                <Route path="/questions/:id/edit" element={<QuestionEditPage />} />
-                <Route path="/tags" element={<TagManagePage />} />
-                <Route path="/teams" element={<TeamListPage />} />
-                <Route element={<PrivateRoute requiredRoles={['admin', 'teamowner']} />}>
-                  <Route path="/teams/new" element={<TeamCreatePage />} />
-                </Route>
-                <Route path="/teams/:id" element={<TeamDetailPage />} />
-                <Route path="/teams/:id/edit" element={<TeamEditPage />} />
                 <Route path="/profile/edit" element={<ProfileEditPage />} />
-                <Route element={<PrivateRoute requiredRoles={['admin']} />}>
-                  <Route path="/admin/users" element={<UserListPage />} />
-                  <Route path="/admin/users/new" element={<UserCreatePage />} />
-                  <Route path="/admin/users/:id/edit" element={<UserEditPage />} />
+
+                {/* チーム所属必須なページ（TeamGate でガード） */}
+                <Route element={<TeamGate />}>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/questions" element={<QuestionListPage />} />
+                  <Route path="/questions/new" element={<QuestionCreatePage />} />
+                  <Route path="/questions/:id" element={<QuestionDetailPage />} />
+                  <Route path="/questions/:id/edit" element={<QuestionEditPage />} />
+                  <Route path="/tags" element={<TagManagePage />} />
+                  <Route path="/teams" element={<TeamListPage />} />
+                  <Route element={<PrivateRoute requiredRoles={['admin', 'teamowner']} />}>
+                    <Route path="/teams/new" element={<TeamCreatePage />} />
+                  </Route>
+                  <Route path="/teams/:id" element={<TeamDetailPage />} />
+                  <Route path="/teams/:id/edit" element={<TeamEditPage />} />
+                  <Route element={<PrivateRoute requiredRoles={['admin']} />}>
+                    <Route path="/admin/users" element={<UserListPage />} />
+                    <Route path="/admin/users/new" element={<UserCreatePage />} />
+                    <Route path="/admin/users/:id/edit" element={<UserEditPage />} />
+                  </Route>
                 </Route>
               </Route>
             </Route>
