@@ -85,18 +85,18 @@ func (uc *QuestionUseCase) CreateQuestion(ctx context.Context, teamID string, in
 
 	now := time.Now().UTC()
 	question := &domain.Question{
-		ID:        uuid.NewString(),
-		TeamID:    teamID,
-		Title:     input.Title,
-		Body:      input.Body,
-		Answer:    input.Answer,
+		ID:          uuid.NewString(),
+		TeamID:      teamID,
+		Title:       input.Title,
+		Body:        input.Body,
+		Answer:      input.Answer,
 		Explanation: input.Explanation,
-		Memo:      input.Memo,
-		Tags:      tags,
-		Status:    status,
-		CreatedBy: input.CallerID,
-		CreatedAt: now,
-		UpdatedAt: now,
+		Memo:        input.Memo,
+		Tags:        tags,
+		Status:      status,
+		CreatedBy:   input.CallerID,
+		CreatedAt:   now,
+		UpdatedAt:   now,
 	}
 
 	if err := uc.questionRepo.Save(ctx, question); err != nil {
