@@ -58,6 +58,8 @@ type User struct {
 	CreatedAt time.Time
 	// UpdatedAt は更新日時
 	UpdatedAt time.Time
+	// LastLoginAt は最終ログイン日時（一度もログインしていない場合は nil）
+	LastLoginAt *time.Time
 }
 
 // ドメインエラーの定義
