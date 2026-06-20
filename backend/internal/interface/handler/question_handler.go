@@ -12,6 +12,9 @@ import (
 	"github.com/kalKun24/cert-study-base/backend/internal/usecase"
 )
 
+// maxQuestionBodyBytes はリクエストボディの最大サイズ制限です（2MB）。
+const maxQuestionBodyBytes = 2 << 20
+
 // QuestionHandler は問題管理に関するHTTPハンドラです。
 type QuestionHandler struct {
 	questionUC *usecase.QuestionUseCase
@@ -31,6 +34,7 @@ func (h *QuestionHandler) HandleCreateQuestion(w http.ResponseWriter, r *http.Re
 	}
 
 	var req CreateQuestionRequestDTO
+	r.Body = http.MaxBytesReader(w, r.Body, maxQuestionBodyBytes)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
 		return
@@ -193,6 +197,7 @@ func (h *QuestionHandler) HandleUpdateQuestion(w http.ResponseWriter, r *http.Re
 	}
 
 	var req UpdateQuestionRequestDTO
+	r.Body = http.MaxBytesReader(w, r.Body, maxQuestionBodyBytes)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
 		return
