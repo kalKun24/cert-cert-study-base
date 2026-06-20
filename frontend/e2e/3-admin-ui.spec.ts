@@ -24,7 +24,7 @@ test.describe('3: 管理者によるチームオーナー権限設定', () => {
   test('3-A: admin でログイン → sato の編集画面で is_team_owner トグルが OFF である', async ({
     page,
   }) => {
-    await loginAs(page, 'admin', 'Admin1234!');
+    await loginAs(page, 'admin');
 
     // ユーザー管理ページに移動
     await page.goto(`/admin/users/${USER_IDS.SATO}/edit`);
@@ -39,7 +39,7 @@ test.describe('3: 管理者によるチームオーナー権限設定', () => {
   test('3-B: トグルを ON にして「権限を保存」をクリックすると成功メッセージが表示される', async ({
     page,
   }) => {
-    await loginAs(page, 'admin', 'Admin1234!');
+    await loginAs(page, 'admin');
     await page.goto(`/admin/users/${USER_IDS.SATO}/edit`);
 
     const toggle = page.locator('#team-owner-toggle');
@@ -64,7 +64,7 @@ test.describe('3: 管理者によるチームオーナー権限設定', () => {
   });
 
   test('3-C: トグルが ON のときに max_teams 入力欄が表示される', async ({ page }) => {
-    await loginAs(page, 'admin', 'Admin1234!');
+    await loginAs(page, 'admin');
     await page.goto(`/admin/users/${USER_IDS.SATO}/edit`);
 
     const toggle = page.locator('#team-owner-toggle');
@@ -82,7 +82,7 @@ test.describe('3: 管理者によるチームオーナー権限設定', () => {
     // まず ON にしておく
     await resetSatoTeamOwnerStatus(true);
 
-    await loginAs(page, 'admin', 'Admin1234!');
+    await loginAs(page, 'admin');
     await page.goto(`/admin/users/${USER_IDS.SATO}/edit`);
 
     const toggle = page.locator('#team-owner-toggle');

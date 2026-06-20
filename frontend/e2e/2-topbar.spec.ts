@@ -13,7 +13,7 @@ test.describe('2: Topbar のチーム切り替え', () => {
   test('2-A: yamada でログインするとプルダウンにチームAとチームBが表示される', async ({
     page,
   }) => {
-    await loginAs(page, 'yamada', 'Test1234!');
+    await loginAs(page, 'yamada');
 
     const teamSelect = page.locator('#topbar-team-select');
     await expect(teamSelect).toBeVisible();
@@ -30,7 +30,7 @@ test.describe('2: Topbar のチーム切り替え', () => {
   });
 
   test('2-B: yamada でプルダウンを切り替えると別チームが選択される', async ({ page }) => {
-    await loginAs(page, 'yamada', 'Test1234!');
+    await loginAs(page, 'yamada');
 
     const teamSelect = page.locator('#topbar-team-select');
     await expect(teamSelect).toBeVisible();
@@ -55,7 +55,7 @@ test.describe('2: Topbar のチーム切り替え', () => {
   });
 
   test('2-C: tanaka でログインすると「チームを作成」リンクが表示される', async ({ page }) => {
-    await loginAs(page, 'tanaka', 'Test1234!');
+    await loginAs(page, 'tanaka');
 
     // is_team_owner=true なのでリンクが表示されるはず
     const createTeamLink = page.getByRole('link', { name: 'チームを作成' });
@@ -63,7 +63,7 @@ test.describe('2: Topbar のチーム切り替え', () => {
   });
 
   test('2-D: sato でログインすると「チームを作成」リンクが表示されない', async ({ page }) => {
-    await loginAs(page, 'sato', 'Test1234!');
+    await loginAs(page, 'sato');
 
     // is_team_owner=false なのでリンクは表示されないはず
     const createTeamLink = page.getByRole('link', { name: 'チームを作成' });

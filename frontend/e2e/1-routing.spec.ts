@@ -16,7 +16,7 @@ test.describe('1: ログイン後の画面分岐', () => {
   });
 
   test('1-A: nakamura でログインすると /invitations 画面が表示される', async ({ page }) => {
-    await loginAs(page, 'nakamura', 'Test1234!');
+    await loginAs(page, 'nakamura');
 
     // チームへの招待ページタイトルが表示されることを確認
     await expect(page.locator('#invitation-page-title')).toBeVisible();
@@ -26,7 +26,7 @@ test.describe('1: ログイン後の画面分岐', () => {
   test('1-B: nakamura でログイン後 /questions に直アクセス → /invitations にリダイレクトされる', async ({
     page,
   }) => {
-    await loginAs(page, 'nakamura', 'Test1234!');
+    await loginAs(page, 'nakamura');
 
     // /questions に直アクセス
     await page.goto('/questions');
@@ -42,7 +42,7 @@ test.describe('1: ログイン後の画面分岐', () => {
   });
 
   test('1-C: sato でログインするとホーム画面（/）が表示される', async ({ page }) => {
-    await loginAs(page, 'sato', 'Test1234!');
+    await loginAs(page, 'sato');
 
     // ホーム画面にいることを確認（URL が / であること）
     await expect(page).toHaveURL('/');

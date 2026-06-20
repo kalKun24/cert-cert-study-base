@@ -27,7 +27,7 @@ test.describe('5: 招待フロー', () => {
   });
 
   test('5-A: nakamura でログインして招待を受諾するとホーム画面に遷移する', async ({ page }) => {
-    await loginAs(page, 'nakamura', 'Test1234!');
+    await loginAs(page, 'nakamura');
 
     // 招待一覧ページが表示されることを確認
     await expect(page.locator('#invitation-page-title')).toBeVisible();
@@ -45,7 +45,7 @@ test.describe('5: 招待フロー', () => {
   test('5-B: tanaka がチームAに nakamura@example.com を招待できる（エラーにならない）', async ({
     page,
   }) => {
-    await loginAs(page, 'tanaka', 'Test1234!');
+    await loginAs(page, 'tanaka');
     await page.goto(TEAM_A_URL);
 
     // 招待フォームが表示されるまで待機
@@ -59,17 +59,13 @@ test.describe('5: 招待フロー', () => {
     const inviteButton = page.getByRole('button', { name: '招待' });
     await inviteButton.click();
 
-    // エラーが表示されないことを確認（既存招待の場合はエラーになる可能性があるが、
-    // APIが成功または「既に招待済み」など許容可能な状態であることを確認）
-    const alertError = page.locator('[role="alert"]');
-    // エラーが出る場合でも「招待失敗」ではなく他の理由のことがある
-    // テスト: alert がなければ成功、あれば内容を確認して招待関連エラーでないことを確認
-    await page.waitForTimeout(2000);
+    // 送信後にフォームの変化（入力欄クリア or エラー表示）を待機する
+    // 入力欄がクリアされれば成功、エラーが出ればその内容を確認する
+    await expect(inviteInput.or(page.locator('[role="alert"]'))).toBeVisible();
 
-    // 招待フォームのエラーではなく、成功 or pending な状態（入力欄がクリアされる等）を確認
+    // 招待フォーム固有のエラー（「招待に失敗」）が表示されていないことを確認
     const inviteErrorAlert = page.locator('[role="alert"]').filter({ hasText: /招待に失敗/ });
-    const inviteErrorCount = await inviteErrorAlert.count();
-    expect(inviteErrorCount).toBe(0);
+    await expect(inviteErrorAlert).toHaveCount(0);
   });
 });
 
@@ -82,7 +78,7 @@ test.describe('6: チーム脱退フロー', () => {
   test('6-A: sato でチームA詳細を開くと「このチームから脱退する」ボタンが表示される', async ({
     page,
   }) => {
-    await loginAs(page, 'sato', 'Test1234!');
+    await loginAs(page, 'sato');
     await page.goto(TEAM_A_URL);
 
     // 脱退ボタンが表示されることを確認
@@ -93,7 +89,7 @@ test.describe('6: チーム脱退フロー', () => {
   test('6-B: sato が脱退ボタンを押して確認するとチームから外れて / にリダイレクトされる', async ({
     page,
   }) => {
-    await loginAs(page, 'sato', 'Test1234!');
+    await loginAs(page, 'sato');
     await page.goto(TEAM_A_URL);
 
     // 脱退ボタンをクリック
@@ -120,7 +116,7 @@ test.describe('6: チーム脱退フロー', () => {
     page,
   }) => {
     // まず sato を脱退させる
-    await loginAs(page, 'sato', 'Test1234!');
+    await loginAs(page, 'sato');
     await page.goto(TEAM_A_URL);
 
     page.on('dialog', async (dialog) => {

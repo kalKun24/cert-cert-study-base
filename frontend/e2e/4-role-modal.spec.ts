@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { loginAs } from './helpers/auth';
 import {
+  API_BASE,
   TEAM_IDS,
   USER_IDS,
   setYamadaAsOnlyOwner,
@@ -28,7 +29,7 @@ test.describe('4: チーム詳細のロール管理', () => {
   test('4-A: tanaka でチームA詳細を開くと各メンバーに適切なボタンが表示される', async ({
     page,
   }) => {
-    await loginAs(page, 'tanaka', 'Test1234!');
+    await loginAs(page, 'tanaka');
     await page.goto(TEAM_A_URL);
 
     // ページが読み込まれるまで待機
@@ -47,7 +48,7 @@ test.describe('4: チーム詳細のロール管理', () => {
   test('4-B: sato の「オーナーにする」をクリックすると注意ポップアップが表示される', async ({
     page,
   }) => {
-    await loginAs(page, 'tanaka', 'Test1234!');
+    await loginAs(page, 'tanaka');
     await page.goto(TEAM_A_URL);
 
     await expect(page.locator('.team-members-table')).toBeVisible();
@@ -64,7 +65,7 @@ test.describe('4: チーム詳細のロール管理', () => {
   });
 
   test('4-C: 「付与する」を押すとモーダルが閉じて sato が owner になる', async ({ page }) => {
-    await loginAs(page, 'tanaka', 'Test1234!');
+    await loginAs(page, 'tanaka');
     await page.goto(TEAM_A_URL);
 
     await expect(page.locator('.team-members-table')).toBeVisible();
@@ -87,26 +88,23 @@ test.describe('4: チーム詳細のロール管理', () => {
     const revokeButtons = page.getByRole('button', { name: 'オーナーを外す' });
     // owner が増えたので「オーナーを外す」ボタンが増えているはず
     await expect(revokeButtons).toHaveCount(2);
+
+    // API 経由でも sato が owner になったことを確認
+    const satoRole = await getSatoRole();
+    expect(satoRole).toBe('owner');
   });
 
-  test('4-D: yamada でチームA詳細を開き自分の「オーナーを外す」→ モーダル → member になる', async ({
+  test('4-D: yamada でチームA詳細を開き tanaka の「オーナーを外す」→ モーダル → tanaka が member になる', async ({
     page,
   }) => {
-    // tanaka が残るので yamada は外れることができる
-    await loginAs(page, 'yamada', 'Test1234!');
+    // 注: 実装上、自分自身（yamada）の行にはロール変更ボタンは表示されない（isCurrentUser=true）
+    // yamada がオーナーなので、他のオーナー（tanaka）の「オーナーを外す」が操作可能
+    await loginAs(page, 'yamada');
     await page.goto(TEAM_A_URL);
 
     await expect(page.locator('.team-members-table')).toBeVisible();
 
-    // yamada 自身の「オーナーを外す」ボタンを探す
-    // 自分の行のボタンはコード上 isCurrentUser=true なので「オーナーを外す」は表示されない
-    // ただし yamada はオーナーなので、他の tanaka 行には表示される
-    // yamada が自分の行でできる操作: 「このチームから脱退する」はある
-    // ※コード確認: isCurrentUser && isMemberOwner の行はボタン非表示
-    // 実際には yamada 自身の行に role 変更ボタンは出ない（自分自身は変更不可の設計）
-    // → tanaka 行の「オーナーを外す」で代替確認
-
-    // tanaka の「オーナーを外す」をクリック（yamada がオーナーなので操作可能）
+    // tanaka の「オーナーを外す」をクリック（yamada がオーナーなので操作可能、tanaka が残るので可能）
     const revokeButton = page.getByRole('button', { name: 'オーナーを外す' });
     await expect(revokeButton).toBeVisible();
     await revokeButton.first().click();
@@ -121,8 +119,11 @@ test.describe('4: チーム詳細のロール管理', () => {
     // モーダルが閉じることを確認
     await expect(modal).not.toBeVisible();
 
-    // ページがリロードされて変更が反映されることを確認
+    // ページがリロードされて変更が反映されることを確認（「オーナーを外す」ボタンが減る）
     await expect(page.locator('.team-members-table')).toBeVisible();
+    const revokeButtonsAfter = page.getByRole('button', { name: 'オーナーを外す' });
+    // tanaka が member になったため「オーナーを外す」ボタンはなくなるはず（yamada は自分自身なので非表示）
+    await expect(revokeButtonsAfter).toHaveCount(0);
   });
 
   test('4-E: yamada のみオーナーの状態で、yamada の「オーナーを外す」ボタンが disabled になる', async ({
@@ -131,7 +132,7 @@ test.describe('4: チーム詳細のロール管理', () => {
     // yamada のみをオーナーに設定
     await setYamadaAsOnlyOwner();
 
-    await loginAs(page, 'yamada', 'Test1234!');
+    await loginAs(page, 'yamada');
     await page.goto(TEAM_A_URL);
 
     await expect(page.locator('.team-members-table')).toBeVisible();
@@ -160,7 +161,7 @@ test.describe('4: チーム詳細のロール管理', () => {
 
 async function getSatoRole(): Promise<string> {
   const token = await adminLogin();
-  const res = await fetch(`http://localhost:8080/api/v1/teams/${TEAM_IDS.TEAM_A}`, {
+  const res = await fetch(`${API_BASE}/teams/${TEAM_IDS.TEAM_A}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   const json = (await res.json()) as {

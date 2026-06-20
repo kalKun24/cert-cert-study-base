@@ -13,7 +13,7 @@ test.describe('7: 権限エラー', () => {
   test('7-A: sato（is_team_owner=false）で /teams/new に直アクセスするとリダイレクトされる', async ({
     page,
   }) => {
-    await loginAs(page, 'sato', 'Test1234!');
+    await loginAs(page, 'sato');
 
     // /teams/new に直アクセス
     await page.goto('/teams/new');
@@ -37,7 +37,7 @@ test.describe('7: 権限エラー', () => {
     page,
   }) => {
     // suzuki は is_team_owner=true, max_teams=1 で、すでにチームBを所有している
-    await loginAs(page, 'suzuki', 'Test1234!');
+    await loginAs(page, 'suzuki');
 
     // チーム作成ページに移動（suzuki は is_team_owner=true なのでアクセス可能）
     await page.goto('/teams/new');

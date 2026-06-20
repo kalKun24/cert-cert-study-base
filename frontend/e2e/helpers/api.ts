@@ -1,9 +1,18 @@
 /**
  * E2E テスト用 API ヘルパー
  * テストデータのセットアップ・クリーンアップに使用する
+ *
+ * 認証情報は環境変数から取得します。
+ * ローカル開発時は frontend/.env.e2e.local を作成してください（.gitignore 対象）。
+ * （frontend/.env.e2e.example を参照）
  */
 
-const API_BASE = 'http://localhost:8080/api/v1';
+export const API_BASE = 'http://localhost:8080/api/v1';
+
+// E2E テスト用認証情報（環境変数から取得）
+const ADMIN_USERNAME = process.env['E2E_ADMIN_USERNAME'] ?? 'admin';
+const ADMIN_PASSWORD = process.env['E2E_ADMIN_PASSWORD'] ?? 'Admin1234!';
+const TEST_USER_PASSWORD = process.env['E2E_TEST_USER_PASSWORD'] ?? 'Test1234!';
 
 // ユーザー / チームの固定 ID
 export const USER_IDS = {
@@ -35,24 +44,25 @@ export async function adminLogin(): Promise<string> {
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'admin', password: 'Admin1234!' }),
+    body: JSON.stringify({ username: ADMIN_USERNAME, password: ADMIN_PASSWORD }),
   });
   if (!res.ok) {
-    throw new Error(`adminLogin failed: ${res.status} ${await res.text()}`);
+    throw new Error(`adminLogin failed: HTTP ${res.status}`);
   }
   const json = (await res.json()) as LoginResponse;
   return json.data.token;
 }
 
 /** 任意のユーザーとしてログインしてトークンを取得する */
-export async function loginAs(username: string, password: string): Promise<string> {
+export async function loginAs(username: string, password?: string): Promise<string> {
+  const pw = password ?? TEST_USER_PASSWORD;
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, password: pw }),
   });
   if (!res.ok) {
-    throw new Error(`loginAs(${username}) failed: ${res.status} ${await res.text()}`);
+    throw new Error(`loginAs(${username}) failed: HTTP ${res.status}`);
   }
   const json = (await res.json()) as LoginResponse;
   return json.data.token;
@@ -202,8 +212,8 @@ async function removeMember(token: string, teamId: string, userId: string): Prom
  */
 export async function resetSatoInTeamA(): Promise<void> {
   const adminToken = await adminLogin();
-  const tanakaToken = await loginAs('tanaka', 'Test1234!');
-  const satoToken = await loginAs('sato', 'Test1234!');
+  const tanakaToken = await loginAs('tanaka');
+  const satoToken = await loginAs('sato');
 
   // すでに sato がチームAのメンバーなら何もしない
   const team = await getTeamDetail(adminToken, TEAM_IDS.TEAM_A);
@@ -229,8 +239,8 @@ export async function resetSatoInTeamA(): Promise<void> {
  */
 export async function resetNakamuraInvitation(): Promise<void> {
   const adminToken = await adminLogin();
-  const suzukiToken = await loginAs('suzuki', 'Test1234!');
-  const nakamuraToken = await loginAs('nakamura', 'Test1234!');
+  const suzukiToken = await loginAs('suzuki');
+  const nakamuraToken = await loginAs('nakamura');
 
   // nakamura がすでにチームBのメンバーであれば除外する
   const team = await getTeamDetail(adminToken, TEAM_IDS.TEAM_B);
