@@ -17,3 +17,7 @@ export async function respondInvitation(
 export async function leaveTeam(teamId: string): Promise<void> {
   await apiClient.delete(`/teams/${teamId}/members/me`);
 }
+
+export async function sendInvitation(teamId: string, inviteeIdentifier: string): Promise<void> {
+  await apiClient.post(`/teams/${teamId}/invitations`, { invitee_identifier: inviteeIdentifier });
+}
