@@ -203,9 +203,15 @@ export default function TeamDetailPage() {
           )}
 
           <section className="team-members-section" aria-labelledby="members-heading">
-            <h2 id="members-heading" className="section-title">
-              {t('team.detail.membersTitle')}
-            </h2>
+            <div className="dashboard-section-header">
+              <h2 id="members-heading" className="section-title">
+                {t('team.detail.membersTitle')}
+              </h2>
+              {/* メンバー詳細一覧ページへの導線 */}
+              <Link to={`/teams/${team.id}/members`} className="btn btn-secondary btn-sm">
+                {t('team.detail.viewMemberList')}
+              </Link>
+            </div>
 
             {team.members.length === 0 ? (
               <p className="team-members-empty">{t('team.detail.membersEmpty')}</p>

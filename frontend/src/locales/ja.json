@@ -121,7 +121,8 @@
       "deleteButton": "チームを削除",
       "deleteConfirm": "チーム「{{name}}」を削除しますか？削除すると元に戻せません。",
       "userId": "ユーザーID",
-      "joinedAt": "参加日"
+      "joinedAt": "参加日",
+      "viewMemberList": "メンバー詳細一覧を見る"
     },
     "form": {
       "createTitle": "チームを作成",
@@ -363,7 +364,9 @@
     "stats": {
       "questions": "問題数",
       "tags": "タグ数",
-      "teams": "チーム数"
+      "teams": "チーム数",
+      "members": "チームメンバー数",
+      "membersAriaLabel": "チームメンバー数: {{count}}人"
     },
     "recentQuestions": {
       "title": "最近の問題",
