@@ -110,7 +110,7 @@ func main() {
 	commentUC := usecase.NewCommentUseCase(commentRepo, questionRepo, userRepo, teamRepo)
 
 	// TeamUseCase はメンバー統計機能のために questionRepo / commentRepo も注入する
-	teamUC := usecase.NewTeamUseCaseWithStats(teamRepo, userRepo, questionRepo, commentRepo)
+	teamUC := usecase.NewTeamUseCase(teamRepo, userRepo, questionRepo, commentRepo)
 
 	tagRepo := repository.NewGCSTagRepository(sc, gcsBucket, questionRepo)
 	tagUC := usecase.NewTagUseCase(tagRepo, teamRepo)

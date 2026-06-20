@@ -622,7 +622,7 @@ func TestTeamUseCase_LeaveTeam_Success(t *testing.T) {
 		JoinedAt: time.Now(),
 	})
 
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	if err := uc.LeaveTeam(context.Background(), "member-1", "team-1"); err != nil {
 		t.Fatalf("チーム脱退に失敗しました: %v", err)
@@ -637,7 +637,7 @@ func TestTeamUseCase_LeaveTeam_Success(t *testing.T) {
 func TestTeamUseCase_LeaveTeam_TeamNotFound(t *testing.T) {
 	teamRepo := newMockTeamRepository()
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	err := uc.LeaveTeam(context.Background(), "user-1", "nonexistent-team")
 
@@ -650,7 +650,7 @@ func TestTeamUseCase_LeaveTeam_MemberNotFound(t *testing.T) {
 	teamRepo := newMockTeamRepository()
 	userRepo := newMockUserRepository()
 	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	// チームのメンバーでないユーザーが脱退しようとする
 	err := uc.LeaveTeam(context.Background(), "nonmember-user", "team-1")
@@ -671,7 +671,7 @@ func TestTeamUseCase_LeaveTeam_LastOwner(t *testing.T) {
 		Role:     domain.MemberRoleOwner,
 		JoinedAt: time.Now(),
 	})
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	// 唯一のオーナーが脱退しようとする
 	err := uc.LeaveTeam(context.Background(), "owner-1", "team-1")
@@ -698,7 +698,7 @@ func TestTeamUseCase_LeaveTeam_OwnerCanLeaveIfMultipleOwners(t *testing.T) {
 		Role:     domain.MemberRoleOwner,
 		JoinedAt: time.Now(),
 	})
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	// owner-1 が脱退（owner-2 が残るため可能）
 	if err := uc.LeaveTeam(context.Background(), "owner-1", "team-1"); err != nil {

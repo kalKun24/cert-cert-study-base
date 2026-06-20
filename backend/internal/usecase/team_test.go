@@ -187,7 +187,7 @@ func testTeam(id, name, ownerID string) *domain.Team {
 func TestTeamUseCase_CreateTeam_Success_Admin(t *testing.T) {
 	teamRepo := newMockTeamRepository()
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	team, err := uc.CreateTeam(context.Background(), usecase.CreateTeamInput{
 		Name:       "CISSP勉強会",
@@ -214,7 +214,7 @@ func TestTeamUseCase_CreateTeam_Success_IsTeamOwner(t *testing.T) {
 	ownerUser.IsTeamOwner = true
 	ownerUser.MaxTeams = 0 // 制限なし
 	userRepo.addUser(ownerUser)
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	team, err := uc.CreateTeam(context.Background(), usecase.CreateTeamInput{
 		Name:       "SC勉強会",
@@ -245,7 +245,7 @@ func TestTeamUseCase_CreateTeam_PermissionDenied_IsTeamOwnerFalse(t *testing.T) 
 	regularUser := testUser("user-id", "regularuser", "user@example.com", domain.RoleUser, true)
 	regularUser.IsTeamOwner = false
 	userRepo.addUser(regularUser)
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	_, err := uc.CreateTeam(context.Background(), usecase.CreateTeamInput{
 		Name:       "チーム名",
@@ -276,7 +276,7 @@ func TestTeamUseCase_CreateTeam_MaxTeams_Exceeded(t *testing.T) {
 		Role:     domain.MemberRoleOwner,
 		JoinedAt: time.Now(),
 	})
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	_, err := uc.CreateTeam(context.Background(), usecase.CreateTeamInput{
 		Name:       "新しいチーム",
@@ -292,7 +292,7 @@ func TestTeamUseCase_CreateTeam_MaxTeams_Exceeded(t *testing.T) {
 func TestTeamUseCase_CreateTeam_Admin_CreatorAddedAsOwner(t *testing.T) {
 	teamRepo := newMockTeamRepository()
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	team, err := uc.CreateTeam(context.Background(), usecase.CreateTeamInput{
 		Name:       "CISSP勉強会",
@@ -317,7 +317,7 @@ func TestTeamUseCase_CreateTeam_DuplicateName(t *testing.T) {
 	teamRepo := newMockTeamRepository()
 	teamRepo.addTeam(testTeam("team-1", "CISSP勉強会", "owner-1"))
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	_, err := uc.CreateTeam(context.Background(), usecase.CreateTeamInput{
 		Name:       "CISSP勉強会",
@@ -335,7 +335,7 @@ func TestTeamUseCase_ListTeams_Admin_GetsAll(t *testing.T) {
 	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
 	teamRepo.addTeam(testTeam("team-2", "チームB", "owner-2"))
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	teams, err := uc.ListTeams(context.Background(), usecase.ListTeamsInput{
 		CallerID:   "admin-id",
@@ -357,7 +357,7 @@ func TestTeamUseCase_ListTeams_User_GetsOwnOnly(t *testing.T) {
 	teamRepo.addTeam(testTeam("team-3", "チームC", "owner-3"))
 	_ = teamRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: "team-3", UserID: "user-1", JoinedAt: time.Now()})
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	teams, err := uc.ListTeams(context.Background(), usecase.ListTeamsInput{
 		CallerID:   "user-1",
@@ -377,7 +377,7 @@ func TestTeamUseCase_GetTeam_Success_Owner(t *testing.T) {
 	teamRepo := newMockTeamRepository()
 	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	out, err := uc.GetTeam(context.Background(), "owner-1", domain.RoleTeamOwner, "team-1")
 
@@ -394,7 +394,7 @@ func TestTeamUseCase_GetTeam_Success_Member(t *testing.T) {
 	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
 	_ = teamRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: "team-1", UserID: "user-2", JoinedAt: time.Now()})
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	out, err := uc.GetTeam(context.Background(), "user-2", domain.RoleUser, "team-1")
 
@@ -410,7 +410,7 @@ func TestTeamUseCase_GetTeam_PermissionDenied_NonMember(t *testing.T) {
 	teamRepo := newMockTeamRepository()
 	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	_, err := uc.GetTeam(context.Background(), "user-2", domain.RoleUser, "team-1")
 
@@ -422,7 +422,7 @@ func TestTeamUseCase_GetTeam_PermissionDenied_NonMember(t *testing.T) {
 func TestTeamUseCase_GetTeam_NotFound(t *testing.T) {
 	teamRepo := newMockTeamRepository()
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	_, err := uc.GetTeam(context.Background(), "admin-id", domain.RoleAdmin, "nonexistent-id")
 
@@ -435,7 +435,7 @@ func TestTeamUseCase_UpdateTeam_Success_Owner(t *testing.T) {
 	teamRepo := newMockTeamRepository()
 	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	newName := "チームA 改"
 	team, err := uc.UpdateTeam(context.Background(), "owner-1", domain.RoleTeamOwner, "team-1", usecase.UpdateTeamInput{
@@ -454,7 +454,7 @@ func TestTeamUseCase_UpdateTeam_PermissionDenied_NotOwner(t *testing.T) {
 	teamRepo := newMockTeamRepository()
 	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	newName := "変更試み"
 	_, err := uc.UpdateTeam(context.Background(), "other-user", domain.RoleUser, "team-1", usecase.UpdateTeamInput{
@@ -471,7 +471,7 @@ func TestTeamUseCase_UpdateTeam_DuplicateName(t *testing.T) {
 	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
 	teamRepo.addTeam(testTeam("team-2", "チームB", "owner-1"))
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	existingName := "チームB"
 	_, err := uc.UpdateTeam(context.Background(), "owner-1", domain.RoleAdmin, "team-1", usecase.UpdateTeamInput{
@@ -487,7 +487,7 @@ func TestTeamUseCase_DeleteTeam_Success_Admin(t *testing.T) {
 	teamRepo := newMockTeamRepository()
 	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	if err := uc.DeleteTeam(context.Background(), "admin-id", domain.RoleAdmin, "team-1"); err != nil {
 		t.Fatalf("チーム削除に失敗しました: %v", err)
@@ -503,7 +503,7 @@ func TestTeamUseCase_DeleteTeam_PermissionDenied_NotOwner(t *testing.T) {
 	teamRepo := newMockTeamRepository()
 	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	err := uc.DeleteTeam(context.Background(), "other-user", domain.RoleUser, "team-1")
 
@@ -517,7 +517,7 @@ func TestTeamUseCase_AddMember_Success(t *testing.T) {
 	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
 	userRepo := newMockUserRepository()
 	userRepo.addUser(testUser("user-2", "bob", "bob@example.com", domain.RoleUser, true))
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	member, err := uc.AddMember(context.Background(), "owner-1", domain.RoleTeamOwner, "team-1", "user-2")
 
@@ -533,7 +533,7 @@ func TestTeamUseCase_AddMember_UserNotFound(t *testing.T) {
 	teamRepo := newMockTeamRepository()
 	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	_, err := uc.AddMember(context.Background(), "owner-1", domain.RoleTeamOwner, "team-1", "nonexistent-user")
 
@@ -548,7 +548,7 @@ func TestTeamUseCase_AddMember_AlreadyExists(t *testing.T) {
 	_ = teamRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: "team-1", UserID: "user-2", JoinedAt: time.Now()})
 	userRepo := newMockUserRepository()
 	userRepo.addUser(testUser("user-2", "bob", "bob@example.com", domain.RoleUser, true))
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	_, err := uc.AddMember(context.Background(), "owner-1", domain.RoleTeamOwner, "team-1", "user-2")
 
@@ -562,7 +562,7 @@ func TestTeamUseCase_AddMember_PermissionDenied_NotOwner(t *testing.T) {
 	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
 	userRepo := newMockUserRepository()
 	userRepo.addUser(testUser("user-2", "bob", "bob@example.com", domain.RoleUser, true))
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	_, err := uc.AddMember(context.Background(), "other-user", domain.RoleUser, "team-1", "user-2")
 
@@ -589,7 +589,7 @@ func TestTeamUseCase_RemoveMember_Success(t *testing.T) {
 		JoinedAt: time.Now(),
 	})
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	if err := uc.RemoveMember(context.Background(), "owner-1", domain.RoleTeamOwner, "team-1", "user-2"); err != nil {
 		t.Fatalf("メンバー除外に失敗しました: %v", err)
@@ -612,7 +612,7 @@ func TestTeamUseCase_RemoveMember_NotFound(t *testing.T) {
 		JoinedAt: time.Now(),
 	})
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	err := uc.RemoveMember(context.Background(), "owner-1", domain.RoleTeamOwner, "team-1", "nonexistent-user")
 
@@ -633,7 +633,7 @@ func TestTeamUseCase_RemoveMember_ErrLastTeamOwner(t *testing.T) {
 		JoinedAt: time.Now(),
 	})
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	// admin が唯一のオーナーを除外しようとする
 	err := uc.RemoveMember(context.Background(), "admin-id", domain.RoleAdmin, "team-1", "owner-1")
@@ -660,7 +660,7 @@ func TestTeamUseCase_RemoveMember_PermissionDenied(t *testing.T) {
 		JoinedAt: time.Now(),
 	})
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	// 一般メンバーが別のメンバーを除外しようとする
 	err := uc.RemoveMember(context.Background(), "member-1", domain.RoleUser, "team-1", "owner-1")
@@ -689,7 +689,7 @@ func TestTeamUseCase_ChangeMemberRole_Success_OwnerToMember_ByAdmin(t *testing.T
 		JoinedAt: time.Now(),
 	})
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	member, err := uc.ChangeMemberRole(context.Background(), usecase.ChangeMemberRoleInput{
 		CallerID:     "admin-id",
@@ -724,7 +724,7 @@ func TestTeamUseCase_ChangeMemberRole_Success_MemberToOwner_ByTeamOwner(t *testi
 		JoinedAt: time.Now(),
 	})
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	member, err := uc.ChangeMemberRole(context.Background(), usecase.ChangeMemberRoleInput{
 		CallerID:     "owner-1",
@@ -759,7 +759,7 @@ func TestTeamUseCase_ChangeMemberRole_PermissionDenied_NotTeamOwner(t *testing.T
 		JoinedAt: time.Now(),
 	})
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	_, err := uc.ChangeMemberRole(context.Background(), usecase.ChangeMemberRoleInput{
 		CallerID:     "member-1", // 一般メンバーは変更できない
@@ -785,7 +785,7 @@ func TestTeamUseCase_ChangeMemberRole_ErrLastTeamOwner(t *testing.T) {
 		JoinedAt: time.Now(),
 	})
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	_, err := uc.ChangeMemberRole(context.Background(), usecase.ChangeMemberRoleInput{
 		CallerID:     "admin-id",
@@ -810,7 +810,7 @@ func TestTeamUseCase_ChangeMemberRole_MemberNotFound(t *testing.T) {
 		JoinedAt: time.Now(),
 	})
 	userRepo := newMockUserRepository()
-	uc := usecase.NewTeamUseCase(teamRepo, userRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
 
 	_, err := uc.ChangeMemberRole(context.Background(), usecase.ChangeMemberRoleInput{
 		CallerID:     "admin-id",
@@ -857,7 +857,7 @@ func TestTeamUseCase_ListMemberStats_Success_Member(t *testing.T) {
 	commentRepo.comments[commentKey("q-2", "c-2")] = &domain.Comment{ID: "c-2", QuestionID: "q-2", CreatedBy: "owner-1"}
 	commentRepo.comments[commentKey("q-2", "c-3")] = &domain.Comment{ID: "c-3", QuestionID: "q-2", CreatedBy: "user-2"}
 
-	uc := usecase.NewTeamUseCaseWithStats(teamRepo, userRepo, questionRepo, commentRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, questionRepo, commentRepo)
 
 	stats, err := uc.ListMemberStats(context.Background(), "user-2", domain.RoleUser, "team-1")
 	if err != nil {
@@ -912,7 +912,7 @@ func TestTeamUseCase_ListMemberStats_PermissionDenied_NonMember(t *testing.T) {
 	userRepo := newMockUserRepository()
 	questionRepo := newMockQuestionRepository()
 	commentRepo := newMockCommentRepository()
-	uc := usecase.NewTeamUseCaseWithStats(teamRepo, userRepo, questionRepo, commentRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, questionRepo, commentRepo)
 
 	// 非メンバーがアクセスしようとする
 	_, err := uc.ListMemberStats(context.Background(), "stranger-id", domain.RoleUser, "team-1")
@@ -935,7 +935,7 @@ func TestTeamUseCase_ListMemberStats_Success_Admin(t *testing.T) {
 	userRepo.addUser(testUser("owner-1", "owner", "owner@example.com", domain.RoleUser, true))
 	questionRepo := newMockQuestionRepository()
 	commentRepo := newMockCommentRepository()
-	uc := usecase.NewTeamUseCaseWithStats(teamRepo, userRepo, questionRepo, commentRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, questionRepo, commentRepo)
 
 	// admin は非メンバーでもアクセス可能
 	stats, err := uc.ListMemberStats(context.Background(), "admin-id", domain.RoleAdmin, "team-1")
@@ -952,7 +952,7 @@ func TestTeamUseCase_ListMemberStats_TeamNotFound(t *testing.T) {
 	userRepo := newMockUserRepository()
 	questionRepo := newMockQuestionRepository()
 	commentRepo := newMockCommentRepository()
-	uc := usecase.NewTeamUseCaseWithStats(teamRepo, userRepo, questionRepo, commentRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, questionRepo, commentRepo)
 
 	_, err := uc.ListMemberStats(context.Background(), "admin-id", domain.RoleAdmin, "nonexistent-team")
 	if !errors.Is(err, domain.ErrTeamNotFound) {
@@ -978,7 +978,7 @@ func TestTeamUseCase_ListMemberStats_LastLoginAt(t *testing.T) {
 	userRepo.addUser(owner)
 	questionRepo := &mockQuestionRepository{}
 	commentRepo := newMockCommentRepository()
-	uc := usecase.NewTeamUseCaseWithStats(teamRepo, userRepo, questionRepo, commentRepo)
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, questionRepo, commentRepo)
 
 	stats, err := uc.ListMemberStats(context.Background(), "admin-id", domain.RoleAdmin, "team-1")
 	if err != nil {
