@@ -258,6 +258,7 @@ func toTeamMemberDTO(m *domain.TeamMember) TeamMemberDTO {
 // TagDTO はAPIレスポンス用のタグDTOです。
 type TagDTO struct {
 	ID        string    `json:"id"`
+	TeamID    string    `json:"team_id"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"created_at"`
 }
@@ -266,6 +267,7 @@ type TagDTO struct {
 func toTagDTO(t *domain.Tag) TagDTO {
 	return TagDTO{
 		ID:        t.ID,
+		TeamID:    t.TeamID,
 		Name:      t.Name,
 		CreatedAt: t.CreatedAt,
 	}

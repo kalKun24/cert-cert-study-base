@@ -111,7 +111,7 @@ func main() {
 	commentUC := usecase.NewCommentUseCase(commentRepo, questionRepo, userRepo, teamRepo)
 
 	tagRepo := repository.NewGCSTagRepository(sc, gcsBucket, questionRepo)
-	tagUC := usecase.NewTagUseCase(tagRepo)
+	tagUC := usecase.NewTagUseCase(tagRepo, teamRepo)
 
 	authHandler := handler.NewAuthHandler(authUC)
 	userHandler := handler.NewUserHandler(userUC)
@@ -200,11 +200,11 @@ func main() {
 	mux.Handle("GET /api/v1/invitations/me", withAuth(invitationHandler.HandleListMyInvitations))
 	mux.Handle("PATCH /api/v1/invitations/{id}", withAuth(invitationHandler.HandleRespondInvitation))
 
-	// タグ管理（一覧取得は認証済み全ユーザー、作成・更新・削除は admin のみ）
-	mux.Handle("GET /api/v1/tags", withAuth(tagHandler.HandleListTags))
-	mux.Handle("POST /api/v1/tags", withAdmin(tagHandler.HandleCreateTag))
-	mux.Handle("PUT /api/v1/tags/{id}", withAdmin(tagHandler.HandleUpdateTag))
-	mux.Handle("DELETE /api/v1/tags/{id}", withAdmin(tagHandler.HandleDeleteTag))
+	// タグ管理（チームスコープ: 一覧・作成・削除はチームメンバー or admin、更新は admin のみ）
+	mux.Handle("GET /api/v1/teams/{team_id}/tags", withAuth(tagHandler.HandleListTags))
+	mux.Handle("POST /api/v1/teams/{team_id}/tags", withAuth(tagHandler.HandleCreateTag))
+	mux.Handle("PUT /api/v1/teams/{team_id}/tags/{id}", withAuth(tagHandler.HandleUpdateTag))
+	mux.Handle("DELETE /api/v1/teams/{team_id}/tags/{id}", withAuth(tagHandler.HandleDeleteTag))
 
 	srv := &http.Server{
 		Addr:         net.JoinHostPort("", port),

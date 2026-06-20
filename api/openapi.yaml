@@ -1114,15 +1114,17 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /api/v1/tags:
+  /api/v1/teams/{team_id}/tags:
     get:
-      summary: タグ一覧取得（認証済みユーザー）
-      description: 登録されている全タグの一覧を返します。
-      operationId: listTags
+      summary: チームタグ一覧取得（チームメンバー or admin）
+      description: 指定チームに属するタグ一覧を返します。チームメンバーまたは admin のみ取得可能です。
+      operationId: listTeamTags
       tags:
         - tags
       security:
         - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
       responses:
         "200":
           description: タグ一覧
@@ -1140,17 +1142,23 @@ paths:
                     nullable: true
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
     post:
-      summary: タグ作成（admin のみ）
-      description: 新しいタグを作成します。タグ名の重複は 409 Conflict を返します。
-      operationId: createTag
+      summary: チームタグ作成（チームメンバー or admin）
+      description: 指定チームにタグを作成します。チームメンバーまたは admin が実行可能です。タグ名はチーム内で一意です。
+      operationId: createTeamTag
       tags:
         - tags
       security:
         - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
       requestBody:
         required: true
         content:
@@ -1176,21 +1184,24 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /api/v1/tags/{id}:
+  /api/v1/teams/{team_id}/tags/{id}:
     put:
-      summary: タグ更新（admin のみ）
-      description: 指定IDのタグ名を更新します。タグ名の重複は 409 Conflict を返します。
-      operationId: updateTag
+      summary: チームタグ更新（admin のみ）
+      description: 指定チームのタグ名を更新します。admin のみ実行可能です。タグ名の重複は 409 Conflict を返します。
+      operationId: updateTeamTag
       tags:
         - tags
       security:
         - bearerAuth: []
       parameters:
+        - $ref: "#/components/parameters/TeamID"
         - $ref: "#/components/parameters/TagID"
       requestBody:
         required: true
@@ -1225,14 +1236,15 @@ paths:
           $ref: "#/components/responses/InternalServerError"
 
     delete:
-      summary: タグ削除（admin のみ）
-      description: 指定IDのタグを削除します。使用中のタグは 409 Conflict を返します。
-      operationId: deleteTag
+      summary: チームタグ削除（チームメンバー or admin）
+      description: 指定チームのタグを削除します。チームメンバーまたは admin が実行可能です。使用中のタグは 409 Conflict を返します。
+      operationId: deleteTeamTag
       tags:
         - tags
       security:
         - bearerAuth: []
       parameters:
+        - $ref: "#/components/parameters/TeamID"
         - $ref: "#/components/parameters/TagID"
       responses:
         "200":
@@ -1972,6 +1984,7 @@ components:
       description: タグエンティティ
       required:
         - id
+        - team_id
         - name
         - created_at
       properties:
@@ -1980,9 +1993,14 @@ components:
           format: uuid
           description: タグID
           example: "7ba7b810-9dad-11d1-80b4-00c04fd430c8"
+        team_id:
+          type: string
+          format: uuid
+          description: 所属チームID
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
         name:
           type: string
-          description: タグ名（一意）
+          description: タグ名（チーム内で一意）
           example: "CISSP"
         created_at:
           type: string

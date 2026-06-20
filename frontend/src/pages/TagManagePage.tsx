@@ -1,12 +1,14 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { useTeam } from '../context/TeamContext';
 import { Tag } from '../types/tag';
 import { fetchTags, createTag, updateTag, deleteTag } from '../utils/tagApi';
 
 export default function TagManagePage() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { activeTeam } = useTeam();
   const isAdmin = user?.role === 'admin';
 
   const [tags, setTags] = useState<Tag[]>([]);
@@ -18,28 +20,32 @@ export default function TagManagePage() {
   const [createError, setCreateError] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
-  // 編集状態
+  // 編集状態（admin のみ）
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [editError, setEditError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const loadTags = () => {
+    if (!activeTeam) return;
     setIsLoading(true);
     setFetchError('');
-    fetchTags()
+    fetchTags(activeTeam.id)
       .then(setTags)
       .catch(() => setFetchError(t('tag.error.fetchFailed')))
       .finally(() => setIsLoading(false));
   };
 
   useEffect(() => {
-    loadTags();
+    if (activeTeam) {
+      loadTags();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [activeTeam?.id]);
 
   const handleCreate = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!activeTeam) return;
     const trimmed = newName.trim();
     if (!trimmed) {
       setCreateError(t('tag.validation.nameRequired'));
@@ -48,7 +54,7 @@ export default function TagManagePage() {
     setIsCreating(true);
     setCreateError('');
     try {
-      const created = await createTag(trimmed);
+      const created = await createTag(activeTeam.id, trimmed);
       setTags((prev) => [...prev, created]);
       setNewName('');
     } catch {
@@ -72,16 +78,16 @@ export default function TagManagePage() {
 
   const handleSaveEdit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!activeTeam || !editingId) return;
     const trimmed = editingName.trim();
     if (!trimmed) {
       setEditError(t('tag.validation.nameRequired'));
       return;
     }
-    if (!editingId) return;
     setIsSaving(true);
     setEditError('');
     try {
-      const updated = await updateTag(editingId, trimmed);
+      const updated = await updateTag(activeTeam.id, editingId, trimmed);
       setTags((prev) => prev.map((tag) => (tag.id === updated.id ? updated : tag)));
       cancelEdit();
     } catch {
@@ -92,50 +98,57 @@ export default function TagManagePage() {
   };
 
   const handleDelete = async (tag: Tag) => {
+    if (!activeTeam) return;
     const confirmed = window.confirm(t('tag.confirm.delete', { name: tag.name }));
     if (!confirmed) return;
     try {
-      await deleteTag(tag.id);
+      await deleteTag(activeTeam.id, tag.id);
       setTags((prev) => prev.filter((t) => t.id !== tag.id));
     } catch {
-      // 削除失敗はアラートで通知
       window.alert(t('tag.error.deleteFailed'));
     }
   };
+
+  if (!activeTeam) {
+    return (
+      <section className="tag-manage-page page-container-full">
+        <h1 className="page-title">{t('tag.list.title')}</h1>
+        <p className="tag-list-empty">{t('tag.list.noTeam')}</p>
+      </section>
+    );
+  }
 
   return (
     <section className="tag-manage-page page-container-full">
       <h1 className="page-title">{t('tag.list.title')}</h1>
 
-      {isAdmin && (
-        <div className="tag-create-form-wrapper">
-          <h2 className="section-title">{t('tag.form.createTitle')}</h2>
-          <form onSubmit={handleCreate} className="tag-create-form" noValidate>
-            <label htmlFor="new-tag-name" className="form-label">
-              {t('tag.form.nameLabel')}
-            </label>
-            <div className="tag-create-form-row">
-              <input
-                id="new-tag-name"
-                type="text"
-                className="form-input"
-                placeholder={t('tag.form.namePlaceholder')}
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                aria-describedby={createError ? 'new-tag-error' : undefined}
-              />
-              <button type="submit" className="btn btn-primary" disabled={isCreating}>
-                {t('tag.form.addButton')}
-              </button>
-            </div>
-            {createError && (
-              <p id="new-tag-error" role="alert" className="form-error">
-                {createError}
-              </p>
-            )}
-          </form>
-        </div>
-      )}
+      <div className="tag-create-form-wrapper">
+        <h2 className="section-title">{t('tag.form.createTitle')}</h2>
+        <form onSubmit={handleCreate} className="tag-create-form" noValidate>
+          <label htmlFor="new-tag-name" className="form-label">
+            {t('tag.form.nameLabel')}
+          </label>
+          <div className="tag-create-form-row">
+            <input
+              id="new-tag-name"
+              type="text"
+              className="form-input"
+              placeholder={t('tag.form.namePlaceholder')}
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              aria-describedby={createError ? 'new-tag-error' : undefined}
+            />
+            <button type="submit" className="btn btn-primary" disabled={isCreating}>
+              {t('tag.form.addButton')}
+            </button>
+          </div>
+          {createError && (
+            <p id="new-tag-error" role="alert" className="form-error">
+              {createError}
+            </p>
+          )}
+        </form>
+      </div>
 
       {isLoading ? (
         <p role="status" className="page-loading">
@@ -151,7 +164,7 @@ export default function TagManagePage() {
         <ul className="tag-manage-list">
           {tags.map((tag) => (
             <li key={tag.id} className="tag-manage-item">
-              {editingId === tag.id ? (
+              {isAdmin && editingId === tag.id ? (
                 <form onSubmit={handleSaveEdit} className="tag-edit-form" noValidate>
                   <label htmlFor={`edit-tag-${tag.id}`} className="sr-only">
                     {t('tag.form.nameLabel')}
@@ -187,8 +200,8 @@ export default function TagManagePage() {
               ) : (
                 <div className="tag-manage-item-row">
                   <span className="tag-manage-name">{tag.name}</span>
-                  {isAdmin && (
-                    <div className="tag-manage-actions">
+                  <div className="tag-manage-actions">
+                    {isAdmin && (
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"
@@ -196,15 +209,15 @@ export default function TagManagePage() {
                       >
                         {t('common.edit')}
                       </button>
-                      <button
-                        type="button"
-                        className="btn btn-danger btn-sm"
-                        onClick={() => handleDelete(tag)}
-                      >
-                        {t('common.delete')}
-                      </button>
-                    </div>
-                  )}
+                    )}
+                    <button
+                      type="button"
+                      className="btn btn-danger btn-sm"
+                      onClick={() => handleDelete(tag)}
+                    >
+                      {t('common.delete')}
+                    </button>
+                  </div>
                 </div>
               )}
             </li>

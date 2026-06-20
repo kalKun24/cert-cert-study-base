@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchQuestions } from '../utils/questionApi';
 import { fetchTags } from '../utils/tagApi';
+import { useTeam } from '../context/TeamContext';
 import { Question } from '../types/question';
 import { Tag } from '../types/tag';
 import TagChip from '../components/TagChip';
@@ -20,6 +21,7 @@ const PARAM_PAGE = 'page';
 
 export default function QuestionListPage() {
   const { t } = useTranslation();
+  const { activeTeam } = useTeam();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // URL クエリパラメータから初期値を復元
@@ -94,12 +96,13 @@ export default function QuestionListPage() {
   );
 
   useEffect(() => {
-    fetchTags()
+    if (!activeTeam) return;
+    fetchTags(activeTeam.id)
       .then(setTags)
       .catch(() => {
         // タグ取得エラーは非致命的。無視して続行。
       });
-  }, []);
+  }, [activeTeam?.id]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
