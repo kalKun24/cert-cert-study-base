@@ -398,3 +398,91 @@ export async function cleanupTeamTags(teamId: string): Promise<void> {
     tags.map((tag) => deleteTagViaApi(adminToken, teamId, tag.id)),
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 問題管理
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface Question {
+  id: string;
+  team_id: string;
+  title: string;
+  status: string;
+}
+
+interface QuestionResponse {
+  data: Question;
+  error: string | null;
+}
+
+interface QuestionListResponse {
+  data: {
+    items: Question[];
+    total: number;
+  };
+  error: string | null;
+}
+
+/** チームに問題を作成してIDを返す */
+export async function createQuestionViaApi(
+  token: string,
+  teamId: string,
+  title: string,
+): Promise<string> {
+  const res = await fetch(`${API_BASE}/teams/${teamId}/questions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ title, body: '## 問題\nE2Eテスト用問題文' }),
+  });
+  if (!res.ok) {
+    throw new Error(`createQuestionViaApi failed: ${res.status} ${await res.text()}`);
+  }
+  const json = (await res.json()) as QuestionResponse;
+  return json.data.id;
+}
+
+/** チームの問題一覧を取得する（認可チェック用） */
+export async function listQuestionsViaApi(
+  token: string,
+  teamId: string,
+): Promise<Response> {
+  return fetch(`${API_BASE}/teams/${teamId}/questions`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+/** チームの問題を削除する */
+export async function deleteQuestionViaApi(
+  token: string,
+  teamId: string,
+  questionId: string,
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/teams/${teamId}/questions/${questionId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok && res.status !== 404) {
+    throw new Error(`deleteQuestionViaApi failed: ${res.status}`);
+  }
+}
+
+/** チームの問題を全削除する（テスト後クリーンアップ用） */
+export async function cleanupTeamQuestions(teamId: string): Promise<void> {
+  const adminToken = await adminLogin();
+  // admin はチームメンバーである必要があるため、tanaka のトークンで削除
+  const tanakaToken = await loginAs('tanaka');
+  const res = await listQuestionsViaApi(
+    teamId === TEAM_IDS.TEAM_A ? tanakaToken : adminToken,
+    teamId,
+  );
+  if (!res.ok) return;
+  const json = (await res.json()) as QuestionListResponse;
+  const questions = json.data?.items ?? [];
+  const token = teamId === TEAM_IDS.TEAM_A ? tanakaToken : await loginAs('suzuki');
+  await Promise.allSettled(
+    questions.map((q) => deleteQuestionViaApi(token, teamId, q.id)),
+  );
+}

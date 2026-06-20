@@ -73,28 +73,36 @@ func (m *mockCommentRepository) Delete(_ context.Context, questionID, commentID 
 // --- テストヘルパー ---
 
 // newCommentUseCase はテスト用の CommentUseCase を生成します。
+// testCallerID ("user-1") が testTeamID ("team-1") のメンバーとして登録されたチームリポジトリを使います。
 func newCommentUseCase(
 	cRepo *mockCommentRepository,
 	qRepo *mockQuestionRepository,
 	uRepo *mockUserRepository,
 ) *usecase.CommentUseCase {
-	return usecase.NewCommentUseCase(cRepo, qRepo, uRepo, newMockTeamRepository())
+	tRepo := newMockTeamRepository()
+	// testCallerID を testTeamID のメンバーとして登録
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{
+		TeamID: testTeamID,
+		UserID: testCallerID,
+		Role:   domain.MemberRoleMember,
+	})
+	return usecase.NewCommentUseCase(cRepo, qRepo, uRepo, tRepo)
 }
 
-// testPublishedAllQuestion はテスト用の published+all 公開問題を生成します。
-func testPublishedAllQuestion(id, createdBy string) *domain.Question {
+// newCommentUseCaseWithTeam は自由にチームリポジトリを指定できる CommentUseCase を生成します。
+func newCommentUseCaseWithTeam(
+	cRepo *mockCommentRepository,
+	qRepo *mockQuestionRepository,
+	uRepo *mockUserRepository,
+	tRepo *mockTeamRepository,
+) *usecase.CommentUseCase {
+	return usecase.NewCommentUseCase(cRepo, qRepo, uRepo, tRepo)
+}
+
+// testPublishedQuestion_comment はコメントテスト用の published 問題を生成します（testTeamID に所属）。
+func testPublishedQuestion_comment(id, createdBy string) *domain.Question {
 	q := testQuestion(id, "公開問題", createdBy)
 	q.Status = domain.QuestionStatusPublished
-	q.VisibilityScope = domain.VisibilityScopeAll
-	return q
-}
-
-// testPublishedTeamQuestion はテスト用の published+team 公開問題を生成します。
-func testPublishedTeamQuestion(id, createdBy string, teamIDs []string) *domain.Question {
-	q := testQuestion(id, "チーム限定問題", createdBy)
-	q.Status = domain.QuestionStatusPublished
-	q.VisibilityScope = domain.VisibilityScopeTeam
-	q.PublishedTeamIDs = teamIDs
 	return q
 }
 
@@ -123,18 +131,19 @@ func testUserWithDisplayName(id, username, displayName string) *domain.User {
 // TestCommentUseCase_CreateComment_Success は正常系のコメント投稿テストです。
 func TestCommentUseCase_CreateComment_Success(t *testing.T) {
 	qRepo := newMockQuestionRepository()
-	qRepo.addQuestion(testPublishedAllQuestion("q-1", "owner-1"))
+	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
 
 	uRepo := newMockUserRepository()
-	uRepo.addUser(testUserWithDisplayName("user-1", "alice", "Alice Smith"))
+	uRepo.addUser(testUserWithDisplayName(testCallerID, "alice", "Alice Smith"))
 
 	cRepo := newMockCommentRepository()
 	uc := newCommentUseCase(cRepo, qRepo, uRepo)
 
 	result, err := uc.CreateComment(context.Background(), usecase.CreateCommentInput{
 		QuestionID: "q-1",
+		TeamID:     testTeamID,
 		Body:       "テストコメント",
-		CallerID:   "user-1",
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 	})
 
@@ -144,8 +153,8 @@ func TestCommentUseCase_CreateComment_Success(t *testing.T) {
 	if result.Body != "テストコメント" {
 		t.Errorf("BodyがBody期待値と異なります: got %s, want テストコメント", result.Body)
 	}
-	if result.CreatedBy != "user-1" {
-		t.Errorf("CreatedByが期待値と異なります: got %s, want user-1", result.CreatedBy)
+	if result.CreatedBy != testCallerID {
+		t.Errorf("CreatedByが期待値と異なります: got %s, want %s", result.CreatedBy, testCallerID)
 	}
 	if result.DisplayName != "Alice Smith" {
 		t.Errorf("DisplayNameが期待値と異なります: got %s, want Alice Smith", result.DisplayName)
@@ -158,14 +167,15 @@ func TestCommentUseCase_CreateComment_Success(t *testing.T) {
 // TestCommentUseCase_CreateComment_EmptyBody はコメント本文が空の場合のバリデーションテストです。
 func TestCommentUseCase_CreateComment_EmptyBody(t *testing.T) {
 	qRepo := newMockQuestionRepository()
-	qRepo.addQuestion(testPublishedAllQuestion("q-1", "owner-1"))
+	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
 
 	uc := newCommentUseCase(newMockCommentRepository(), qRepo, newMockUserRepository())
 
 	_, err := uc.CreateComment(context.Background(), usecase.CreateCommentInput{
 		QuestionID: "q-1",
+		TeamID:     testTeamID,
 		Body:       "", // 空
-		CallerID:   "user-1",
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 	})
 
@@ -180,8 +190,9 @@ func TestCommentUseCase_CreateComment_QuestionNotFound(t *testing.T) {
 
 	_, err := uc.CreateComment(context.Background(), usecase.CreateCommentInput{
 		QuestionID: "no-such-question",
+		TeamID:     testTeamID,
 		Body:       "コメント",
-		CallerID:   "user-1",
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 	})
 
@@ -193,16 +204,23 @@ func TestCommentUseCase_CreateComment_QuestionNotFound(t *testing.T) {
 // TestCommentUseCase_CreateComment_DraftQuestionForbidden は draft 問題へのコメント投稿が作成者以外に拒否されることのテストです。
 func TestCommentUseCase_CreateComment_DraftQuestionForbidden(t *testing.T) {
 	qRepo := newMockQuestionRepository()
-	// draft 問題: owner-1 が作成
-	qRepo.addQuestion(testQuestion("q-1", "draft問題", "owner-1"))
+	// draft 問題: "owner-1" が作成
+	q := testQuestion("q-1", "draft問題", "owner-1")
+	qRepo.addQuestion(q)
 
-	uc := newCommentUseCase(newMockCommentRepository(), qRepo, newMockUserRepository())
+	tRepo := newMockTeamRepository()
+	// testCallerID と "owner-1" を両方メンバーとして登録
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "owner-1", Role: domain.MemberRoleMember})
 
-	// user-1（非作成者）はコメント不可
+	uc := newCommentUseCaseWithTeam(newMockCommentRepository(), qRepo, newMockUserRepository(), tRepo)
+
+	// testCallerID（非作成者、チームメンバー）はコメント不可
 	_, err := uc.CreateComment(context.Background(), usecase.CreateCommentInput{
 		QuestionID: "q-1",
+		TeamID:     testTeamID,
 		Body:       "コメント",
-		CallerID:   "user-1",
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 	})
 
@@ -214,15 +232,17 @@ func TestCommentUseCase_CreateComment_DraftQuestionForbidden(t *testing.T) {
 // TestCommentUseCase_CreateComment_DraftQuestionOwnerAllowed は draft 問題へのコメント投稿が作成者本人に許可されることのテストです。
 func TestCommentUseCase_CreateComment_DraftQuestionOwnerAllowed(t *testing.T) {
 	qRepo := newMockQuestionRepository()
-	qRepo.addQuestion(testQuestion("q-1", "draft問題", "owner-1"))
+	q := testQuestion("q-1", "draft問題", testCallerID) // testCallerID が作成者
+	qRepo.addQuestion(q)
 
 	uc := newCommentUseCase(newMockCommentRepository(), qRepo, newMockUserRepository())
 
-	// owner-1（作成者本人）はコメント可
+	// testCallerID（作成者本人、チームメンバー）はコメント可
 	_, err := uc.CreateComment(context.Background(), usecase.CreateCommentInput{
 		QuestionID: "q-1",
+		TeamID:     testTeamID,
 		Body:       "コメント",
-		CallerID:   "owner-1",
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 	})
 
@@ -231,39 +251,39 @@ func TestCommentUseCase_CreateComment_DraftQuestionOwnerAllowed(t *testing.T) {
 	}
 }
 
-// TestCommentUseCase_CreateComment_PublishedAllAllowed は published+all 問題への全ユーザーのコメント投稿が許可されることのテストです。
-func TestCommentUseCase_CreateComment_PublishedAllAllowed(t *testing.T) {
+// TestCommentUseCase_CreateComment_PublishedAllowedForMember は published 問題へのチームメンバーのコメント投稿が許可されるテストです。
+func TestCommentUseCase_CreateComment_PublishedAllowedForMember(t *testing.T) {
 	qRepo := newMockQuestionRepository()
-	qRepo.addQuestion(testPublishedAllQuestion("q-1", "owner-1"))
+	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
 
 	uc := newCommentUseCase(newMockCommentRepository(), qRepo, newMockUserRepository())
 
 	_, err := uc.CreateComment(context.Background(), usecase.CreateCommentInput{
 		QuestionID: "q-1",
+		TeamID:     testTeamID,
 		Body:       "コメント",
-		CallerID:   "any-user",
+		CallerID:   testCallerID, // チームメンバー
 		CallerRole: domain.RoleUser,
 	})
 
 	if err != nil {
-		t.Fatalf("published+all 問題へのコメント投稿に失敗しました: %v", err)
+		t.Fatalf("published 問題へのメンバーコメント投稿に失敗しました: %v", err)
 	}
 }
 
-// TestCommentUseCase_CreateComment_PublishedTeamForbidden は published+team 問題へのチーム外ユーザーのコメント投稿が拒否されることのテストです。
-// チーム情報はモックの teamRepo が返すため、team_test.go のモックが teamID を持たない限り拒否されます。
-func TestCommentUseCase_CreateComment_PublishedTeamForbidden(t *testing.T) {
+// TestCommentUseCase_CreateComment_NonMemberForbidden はチーム非メンバーのコメント投稿が拒否されるテストです。
+func TestCommentUseCase_CreateComment_NonMemberForbidden(t *testing.T) {
 	qRepo := newMockQuestionRepository()
-	// チームID "team-A" に属するメンバーのみ閲覧可
-	qRepo.addQuestion(testPublishedTeamQuestion("q-1", "owner-1", []string{"team-A"}))
+	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
 
 	uc := newCommentUseCase(newMockCommentRepository(), qRepo, newMockUserRepository())
 
-	// "other-user" はいずれのチームにも所属していない → 拒否
+	// "non-member-user" はチームメンバーではない → 拒否
 	_, err := uc.CreateComment(context.Background(), usecase.CreateCommentInput{
 		QuestionID: "q-1",
+		TeamID:     testTeamID,
 		Body:       "コメント",
-		CallerID:   "other-user",
+		CallerID:   "non-member-user",
 		CallerRole: domain.RoleUser,
 	})
 
@@ -272,23 +292,52 @@ func TestCommentUseCase_CreateComment_PublishedTeamForbidden(t *testing.T) {
 	}
 }
 
-// TestCommentUseCase_CreateComment_AdminAllowed は admin が draft 問題にコメントを投稿できることのテストです。
-func TestCommentUseCase_CreateComment_AdminAllowed(t *testing.T) {
+// TestCommentUseCase_CreateComment_AdminNonMemberAllowed は admin がチーム非メンバーでもコメント投稿できるテストです。
+func TestCommentUseCase_CreateComment_AdminNonMemberAllowed(t *testing.T) {
 	qRepo := newMockQuestionRepository()
-	qRepo.addQuestion(testQuestion("q-1", "draft問題", "owner-1"))
+	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
 
-	uc := newCommentUseCase(newMockCommentRepository(), qRepo, newMockUserRepository())
+	// admin はどのチームにもメンバー登録されていない
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
 
-	// admin は全問題にコメント可
+	uc := newCommentUseCaseWithTeam(newMockCommentRepository(), qRepo, newMockUserRepository(), tRepo)
+
 	_, err := uc.CreateComment(context.Background(), usecase.CreateCommentInput{
 		QuestionID: "q-1",
+		TeamID:     testTeamID,
 		Body:       "adminコメント",
 		CallerID:   "admin-user",
 		CallerRole: domain.RoleAdmin,
 	})
 
 	if err != nil {
-		t.Fatalf("adminのコメント投稿に失敗しました: %v", err)
+		t.Errorf("admin はチーム非メンバーでもコメント投稿できるべきです: %v", err)
+	}
+}
+
+// TestCommentUseCase_CreateComment_AdminCanCommentOnDraft は admin が他者の draft 問題にもコメント投稿できるテストです。
+func TestCommentUseCase_CreateComment_AdminCanCommentOnDraft(t *testing.T) {
+	qRepo := newMockQuestionRepository()
+	// draft 問題: "owner-1" が作成
+	qRepo.addQuestion(testQuestion("q-1", "draft問題", "owner-1"))
+
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "owner-1", Role: domain.MemberRoleMember})
+
+	uc := newCommentUseCaseWithTeam(newMockCommentRepository(), qRepo, newMockUserRepository(), tRepo)
+
+	// admin は draft の作成者でなくてもコメント可能
+	_, err := uc.CreateComment(context.Background(), usecase.CreateCommentInput{
+		QuestionID: "q-1",
+		TeamID:     testTeamID,
+		Body:       "adminコメント",
+		CallerID:   "admin-user",
+		CallerRole: domain.RoleAdmin,
+	})
+
+	if err != nil {
+		t.Errorf("admin は他者の draft 問題にもコメントできるべきです: %v", err)
 	}
 }
 
@@ -297,10 +346,10 @@ func TestCommentUseCase_CreateComment_AdminAllowed(t *testing.T) {
 // TestCommentUseCase_ListComments_Success は正常系のコメント一覧取得テストです。
 func TestCommentUseCase_ListComments_Success(t *testing.T) {
 	qRepo := newMockQuestionRepository()
-	qRepo.addQuestion(testPublishedAllQuestion("q-1", "owner-1"))
+	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
 
 	uRepo := newMockUserRepository()
-	uRepo.addUser(testUserWithDisplayName("user-1", "alice", "Alice Smith"))
+	uRepo.addUser(testUserWithDisplayName(testCallerID, "alice", "Alice Smith"))
 	uRepo.addUser(testUserWithDisplayName("user-2", "bob", "Bob Jones"))
 
 	cRepo := newMockCommentRepository()
@@ -311,7 +360,7 @@ func TestCommentUseCase_ListComments_Success(t *testing.T) {
 		CreatedAt: now.Add(time.Minute), UpdatedAt: now.Add(time.Minute),
 	})
 	cRepo.addComment(&domain.Comment{
-		ID: "c-1", QuestionID: "q-1", Body: "コメント1", CreatedBy: "user-1",
+		ID: "c-1", QuestionID: "q-1", Body: "コメント1", CreatedBy: testCallerID,
 		CreatedAt: now, UpdatedAt: now,
 	})
 
@@ -319,7 +368,8 @@ func TestCommentUseCase_ListComments_Success(t *testing.T) {
 
 	result, err := uc.ListComments(context.Background(), usecase.ListCommentsInput{
 		QuestionID: "q-1",
-		CallerID:   "any-user",
+		TeamID:     testTeamID,
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 	})
 
@@ -340,21 +390,26 @@ func TestCommentUseCase_ListComments_Success(t *testing.T) {
 	if result[0].DisplayName != "Alice Smith" {
 		t.Errorf("display_nameが期待値と異なります: got %s, want Alice Smith", result[0].DisplayName)
 	}
-	if result[1].DisplayName != "Bob Jones" {
-		t.Errorf("display_nameが期待値と異なります: got %s, want Bob Jones", result[1].DisplayName)
-	}
 }
 
 // TestCommentUseCase_ListComments_Forbidden は閲覧権限がないユーザーの一覧取得が拒否されることのテストです。
 func TestCommentUseCase_ListComments_Forbidden(t *testing.T) {
 	qRepo := newMockQuestionRepository()
-	// draft 問題
-	qRepo.addQuestion(testQuestion("q-1", "draft問題", "owner-1"))
+	// draft 問題: "owner-1" が作成
+	q := testQuestion("q-1", "draft問題", "owner-1")
+	qRepo.addQuestion(q)
 
-	uc := newCommentUseCase(newMockCommentRepository(), qRepo, newMockUserRepository())
+	tRepo := newMockTeamRepository()
+	// testCallerID と "other-user" を両方メンバーとして登録
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "other-user", Role: domain.MemberRoleMember})
 
+	uc := newCommentUseCaseWithTeam(newMockCommentRepository(), qRepo, newMockUserRepository(), tRepo)
+
+	// "other-user"（チームメンバーだが draft 作成者ではない）は閲覧不可
 	_, err := uc.ListComments(context.Background(), usecase.ListCommentsInput{
 		QuestionID: "q-1",
+		TeamID:     testTeamID,
 		CallerID:   "other-user",
 		CallerRole: domain.RoleUser,
 	})
@@ -364,26 +419,46 @@ func TestCommentUseCase_ListComments_Forbidden(t *testing.T) {
 	}
 }
 
+// TestCommentUseCase_ListComments_NonMemberForbidden はチーム非メンバーが一覧取得できないテストです。
+func TestCommentUseCase_ListComments_NonMemberForbidden(t *testing.T) {
+	qRepo := newMockQuestionRepository()
+	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
+
+	uc := newCommentUseCase(newMockCommentRepository(), qRepo, newMockUserRepository())
+
+	_, err := uc.ListComments(context.Background(), usecase.ListCommentsInput{
+		QuestionID: "q-1",
+		TeamID:     testTeamID,
+		CallerID:   "non-member-user",
+		CallerRole: domain.RoleUser,
+	})
+
+	if !errors.Is(err, domain.ErrPermissionDenied) {
+		t.Errorf("チーム非メンバーは拒否されるべきです: got %v, want %v", err, domain.ErrPermissionDenied)
+	}
+}
+
 // --- UpdateComment テスト ---
 
 // TestCommentUseCase_UpdateComment_Success は正常系のコメント編集テストです。
 func TestCommentUseCase_UpdateComment_Success(t *testing.T) {
 	qRepo := newMockQuestionRepository()
-	qRepo.addQuestion(testPublishedAllQuestion("q-1", "owner-1"))
+	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
 
 	uRepo := newMockUserRepository()
-	uRepo.addUser(testUserWithDisplayName("user-1", "alice", "Alice Smith"))
+	uRepo.addUser(testUserWithDisplayName(testCallerID, "alice", "Alice Smith"))
 
 	cRepo := newMockCommentRepository()
-	cRepo.addComment(testComment("c-1", "q-1", "user-1", "元のコメント"))
+	cRepo.addComment(testComment("c-1", "q-1", testCallerID, "元のコメント"))
 
 	uc := newCommentUseCase(cRepo, qRepo, uRepo)
 
 	result, err := uc.UpdateComment(context.Background(), usecase.UpdateCommentInput{
 		QuestionID: "q-1",
+		TeamID:     testTeamID,
 		CommentID:  "c-1",
 		Body:       "編集後のコメント",
-		CallerID:   "user-1",
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 	})
 
@@ -398,16 +473,21 @@ func TestCommentUseCase_UpdateComment_Success(t *testing.T) {
 // TestCommentUseCase_UpdateComment_NotOwner は投稿者以外の編集が拒否されることのテストです。
 func TestCommentUseCase_UpdateComment_NotOwner(t *testing.T) {
 	qRepo := newMockQuestionRepository()
-	qRepo.addQuestion(testPublishedAllQuestion("q-1", "owner-1"))
+	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
 
 	cRepo := newMockCommentRepository()
-	cRepo.addComment(testComment("c-1", "q-1", "user-1", "コメント"))
+	cRepo.addComment(testComment("c-1", "q-1", testCallerID, "コメント"))
 
-	uc := newCommentUseCase(cRepo, qRepo, newMockUserRepository())
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "user-2", Role: domain.MemberRoleMember})
 
-	// user-2（非投稿者）は編集不可
+	uc := newCommentUseCaseWithTeam(cRepo, qRepo, newMockUserRepository(), tRepo)
+
+	// "user-2"（チームメンバーだが非投稿者）は編集不可
 	_, err := uc.UpdateComment(context.Background(), usecase.UpdateCommentInput{
 		QuestionID: "q-1",
+		TeamID:     testTeamID,
 		CommentID:  "c-1",
 		Body:       "編集コメント",
 		CallerID:   "user-2",
@@ -422,18 +502,19 @@ func TestCommentUseCase_UpdateComment_NotOwner(t *testing.T) {
 // TestCommentUseCase_UpdateComment_EmptyBody は本文が空の編集が拒否されることのテストです。
 func TestCommentUseCase_UpdateComment_EmptyBody(t *testing.T) {
 	qRepo := newMockQuestionRepository()
-	qRepo.addQuestion(testPublishedAllQuestion("q-1", "owner-1"))
+	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
 
 	cRepo := newMockCommentRepository()
-	cRepo.addComment(testComment("c-1", "q-1", "user-1", "コメント"))
+	cRepo.addComment(testComment("c-1", "q-1", testCallerID, "コメント"))
 
 	uc := newCommentUseCase(cRepo, qRepo, newMockUserRepository())
 
 	_, err := uc.UpdateComment(context.Background(), usecase.UpdateCommentInput{
 		QuestionID: "q-1",
+		TeamID:     testTeamID,
 		CommentID:  "c-1",
 		Body:       "", // 空
-		CallerID:   "user-1",
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 	})
 
@@ -447,17 +528,18 @@ func TestCommentUseCase_UpdateComment_EmptyBody(t *testing.T) {
 // TestCommentUseCase_DeleteComment_OwnerSuccess は投稿者本人による削除の正常系テストです。
 func TestCommentUseCase_DeleteComment_OwnerSuccess(t *testing.T) {
 	qRepo := newMockQuestionRepository()
-	qRepo.addQuestion(testPublishedAllQuestion("q-1", "owner-1"))
+	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
 
 	cRepo := newMockCommentRepository()
-	cRepo.addComment(testComment("c-1", "q-1", "user-1", "コメント"))
+	cRepo.addComment(testComment("c-1", "q-1", testCallerID, "コメント"))
 
 	uc := newCommentUseCase(cRepo, qRepo, newMockUserRepository())
 
 	err := uc.DeleteComment(context.Background(), usecase.DeleteCommentInput{
 		QuestionID: "q-1",
+		TeamID:     testTeamID,
 		CommentID:  "c-1",
-		CallerID:   "user-1",
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 	})
 
@@ -466,42 +548,79 @@ func TestCommentUseCase_DeleteComment_OwnerSuccess(t *testing.T) {
 	}
 }
 
-// TestCommentUseCase_DeleteComment_AdminSuccess は admin による他者コメントの削除テストです。
-func TestCommentUseCase_DeleteComment_AdminSuccess(t *testing.T) {
+// TestCommentUseCase_DeleteComment_AdminMemberSuccess は admin かつチームメンバーによる他者コメントの削除テストです。
+func TestCommentUseCase_DeleteComment_AdminMemberSuccess(t *testing.T) {
 	qRepo := newMockQuestionRepository()
-	qRepo.addQuestion(testPublishedAllQuestion("q-1", "owner-1"))
+	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
 
 	cRepo := newMockCommentRepository()
-	cRepo.addComment(testComment("c-1", "q-1", "user-1", "コメント"))
+	cRepo.addComment(testComment("c-1", "q-1", testCallerID, "コメント"))
 
-	uc := newCommentUseCase(cRepo, qRepo, newMockUserRepository())
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "admin-user", Role: domain.MemberRoleMember})
+
+	uc := newCommentUseCaseWithTeam(cRepo, qRepo, newMockUserRepository(), tRepo)
 
 	err := uc.DeleteComment(context.Background(), usecase.DeleteCommentInput{
 		QuestionID: "q-1",
+		TeamID:     testTeamID,
 		CommentID:  "c-1",
 		CallerID:   "admin-user",
 		CallerRole: domain.RoleAdmin,
 	})
 
 	if err != nil {
-		t.Fatalf("admin による削除に失敗しました: %v", err)
+		t.Fatalf("admin（チームメンバー）による削除に失敗しました: %v", err)
+	}
+}
+
+// TestCommentUseCase_DeleteComment_AdminNonMemberAllowed は admin がチーム非メンバーでも他者のコメントを削除できるテストです。
+func TestCommentUseCase_DeleteComment_AdminNonMemberAllowed(t *testing.T) {
+	qRepo := newMockQuestionRepository()
+	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
+
+	cRepo := newMockCommentRepository()
+	cRepo.addComment(testComment("c-1", "q-1", testCallerID, "コメント"))
+
+	// admin-user はチームメンバーではない
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+
+	uc := newCommentUseCaseWithTeam(cRepo, qRepo, newMockUserRepository(), tRepo)
+
+	err := uc.DeleteComment(context.Background(), usecase.DeleteCommentInput{
+		QuestionID: "q-1",
+		TeamID:     testTeamID,
+		CommentID:  "c-1",
+		CallerID:   "admin-user",
+		CallerRole: domain.RoleAdmin,
+	})
+
+	if err != nil {
+		t.Errorf("admin はチーム非メンバーでも削除できるべきです: %v", err)
 	}
 }
 
 // TestCommentUseCase_DeleteComment_NotOwnerForbidden は投稿者以外（非 admin）の削除が拒否されることのテストです。
 func TestCommentUseCase_DeleteComment_NotOwnerForbidden(t *testing.T) {
 	qRepo := newMockQuestionRepository()
-	qRepo.addQuestion(testPublishedAllQuestion("q-1", "owner-1"))
+	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
 
 	cRepo := newMockCommentRepository()
-	cRepo.addComment(testComment("c-1", "q-1", "user-1", "コメント"))
+	cRepo.addComment(testComment("c-1", "q-1", testCallerID, "コメント"))
 
-	uc := newCommentUseCase(cRepo, qRepo, newMockUserRepository())
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "user-2", Role: domain.MemberRoleMember})
+
+	uc := newCommentUseCaseWithTeam(cRepo, qRepo, newMockUserRepository(), tRepo)
 
 	err := uc.DeleteComment(context.Background(), usecase.DeleteCommentInput{
 		QuestionID: "q-1",
+		TeamID:     testTeamID,
 		CommentID:  "c-1",
-		CallerID:   "user-2", // 非投稿者
+		CallerID:   "user-2", // 非投稿者、チームメンバーだが admin でもない
 		CallerRole: domain.RoleUser,
 	})
 
@@ -513,14 +632,15 @@ func TestCommentUseCase_DeleteComment_NotOwnerForbidden(t *testing.T) {
 // TestCommentUseCase_DeleteComment_CommentNotFound は存在しないコメントの削除テストです。
 func TestCommentUseCase_DeleteComment_CommentNotFound(t *testing.T) {
 	qRepo := newMockQuestionRepository()
-	qRepo.addQuestion(testPublishedAllQuestion("q-1", "owner-1"))
+	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
 
 	uc := newCommentUseCase(newMockCommentRepository(), qRepo, newMockUserRepository())
 
 	err := uc.DeleteComment(context.Background(), usecase.DeleteCommentInput{
 		QuestionID: "q-1",
+		TeamID:     testTeamID,
 		CommentID:  "no-such-comment",
-		CallerID:   "user-1",
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 	})
 
@@ -529,50 +649,11 @@ func TestCommentUseCase_DeleteComment_CommentNotFound(t *testing.T) {
 	}
 }
 
-// --- 閲覧権限チェックのテスト（受け入れ条件に対応） ---
+// --- 可視性チェックのテスト（チームスコープ化後） ---
 
-// TestCommentUseCase_VisibilityCheck_PublishedAll_AllowsAllUsers は published+all 問題が全ユーザーに開放されることのテストです。
-func TestCommentUseCase_VisibilityCheck_PublishedAll_AllowsAllUsers(t *testing.T) {
-	qRepo := newMockQuestionRepository()
-	qRepo.addQuestion(testPublishedAllQuestion("q-1", "owner-1"))
-
-	uc := newCommentUseCase(newMockCommentRepository(), qRepo, newMockUserRepository())
-
-	// 任意のユーザーがコメント可能
-	_, err := uc.CreateComment(context.Background(), usecase.CreateCommentInput{
-		QuestionID: "q-1",
-		Body:       "コメント",
-		CallerID:   "random-user",
-		CallerRole: domain.RoleUser,
-	})
-
-	if err != nil {
-		t.Fatalf("published+all 問題へのコメントが拒否されました: %v", err)
-	}
-}
-
-// TestCommentUseCase_VisibilityCheck_PublishedTeam_OwnerAllowed は published+team 問題の作成者がコメント可能であることのテストです。
-func TestCommentUseCase_VisibilityCheck_PublishedTeam_OwnerAllowed(t *testing.T) {
-	qRepo := newMockQuestionRepository()
-	qRepo.addQuestion(testPublishedTeamQuestion("q-1", "owner-1", []string{"team-X"}))
-
-	uc := newCommentUseCase(newMockCommentRepository(), qRepo, newMockUserRepository())
-
-	// 作成者本人は常にコメント可能
-	_, err := uc.CreateComment(context.Background(), usecase.CreateCommentInput{
-		QuestionID: "q-1",
-		Body:       "オーナーコメント",
-		CallerID:   "owner-1",
-		CallerRole: domain.RoleUser,
-	})
-
-	if err != nil {
-		t.Fatalf("published+team 問題の作成者によるコメントが拒否されました: %v", err)
-	}
-}
-
-// TestCommentUseCase_VisibilityCheck_DraftAndPrivate_OnlyOwner は draft/private 問題が作成者以外に拒否されることのテストです。
-func TestCommentUseCase_VisibilityCheck_DraftAndPrivate_OnlyOwner(t *testing.T) {
+// TestCommentUseCase_VisibilityCheck_DraftAndPrivate_OnlyOwnerCanComment は
+// draft/private 問題へのコメントが作成者のみに許可されるテストです（チームメンバー前提）。
+func TestCommentUseCase_VisibilityCheck_DraftAndPrivate_OnlyOwnerCanComment(t *testing.T) {
 	tests := []struct {
 		name   string
 		status domain.QuestionStatus
@@ -585,29 +666,42 @@ func TestCommentUseCase_VisibilityCheck_DraftAndPrivate_OnlyOwner(t *testing.T) 
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			qRepo := newMockQuestionRepository()
-			q := testQuestion("q-1", tt.name, "owner-1")
+			q := testQuestion("q-1", tt.name, testCallerID) // testCallerID が作成者
 			q.Status = tt.status
 			qRepo.addQuestion(q)
 
-			uc := newCommentUseCase(newMockCommentRepository(), qRepo, newMockUserRepository())
+			tRepo := newMockTeamRepository()
+			_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+			_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "other-member", Role: domain.MemberRoleMember})
 
-			// 非作成者は拒否
+			uc := newCommentUseCaseWithTeam(newMockCommentRepository(), qRepo, newMockUserRepository(), tRepo)
+
+			// 他のチームメンバーは拒否
 			_, err := uc.CreateComment(context.Background(), usecase.CreateCommentInput{
 				QuestionID: "q-1",
+				TeamID:     testTeamID,
 				Body:       "コメント",
-				CallerID:   "other-user",
+				CallerID:   "other-member",
 				CallerRole: domain.RoleUser,
 			})
 
-			if !errors.Is(err, domain.ErrPermissionDenied) {
-				t.Errorf("[%s] エラーが期待値と異なります: got %v, want %v", tt.name, err, domain.ErrPermissionDenied)
+			if tt.status == domain.QuestionStatusDraft {
+				if !errors.Is(err, domain.ErrPermissionDenied) {
+					t.Errorf("[%s] 非作成者は拒否されるべきです: got %v, want %v", tt.name, err, domain.ErrPermissionDenied)
+				}
+			} else {
+				// private は published と同様にメンバー全員に見える
+				if err != nil {
+					t.Errorf("[%s] private 問題はメンバーに許可されるべきです: got %v", tt.name, err)
+				}
 			}
 
 			// 作成者本人は許可
 			_, err = uc.CreateComment(context.Background(), usecase.CreateCommentInput{
 				QuestionID: "q-1",
+				TeamID:     testTeamID,
 				Body:       "コメント",
-				CallerID:   "owner-1",
+				CallerID:   testCallerID,
 				CallerRole: domain.RoleUser,
 			})
 

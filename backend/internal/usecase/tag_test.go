@@ -120,14 +120,13 @@ func testTag(id, name string) *domain.Tag {
 
 func testQuestionWithTags(id string, tagIDs []string) *domain.Question {
 	return &domain.Question{
-		ID:               id,
-		Title:            "テスト問題",
-		Body:             "## 問題\nテスト問題文",
-		Tags:             tagIDs,
-		Status:           domain.QuestionStatusDraft,
-		VisibilityScope:  domain.VisibilityScopeAll,
-		PublishedTeamIDs: []string{},
-		CreatedBy:        testCallerID,
+		ID:        id,
+		TeamID:    testTeamID,
+		Title:     "テスト問題",
+		Body:      "## 問題\nテスト問題文",
+		Tags:      tagIDs,
+		Status:    domain.QuestionStatusDraft,
+		CreatedBy: testCallerID,
 	}
 }
 

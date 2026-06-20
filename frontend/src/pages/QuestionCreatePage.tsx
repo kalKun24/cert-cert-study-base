@@ -5,7 +5,7 @@ import MDEditor from '@uiw/react-md-editor';
 import { createQuestion } from '../utils/questionApi';
 import { fetchTags } from '../utils/tagApi';
 import { useTeam } from '../context/TeamContext';
-import { QuestionStatus, VisibilityScope } from '../types/question';
+import { QuestionStatus } from '../types/question';
 import { Tag } from '../types/tag';
 
 type EditorTab = 'body' | 'answer' | 'explanation' | 'memo';
@@ -79,11 +79,12 @@ export default function QuestionCreatePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
+    if (!activeTeam) return;
 
     setIsSubmitting(true);
     setSubmitError('');
     try {
-      const created = await createQuestion({
+      const created = await createQuestion(activeTeam.id, {
         title: form.title,
         body: form.body,
         answer: form.answer,
@@ -91,8 +92,6 @@ export default function QuestionCreatePage() {
         memo: form.memo,
         tags: form.selectedTagNames,
         status: form.status,
-        visibility_scope: 'all' as VisibilityScope,
-        published_team_ids: [],
       });
       navigate(`/questions/${created.id}`);
     } catch {

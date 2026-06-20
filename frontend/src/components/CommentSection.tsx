@@ -7,10 +7,11 @@ import { Comment } from '../types/comment';
 import { fetchComments, postComment, updateComment, deleteComment } from '../utils/commentApi';
 
 interface Props {
+  teamId: string;
   questionId: string;
 }
 
-export default function CommentSection({ questionId }: Props) {
+export default function CommentSection({ teamId, questionId }: Props) {
   const { t } = useTranslation();
   const { user } = useAuth();
 
@@ -38,7 +39,7 @@ export default function CommentSection({ questionId }: Props) {
     let isMounted = true;
     setIsLoading(true);
     setLoadError('');
-    fetchComments(questionId)
+    fetchComments(teamId, questionId)
       .then((data) => {
         if (isMounted) setComments(data);
       })
@@ -51,7 +52,7 @@ export default function CommentSection({ questionId }: Props) {
     return () => {
       isMounted = false;
     };
-  }, [questionId, t]);
+  }, [teamId, questionId, t]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -62,7 +63,7 @@ export default function CommentSection({ questionId }: Props) {
     setIsSubmitting(true);
     setSubmitError('');
     try {
-      const created = await postComment(questionId, newBody.trim());
+      const created = await postComment(teamId, questionId, newBody.trim());
       setComments((prev) => [...prev, created]);
       setNewBody('');
       setNewPreview(false);
@@ -95,7 +96,7 @@ export default function CommentSection({ questionId }: Props) {
     setIsUpdating(true);
     setEditError('');
     try {
-      const updated = await updateComment(questionId, commentId, editBody.trim());
+      const updated = await updateComment(teamId, questionId, commentId, editBody.trim());
       setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)));
       setEditingId(null);
       setEditBody('');
@@ -110,7 +111,7 @@ export default function CommentSection({ questionId }: Props) {
     if (!window.confirm(t('comment.confirm.delete'))) return;
     setDeleteError('');
     try {
-      await deleteComment(questionId, commentId);
+      await deleteComment(teamId, questionId, commentId);
       setComments((prev) => prev.filter((c) => c.id !== commentId));
     } catch {
       setDeleteError(t('comment.error.deleteFailed'));

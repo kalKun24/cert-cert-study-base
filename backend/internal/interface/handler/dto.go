@@ -93,19 +93,18 @@ type ChangeMyPasswordRequestDTO struct {
 
 // QuestionDTO はAPIレスポンス用の問題DTOです。
 type QuestionDTO struct {
-	ID               string    `json:"id"`
-	Title            string    `json:"title"`
-	Body             string    `json:"body"`
-	Answer           string    `json:"answer"`
-	Explanation      string    `json:"explanation"`
-	Memo             string    `json:"memo"`
-	Tags             []string  `json:"tags"`
-	Status           string    `json:"status"`
-	VisibilityScope  string    `json:"visibility_scope"`
-	PublishedTeamIDs []string  `json:"published_team_ids"`
-	CreatedBy        string    `json:"created_by"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
+	ID          string    `json:"id"`
+	TeamID      string    `json:"team_id"`
+	Title       string    `json:"title"`
+	Body        string    `json:"body"`
+	Answer      string    `json:"answer"`
+	Explanation string    `json:"explanation"`
+	Memo        string    `json:"memo"`
+	Tags        []string  `json:"tags"`
+	Status      string    `json:"status"`
+	CreatedBy   string    `json:"created_by"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // toQuestionDTO はドメインエンティティをAPIレスポンス用DTOに変換します。
@@ -114,24 +113,19 @@ func toQuestionDTO(q *domain.Question) QuestionDTO {
 	if tags == nil {
 		tags = []string{}
 	}
-	publishedTeamIDs := q.PublishedTeamIDs
-	if publishedTeamIDs == nil {
-		publishedTeamIDs = []string{}
-	}
 	return QuestionDTO{
-		ID:               q.ID,
-		Title:            q.Title,
-		Body:             q.Body,
-		Answer:           q.Answer,
-		Explanation:      q.Explanation,
-		Memo:             q.Memo,
-		Tags:             tags,
-		Status:           string(q.Status),
-		VisibilityScope:  string(q.VisibilityScope),
-		PublishedTeamIDs: publishedTeamIDs,
-		CreatedBy:        q.CreatedBy,
-		CreatedAt:        q.CreatedAt,
-		UpdatedAt:        q.UpdatedAt,
+		ID:          q.ID,
+		TeamID:      q.TeamID,
+		Title:       q.Title,
+		Body:        q.Body,
+		Answer:      q.Answer,
+		Explanation: q.Explanation,
+		Memo:        q.Memo,
+		Tags:        tags,
+		Status:      string(q.Status),
+		CreatedBy:   q.CreatedBy,
+		CreatedAt:   q.CreatedAt,
+		UpdatedAt:   q.UpdatedAt,
 	}
 }
 
@@ -146,39 +140,31 @@ type QuestionListResponseDTO struct {
 
 // CreateQuestionRequestDTO は問題作成リクエストのDTOです。
 type CreateQuestionRequestDTO struct {
-	Title            string   `json:"title"`
-	Body             string   `json:"body"`
-	Answer           string   `json:"answer"`
-	Explanation      string   `json:"explanation"`
-	Memo             string   `json:"memo"`
-	Tags             []string `json:"tags"`
-	Status           string   `json:"status"`
-	VisibilityScope  string   `json:"visibility_scope"`
-	PublishedTeamIDs []string `json:"published_team_ids"`
+	Title       string   `json:"title"`
+	Body        string   `json:"body"`
+	Answer      string   `json:"answer"`
+	Explanation string   `json:"explanation"`
+	Memo        string   `json:"memo"`
+	Tags        []string `json:"tags"`
+	Status      string   `json:"status"`
 }
 
 // UpdateQuestionRequestDTO は問題更新リクエストのDTOです。
 // 各フィールドはポインタ型にしてゼロ値との区別を可能にします。
 type UpdateQuestionRequestDTO struct {
-	Title            *string  `json:"title"`
-	Body             *string  `json:"body"`
-	Answer           *string  `json:"answer"`
-	Explanation      *string  `json:"explanation"`
-	Memo             *string  `json:"memo"`
-	Tags             []string `json:"tags"`
-	Status           *string  `json:"status"`
-	VisibilityScope  *string  `json:"visibility_scope"`
-	PublishedTeamIDs []string `json:"published_team_ids"`
+	Title       *string  `json:"title"`
+	Body        *string  `json:"body"`
+	Answer      *string  `json:"answer"`
+	Explanation *string  `json:"explanation"`
+	Memo        *string  `json:"memo"`
+	Tags        []string `json:"tags"`
+	Status      *string  `json:"status"`
 }
 
 // UpdateQuestionVisibilityRequestDTO は問題公開設定変更リクエストのDTOです。
 type UpdateQuestionVisibilityRequestDTO struct {
 	// Status は変更後の公開ステータス（必須）
 	Status string `json:"status"`
-	// VisibilityScope は変更後の公開範囲（省略時は変更しない）
-	VisibilityScope *string `json:"visibility_scope"`
-	// PublishedTeamIDs は変更後の公開対象チームIDの一覧（省略時は変更しない）
-	PublishedTeamIDs []string `json:"published_team_ids"`
 }
 
 // TeamDTO はAPIレスポンス用のチームDTOです。

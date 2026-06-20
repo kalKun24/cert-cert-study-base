@@ -32,6 +32,7 @@ export default function QuestionEditPage() {
   const { activeTeam } = useTeam();
 
   const [form, setForm] = useState<FormValues | null>(null);
+  const [questionTeamId, setQuestionTeamId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<EditorTab>('body');
   const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,12 +42,12 @@ export default function QuestionEditPage() {
   const [validationErrors, setValidationErrors] = useState<Partial<Record<keyof FormValues, string>>>({});
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !activeTeam) return;
     let isMounted = true;
 
     Promise.all([
-      fetchQuestion(id),
-      activeTeam ? fetchTags(activeTeam.id) : Promise.resolve([]),
+      fetchQuestion(activeTeam.id, id),
+      fetchTags(activeTeam.id),
     ])
       .then(([q, tagList]) => {
         if (!isMounted) return;
@@ -55,6 +56,7 @@ export default function QuestionEditPage() {
           navigate(`/questions/${id}`, { replace: true });
           return;
         }
+        setQuestionTeamId(q.team_id);
         setForm({
           title: q.title,
           body: q.body,
@@ -114,13 +116,13 @@ export default function QuestionEditPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form || !id) return;
+    if (!form || !id || !questionTeamId) return;
     if (!validate()) return;
 
     setIsSubmitting(true);
     setSubmitError('');
     try {
-      await updateQuestion(id, {
+      await updateQuestion(questionTeamId, id, {
         title: form.title,
         body: form.body,
         answer: form.answer,

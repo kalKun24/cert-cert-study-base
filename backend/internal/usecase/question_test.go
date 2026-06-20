@@ -26,8 +26,16 @@ func newMockQuestionRepository() *mockQuestionRepository {
 }
 
 // newQuestionUseCase はテスト用の QuestionUseCase を生成します（teamRepo は team_test.go のモックを使用）。
+// callerID が testTeamID のメンバーとして登録された teamRepo を使います。
 func newQuestionUseCase(qRepo *mockQuestionRepository) *usecase.QuestionUseCase {
-	return usecase.NewQuestionUseCase(qRepo, newMockTeamRepository())
+	tRepo := newMockTeamRepository()
+	// testCallerID ("user-1") を testTeamID ("team-1") のメンバーとして登録
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{
+		TeamID: testTeamID,
+		UserID: testCallerID,
+		Role:   domain.MemberRoleMember,
+	})
+	return usecase.NewQuestionUseCase(qRepo, tRepo)
 }
 
 // addQuestion はテスト用の問題をモックに追加します。
@@ -42,10 +50,12 @@ func (m *mockQuestionRepository) FindByID(_ context.Context, id string) (*domain
 	return nil, domain.ErrQuestionNotFound
 }
 
-func (m *mockQuestionRepository) List(_ context.Context) ([]*domain.Question, error) {
-	questions := make([]*domain.Question, 0, len(m.questions))
+func (m *mockQuestionRepository) ListByTeam(_ context.Context, teamID string) ([]*domain.Question, error) {
+	questions := make([]*domain.Question, 0)
 	for _, q := range m.questions {
-		questions = append(questions, q)
+		if q.TeamID == teamID {
+			questions = append(questions, q)
+		}
 	}
 	return questions, nil
 }
@@ -71,9 +81,13 @@ func (m *mockQuestionRepository) FindByTagID(_ context.Context, tagID string) ([
 	return result, nil
 }
 
-func (m *mockQuestionRepository) Search(_ context.Context, filter domain.QuestionSearchFilter) ([]*domain.Question, error) {
+func (m *mockQuestionRepository) SearchByTeam(_ context.Context, teamID string, filter domain.QuestionSearchFilter) ([]*domain.Question, error) {
 	var result []*domain.Question
 	for _, q := range m.questions {
+		// チームIDフィルタ
+		if q.TeamID != teamID {
+			continue
+		}
 		// タグANDフィルタリング
 		if len(filter.TagIDs) > 0 {
 			tagSet := make(map[string]struct{}, len(q.Tags))
@@ -128,21 +142,25 @@ func (m *mockQuestionRepository) Delete(_ context.Context, id string) error {
 
 // --- テストヘルパー ---
 
-// testQuestion はテスト用の問題エンティティを生成します。
+// testQuestion はテスト用の問題エンティティを生成します（testTeamID に所属）。
 func testQuestion(id, title, createdBy string) *domain.Question {
 	return &domain.Question{
-		ID:               id,
-		Title:            title,
-		Body:             "## 問題\nテスト問題文",
-		Answer:           "## 解答\nテスト解答",
-		Explanation:      "## 解説\nテスト解説",
-		Memo:             "## メモ\nテストメモ",
-		Tags:             []string{"テスト"},
-		Status:           domain.QuestionStatusDraft,
-		VisibilityScope:  domain.VisibilityScopeAll,
-		PublishedTeamIDs: []string{},
-		CreatedBy:        createdBy,
+		ID:          id,
+		TeamID:      testTeamID,
+		Title:       title,
+		Body:        "## 問題\nテスト問題文",
+		Answer:      "## 解答\nテスト解答",
+		Explanation: "## 解説\nテスト解説",
+		Memo:        "## メモ\nテストメモ",
+		Tags:        []string{"テスト"},
+		Status:      domain.QuestionStatusDraft,
+		CreatedBy:   createdBy,
 	}
+}
+
+// newQuestionUseCaseWithTeam はチームとメンバーを自由に設定できる QuestionUseCase を生成します。
+func newQuestionUseCaseWithTeam(qRepo *mockQuestionRepository, tRepo *mockTeamRepository) *usecase.QuestionUseCase {
+	return usecase.NewQuestionUseCase(qRepo, tRepo)
 }
 
 // --- QuestionUseCase のテスト ---
@@ -152,8 +170,8 @@ func TestQuestionUseCase_CreateQuestion_Success(t *testing.T) {
 	repo := newMockQuestionRepository()
 	uc := newQuestionUseCase(repo)
 
-	q, err := uc.CreateQuestion(context.Background(), usecase.CreateQuestionInput{
-		CallerID:    "user-1",
+	q, err := uc.CreateQuestion(context.Background(), testTeamID, usecase.CreateQuestionInput{
+		CallerID:    testCallerID,
 		Title:       "テスト問題",
 		Body:        "## 問題\n問題文",
 		Answer:      "## 解答\n解答",
@@ -168,18 +186,55 @@ func TestQuestionUseCase_CreateQuestion_Success(t *testing.T) {
 	if q.Title != "テスト問題" {
 		t.Errorf("タイトルが期待値と異なります: got %s, want テスト問題", q.Title)
 	}
+	if q.TeamID != testTeamID {
+		t.Errorf("teamIDが期待値と異なります: got %s, want %s", q.TeamID, testTeamID)
+	}
 	// デフォルト値の確認
 	if q.Status != domain.QuestionStatusDraft {
 		t.Errorf("statusが期待値と異なります: got %s, want draft", q.Status)
 	}
-	if q.VisibilityScope != domain.VisibilityScopeAll {
-		t.Errorf("visibility_scopeが期待値と異なります: got %s, want all", q.VisibilityScope)
-	}
-	if q.CreatedBy != "user-1" {
-		t.Errorf("created_byが期待値と異なります: got %s, want user-1", q.CreatedBy)
+	if q.CreatedBy != testCallerID {
+		t.Errorf("created_byが期待値と異なります: got %s, want %s", q.CreatedBy, testCallerID)
 	}
 	if q.ID == "" {
 		t.Error("IDが生成されていません")
+	}
+}
+
+// TestQuestionUseCase_CreateQuestion_NonMemberDenied はチーム非メンバーが作成できないテストです。
+func TestQuestionUseCase_CreateQuestion_NonMemberDenied(t *testing.T) {
+	repo := newMockQuestionRepository()
+	uc := newQuestionUseCase(repo) // testCallerID のみメンバー登録済み
+
+	_, err := uc.CreateQuestion(context.Background(), testTeamID, usecase.CreateQuestionInput{
+		CallerID: "user-not-member",
+		Title:    "テスト問題",
+	})
+
+	if !errors.Is(err, domain.ErrMemberNotFound) {
+		t.Errorf("チーム非メンバーは 403 になるべきです: got %v, want %v", err, domain.ErrMemberNotFound)
+	}
+}
+
+// TestQuestionUseCase_CreateQuestion_AdminCanCreateWithoutMembership は admin がチーム非メンバーでも作成できるテストです。
+func TestQuestionUseCase_CreateQuestion_AdminCanCreateWithoutMembership(t *testing.T) {
+	repo := newMockQuestionRepository()
+	// admin-1 はどのチームにもメンバー登録されていない
+	tRepo := newMockTeamRepository()
+	uc := usecase.NewQuestionUseCase(repo, tRepo)
+
+	q, err := uc.CreateQuestion(context.Background(), testTeamID, usecase.CreateQuestionInput{
+		CallerID:   "admin-1",
+		CallerRole: domain.RoleAdmin,
+		Title:      "テスト問題",
+		Body:       "問題文",
+	})
+
+	if err != nil {
+		t.Errorf("admin はチーム非メンバーでも作成できるべきです: %v", err)
+	}
+	if q == nil || q.TeamID != testTeamID {
+		t.Errorf("作成された問題のチームIDが期待値と異なります")
 	}
 }
 
@@ -188,8 +243,8 @@ func TestQuestionUseCase_CreateQuestion_EmptyTitle(t *testing.T) {
 	repo := newMockQuestionRepository()
 	uc := newQuestionUseCase(repo)
 
-	_, err := uc.CreateQuestion(context.Background(), usecase.CreateQuestionInput{
-		CallerID: "user-1",
+	_, err := uc.CreateQuestion(context.Background(), testTeamID, usecase.CreateQuestionInput{
+		CallerID: testCallerID,
 		Title:    "", // 空タイトル
 		Body:     "問題文",
 	})
@@ -204,8 +259,8 @@ func TestQuestionUseCase_CreateQuestion_InvalidStatus(t *testing.T) {
 	repo := newMockQuestionRepository()
 	uc := newQuestionUseCase(repo)
 
-	_, err := uc.CreateQuestion(context.Background(), usecase.CreateQuestionInput{
-		CallerID: "user-1",
+	_, err := uc.CreateQuestion(context.Background(), testTeamID, usecase.CreateQuestionInput{
+		CallerID: testCallerID,
 		Title:    "テスト問題",
 		Status:   domain.QuestionStatus("invalid"),
 	})
@@ -215,36 +270,26 @@ func TestQuestionUseCase_CreateQuestion_InvalidStatus(t *testing.T) {
 	}
 }
 
-// TestQuestionUseCase_CreateQuestion_InvalidVisibilityScope は無効な公開範囲のテストです。
-func TestQuestionUseCase_CreateQuestion_InvalidVisibilityScope(t *testing.T) {
-	repo := newMockQuestionRepository()
-	uc := newQuestionUseCase(repo)
-
-	_, err := uc.CreateQuestion(context.Background(), usecase.CreateQuestionInput{
-		CallerID:        "user-1",
-		Title:           "テスト問題",
-		VisibilityScope: domain.VisibilityScope("invalid"),
-	})
-
-	if !errors.Is(err, domain.ErrInvalidVisibilityScope) {
-		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrInvalidVisibilityScope)
-	}
-}
-
 // TestQuestionUseCase_ListQuestions_Success は正常系の問題一覧取得テストです。
 // draft 問題は作成者本人のみ返ることを確認します。
 func TestQuestionUseCase_ListQuestions_Success(t *testing.T) {
 	repo := newMockQuestionRepository()
+	tRepo := newMockTeamRepository()
+
 	// user-1 が作成した draft 問題
-	repo.addQuestion(testQuestion("q-1", "問題1", "user-1"))
-	// user-2 が作成した draft 問題
+	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
+	// user-2 が作成した draft 問題（testTeamID に所属）
 	repo.addQuestion(testQuestion("q-2", "問題2", "user-2"))
 
-	uc := newQuestionUseCase(repo)
+	// testCallerID と "user-2" を team-1 のメンバーとして登録
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "user-2", Role: domain.MemberRoleMember})
 
-	// user-1 として取得 → 自分の draft のみ1件
-	questions, err := uc.ListQuestions(context.Background(), usecase.ListQuestionsInput{
-		CallerID:   "user-1",
+	uc := newQuestionUseCaseWithTeam(repo, tRepo)
+
+	// testCallerID として取得 → 自分の draft のみ1件（user-2 の draft は非表示）
+	questions, err := uc.ListQuestions(context.Background(), testTeamID, usecase.ListQuestionsInput{
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 	})
 	if err != nil {
@@ -255,23 +300,41 @@ func TestQuestionUseCase_ListQuestions_Success(t *testing.T) {
 	}
 }
 
-// TestQuestionUseCase_ListQuestions_AdminGetsAll は admin が全件取得できることのテストです。
-func TestQuestionUseCase_ListQuestions_AdminGetsAll(t *testing.T) {
+// TestQuestionUseCase_ListQuestions_NonMemberDenied はチーム非メンバーがアクセスできないテストです。
+func TestQuestionUseCase_ListQuestions_NonMemberDenied(t *testing.T) {
 	repo := newMockQuestionRepository()
-	repo.addQuestion(testQuestion("q-1", "問題1", "user-1"))
-	repo.addQuestion(testQuestion("q-2", "問題2", "user-2"))
+	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
 
-	uc := newQuestionUseCase(repo)
+	uc := newQuestionUseCase(repo) // testCallerID のみメンバー登録済み
 
-	questions, err := uc.ListQuestions(context.Background(), usecase.ListQuestionsInput{
+	_, err := uc.ListQuestions(context.Background(), testTeamID, usecase.ListQuestionsInput{
+		CallerID:   "user-not-member",
+		CallerRole: domain.RoleUser,
+	})
+	if !errors.Is(err, domain.ErrMemberNotFound) {
+		t.Errorf("チーム非メンバーは 403 になるべきです: got %v, want %v", err, domain.ErrMemberNotFound)
+	}
+}
+
+// TestQuestionUseCase_ListQuestions_AdminCanListWithoutMembership は admin がチーム非メンバーでも一覧取得できるテストです。
+func TestQuestionUseCase_ListQuestions_AdminCanListWithoutMembership(t *testing.T) {
+	repo := newMockQuestionRepository()
+	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
+
+	// admin はどのチームにもメンバー登録されていない
+	tRepo := newMockTeamRepository()
+	uc := usecase.NewQuestionUseCase(repo, tRepo)
+
+	questions, err := uc.ListQuestions(context.Background(), testTeamID, usecase.ListQuestionsInput{
 		CallerID:   "admin-1",
 		CallerRole: domain.RoleAdmin,
 	})
 	if err != nil {
-		t.Fatalf("問題一覧取得に失敗しました: %v", err)
+		t.Errorf("admin はチーム非メンバーでも一覧取得できるべきです: %v", err)
 	}
-	if len(questions) != 2 {
-		t.Errorf("取得件数が期待値と異なります: got %d, want 2", len(questions))
+	// admin は draft も含めて全件取得できる
+	if len(questions) != 1 {
+		t.Errorf("取得件数が期待値と異なります: got %d, want 1", len(questions))
 	}
 }
 
@@ -280,8 +343,8 @@ func TestQuestionUseCase_ListQuestions_Empty(t *testing.T) {
 	repo := newMockQuestionRepository()
 	uc := newQuestionUseCase(repo)
 
-	questions, err := uc.ListQuestions(context.Background(), usecase.ListQuestionsInput{
-		CallerID:   "user-1",
+	questions, err := uc.ListQuestions(context.Background(), testTeamID, usecase.ListQuestionsInput{
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 	})
 	if err != nil {
@@ -295,12 +358,12 @@ func TestQuestionUseCase_ListQuestions_Empty(t *testing.T) {
 // TestQuestionUseCase_GetQuestion_Success は正常系の問題詳細取得テストです（作成者本人）。
 func TestQuestionUseCase_GetQuestion_Success(t *testing.T) {
 	repo := newMockQuestionRepository()
-	repo.addQuestion(testQuestion("q-1", "問題1", "user-1"))
+	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
 
 	uc := newQuestionUseCase(repo)
 
-	q, err := uc.GetQuestion(context.Background(), "q-1", usecase.GetQuestionInput{
-		CallerID:   "user-1",
+	q, err := uc.GetQuestion(context.Background(), "q-1", testTeamID, usecase.GetQuestionInput{
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 	})
 	if err != nil {
@@ -316,8 +379,8 @@ func TestQuestionUseCase_GetQuestion_NotFound(t *testing.T) {
 	repo := newMockQuestionRepository()
 	uc := newQuestionUseCase(repo)
 
-	_, err := uc.GetQuestion(context.Background(), "nonexistent-id", usecase.GetQuestionInput{
-		CallerID:   "user-1",
+	_, err := uc.GetQuestion(context.Background(), "nonexistent-id", testTeamID, usecase.GetQuestionInput{
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 	})
 	if !errors.Is(err, domain.ErrQuestionNotFound) {
@@ -325,33 +388,73 @@ func TestQuestionUseCase_GetQuestion_NotFound(t *testing.T) {
 	}
 }
 
-// TestQuestionUseCase_GetQuestion_VisibilityDenied は閲覧不可の問題取得が404になるテストです。
-func TestQuestionUseCase_GetQuestion_VisibilityDenied(t *testing.T) {
+// TestQuestionUseCase_GetQuestion_TeamMismatch は別チームの問題取得が404になるテストです。
+func TestQuestionUseCase_GetQuestion_TeamMismatch(t *testing.T) {
 	repo := newMockQuestionRepository()
-	// user-1 が作成した draft 問題（user-2 からは見えない）
-	repo.addQuestion(testQuestion("q-1", "問題1", "user-1"))
+	// q-1 は team-2 に所属（testTeamID = "team-1" ではない）
+	q := testQuestion("q-1", "問題1", testCallerID)
+	q.TeamID = "team-2"
+	repo.addQuestion(q)
 
 	uc := newQuestionUseCase(repo)
 
-	_, err := uc.GetQuestion(context.Background(), "q-1", usecase.GetQuestionInput{
+	_, err := uc.GetQuestion(context.Background(), "q-1", testTeamID, usecase.GetQuestionInput{
+		CallerID:   testCallerID,
+		CallerRole: domain.RoleUser,
+	})
+	if !errors.Is(err, domain.ErrQuestionNotFound) {
+		t.Errorf("チーム不一致の場合は404になるべきです: got %v, want %v", err, domain.ErrQuestionNotFound)
+	}
+}
+
+// TestQuestionUseCase_GetQuestion_DraftVisibilityDenied は draft 問題が作成者以外から見えないテストです。
+func TestQuestionUseCase_GetQuestion_DraftVisibilityDenied(t *testing.T) {
+	repo := newMockQuestionRepository()
+	// user-1 が作成した draft 問題（testCallerID からは見える、user-2 からは見えない）
+	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
+
+	tRepo := newMockTeamRepository()
+	// testCallerID と "user-2" を両方メンバーとして登録
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "user-2", Role: domain.MemberRoleMember})
+
+	uc := newQuestionUseCaseWithTeam(repo, tRepo)
+
+	_, err := uc.GetQuestion(context.Background(), "q-1", testTeamID, usecase.GetQuestionInput{
 		CallerID:   "user-2",
 		CallerRole: domain.RoleUser,
 	})
 	if !errors.Is(err, domain.ErrQuestionNotFound) {
-		t.Errorf("閲覧不可の問題は404になるべきです: got %v, want %v", err, domain.ErrQuestionNotFound)
+		t.Errorf("draft 問題は作成者以外には404になるべきです: got %v, want %v", err, domain.ErrQuestionNotFound)
+	}
+}
+
+// TestQuestionUseCase_GetQuestion_NonMemberDenied はチーム非メンバーが取得できないテストです。
+func TestQuestionUseCase_GetQuestion_NonMemberDenied(t *testing.T) {
+	repo := newMockQuestionRepository()
+	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
+
+	uc := newQuestionUseCase(repo) // testCallerID のみメンバー登録済み
+
+	_, err := uc.GetQuestion(context.Background(), "q-1", testTeamID, usecase.GetQuestionInput{
+		CallerID:   "user-not-member",
+		CallerRole: domain.RoleUser,
+	})
+	if !errors.Is(err, domain.ErrMemberNotFound) {
+		t.Errorf("チーム非メンバーは 403 になるべきです: got %v, want %v", err, domain.ErrMemberNotFound)
 	}
 }
 
 // TestQuestionUseCase_UpdateQuestion_ByOwner は作成者本人による問題更新テストです。
 func TestQuestionUseCase_UpdateQuestion_ByOwner(t *testing.T) {
 	repo := newMockQuestionRepository()
-	repo.addQuestion(testQuestion("q-1", "元のタイトル", "user-1"))
+	repo.addQuestion(testQuestion("q-1", "元のタイトル", testCallerID))
 
 	uc := newQuestionUseCase(repo)
 
 	newTitle := "更新後のタイトル"
-	q, err := uc.UpdateQuestion(context.Background(), "q-1", usecase.UpdateQuestionInput{
-		CallerID:   "user-1", // 作成者本人
+	q, err := uc.UpdateQuestion(context.Background(), "q-1", testTeamID, usecase.UpdateQuestionInput{
+		CallerID:   testCallerID, // 作成者本人
 		CallerRole: domain.RoleUser,
 		Title:      &newTitle,
 	})
@@ -364,16 +467,21 @@ func TestQuestionUseCase_UpdateQuestion_ByOwner(t *testing.T) {
 	}
 }
 
-// TestQuestionUseCase_UpdateQuestion_ByAdmin は admin ロールによる問題更新テストです。
+// TestQuestionUseCase_UpdateQuestion_ByAdmin は admin ロールによる問題更新テストです（チームメンバーである前提）。
 func TestQuestionUseCase_UpdateQuestion_ByAdmin(t *testing.T) {
 	repo := newMockQuestionRepository()
-	repo.addQuestion(testQuestion("q-1", "元のタイトル", "user-1"))
+	repo.addQuestion(testQuestion("q-1", "元のタイトル", testCallerID))
 
-	uc := newQuestionUseCase(repo)
+	tRepo := newMockTeamRepository()
+	// testCallerID と "admin-1" を両方メンバーとして登録
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "admin-1", Role: domain.MemberRoleMember})
+
+	uc := newQuestionUseCaseWithTeam(repo, tRepo)
 
 	newTitle := "adminが更新"
-	q, err := uc.UpdateQuestion(context.Background(), "q-1", usecase.UpdateQuestionInput{
-		CallerID:   "admin-1", // 別ユーザーだが admin ロール
+	q, err := uc.UpdateQuestion(context.Background(), "q-1", testTeamID, usecase.UpdateQuestionInput{
+		CallerID:   "admin-1", // チームメンバーかつ admin ロール
 		CallerRole: domain.RoleAdmin,
 		Title:      &newTitle,
 	})
@@ -386,16 +494,46 @@ func TestQuestionUseCase_UpdateQuestion_ByAdmin(t *testing.T) {
 	}
 }
 
+// TestQuestionUseCase_UpdateQuestion_AdminCanUpdateWithoutMembership は admin がチーム非メンバーでも更新できるテストです。
+func TestQuestionUseCase_UpdateQuestion_AdminCanUpdateWithoutMembership(t *testing.T) {
+	repo := newMockQuestionRepository()
+	repo.addQuestion(testQuestion("q-1", "元のタイトル", testCallerID))
+
+	// admin-1 はどのチームにもメンバー登録されていない
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	uc := newQuestionUseCaseWithTeam(repo, tRepo)
+
+	newTitle := "adminが更新"
+	q, err := uc.UpdateQuestion(context.Background(), "q-1", testTeamID, usecase.UpdateQuestionInput{
+		CallerID:   "admin-1",
+		CallerRole: domain.RoleAdmin,
+		Title:      &newTitle,
+	})
+
+	if err != nil {
+		t.Errorf("admin はチーム非メンバーでも更新できるべきです: %v", err)
+	}
+	if q != nil && q.Title != newTitle {
+		t.Errorf("タイトルが更新されていません: got %s, want %s", q.Title, newTitle)
+	}
+}
+
 // TestQuestionUseCase_UpdateQuestion_PermissionDenied は権限のないユーザーによる更新テストです。
 func TestQuestionUseCase_UpdateQuestion_PermissionDenied(t *testing.T) {
 	repo := newMockQuestionRepository()
-	repo.addQuestion(testQuestion("q-1", "問題1", "user-1"))
+	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
 
-	uc := newQuestionUseCase(repo)
+	tRepo := newMockTeamRepository()
+	// testCallerID と "user-2" を両方メンバーとして登録
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "user-2", Role: domain.MemberRoleMember})
+
+	uc := newQuestionUseCaseWithTeam(repo, tRepo)
 
 	newTitle := "不正な更新"
-	_, err := uc.UpdateQuestion(context.Background(), "q-1", usecase.UpdateQuestionInput{
-		CallerID:   "user-2", // 作成者でも admin でもない
+	_, err := uc.UpdateQuestion(context.Background(), "q-1", testTeamID, usecase.UpdateQuestionInput{
+		CallerID:   "user-2", // チームメンバーだが作成者でも admin でもない
 		CallerRole: domain.RoleUser,
 		Title:      &newTitle,
 	})
@@ -411,8 +549,8 @@ func TestQuestionUseCase_UpdateQuestion_NotFound(t *testing.T) {
 	uc := newQuestionUseCase(repo)
 
 	title := "更新"
-	_, err := uc.UpdateQuestion(context.Background(), "nonexistent-id", usecase.UpdateQuestionInput{
-		CallerID:   "user-1",
+	_, err := uc.UpdateQuestion(context.Background(), "nonexistent-id", testTeamID, usecase.UpdateQuestionInput{
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 		Title:      &title,
 	})
@@ -425,13 +563,13 @@ func TestQuestionUseCase_UpdateQuestion_NotFound(t *testing.T) {
 // TestQuestionUseCase_UpdateQuestion_EmptyTitle はタイトルを空にする更新テストです。
 func TestQuestionUseCase_UpdateQuestion_EmptyTitle(t *testing.T) {
 	repo := newMockQuestionRepository()
-	repo.addQuestion(testQuestion("q-1", "問題1", "user-1"))
+	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
 
 	uc := newQuestionUseCase(repo)
 
 	emptyTitle := ""
-	_, err := uc.UpdateQuestion(context.Background(), "q-1", usecase.UpdateQuestionInput{
-		CallerID:   "user-1",
+	_, err := uc.UpdateQuestion(context.Background(), "q-1", testTeamID, usecase.UpdateQuestionInput{
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 		Title:      &emptyTitle,
 	})
@@ -444,11 +582,11 @@ func TestQuestionUseCase_UpdateQuestion_EmptyTitle(t *testing.T) {
 // TestQuestionUseCase_DeleteQuestion_ByOwner は作成者本人による問題削除テストです。
 func TestQuestionUseCase_DeleteQuestion_ByOwner(t *testing.T) {
 	repo := newMockQuestionRepository()
-	repo.addQuestion(testQuestion("q-1", "問題1", "user-1"))
+	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
 
 	uc := newQuestionUseCase(repo)
 
-	err := uc.DeleteQuestion(context.Background(), "q-1", "user-1", domain.RoleUser)
+	err := uc.DeleteQuestion(context.Background(), "q-1", testTeamID, testCallerID, domain.RoleUser)
 	if err != nil {
 		t.Fatalf("問題削除に失敗しました: %v", err)
 	}
@@ -460,27 +598,53 @@ func TestQuestionUseCase_DeleteQuestion_ByOwner(t *testing.T) {
 	}
 }
 
-// TestQuestionUseCase_DeleteQuestion_ByAdmin は admin ロールによる問題削除テストです。
+// TestQuestionUseCase_DeleteQuestion_ByAdmin は admin ロールによる問題削除テストです（チームメンバーである前提）。
 func TestQuestionUseCase_DeleteQuestion_ByAdmin(t *testing.T) {
 	repo := newMockQuestionRepository()
-	repo.addQuestion(testQuestion("q-1", "問題1", "user-1"))
+	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
 
-	uc := newQuestionUseCase(repo)
+	tRepo := newMockTeamRepository()
+	// testCallerID と "admin-1" を両方メンバーとして登録
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "admin-1", Role: domain.MemberRoleMember})
 
-	err := uc.DeleteQuestion(context.Background(), "q-1", "admin-1", domain.RoleAdmin)
+	uc := newQuestionUseCaseWithTeam(repo, tRepo)
+
+	err := uc.DeleteQuestion(context.Background(), "q-1", testTeamID, "admin-1", domain.RoleAdmin)
 	if err != nil {
 		t.Fatalf("問題削除に失敗しました: %v", err)
+	}
+}
+
+// TestQuestionUseCase_DeleteQuestion_AdminCanDeleteWithoutMembership は admin がチーム非メンバーでも削除できるテストです。
+func TestQuestionUseCase_DeleteQuestion_AdminCanDeleteWithoutMembership(t *testing.T) {
+	repo := newMockQuestionRepository()
+	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
+
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+
+	uc := newQuestionUseCaseWithTeam(repo, tRepo)
+
+	err := uc.DeleteQuestion(context.Background(), "q-1", testTeamID, "admin-1", domain.RoleAdmin)
+	if err != nil {
+		t.Errorf("admin はチーム非メンバーでも削除できるべきです: %v", err)
 	}
 }
 
 // TestQuestionUseCase_DeleteQuestion_PermissionDenied は権限のないユーザーによる削除テストです。
 func TestQuestionUseCase_DeleteQuestion_PermissionDenied(t *testing.T) {
 	repo := newMockQuestionRepository()
-	repo.addQuestion(testQuestion("q-1", "問題1", "user-1"))
+	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
 
-	uc := newQuestionUseCase(repo)
+	tRepo := newMockTeamRepository()
+	// testCallerID と "user-2" を両方メンバーとして登録
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "user-2", Role: domain.MemberRoleMember})
 
-	err := uc.DeleteQuestion(context.Background(), "q-1", "user-2", domain.RoleUser)
+	uc := newQuestionUseCaseWithTeam(repo, tRepo)
+
+	err := uc.DeleteQuestion(context.Background(), "q-1", testTeamID, "user-2", domain.RoleUser)
 	if !errors.Is(err, domain.ErrPermissionDenied) {
 		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrPermissionDenied)
 	}
@@ -491,7 +655,7 @@ func TestQuestionUseCase_DeleteQuestion_NotFound(t *testing.T) {
 	repo := newMockQuestionRepository()
 	uc := newQuestionUseCase(repo)
 
-	err := uc.DeleteQuestion(context.Background(), "nonexistent-id", "user-1", domain.RoleUser)
+	err := uc.DeleteQuestion(context.Background(), "nonexistent-id", testTeamID, testCallerID, domain.RoleUser)
 	if !errors.Is(err, domain.ErrQuestionNotFound) {
 		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrQuestionNotFound)
 	}
@@ -499,28 +663,17 @@ func TestQuestionUseCase_DeleteQuestion_NotFound(t *testing.T) {
 
 // --- UpdateQuestionVisibility のテスト ---
 
-// testPublishedQuestion は公開済みの問題エンティティを生成します（テストヘルパー）。
-func testPublishedQuestion(id, createdBy string, scope domain.VisibilityScope, teamIDs []string) *domain.Question {
-	q := testQuestion(id, "公開問題", createdBy)
-	q.Status = domain.QuestionStatusPublished
-	q.VisibilityScope = scope
-	q.PublishedTeamIDs = teamIDs
-	return q
-}
-
 // TestQuestionUseCase_UpdateQuestionVisibility_ByOwner は作成者による公開設定変更テストです。
 func TestQuestionUseCase_UpdateQuestionVisibility_ByOwner(t *testing.T) {
 	repo := newMockQuestionRepository()
-	repo.addQuestion(testQuestion("q-1", "問題1", "user-1"))
+	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
 
 	uc := newQuestionUseCase(repo)
 
-	vs := domain.VisibilityScopeAll
-	q, err := uc.UpdateQuestionVisibility(context.Background(), "q-1", usecase.UpdateQuestionVisibilityInput{
-		CallerID:        "user-1",
-		CallerRole:      domain.RoleUser,
-		Status:          domain.QuestionStatusPublished,
-		VisibilityScope: &vs,
+	q, err := uc.UpdateQuestionVisibility(context.Background(), "q-1", testTeamID, usecase.UpdateQuestionVisibilityInput{
+		CallerID:   testCallerID,
+		CallerRole: domain.RoleUser,
+		Status:     domain.QuestionStatusPublished,
 	})
 
 	if err != nil {
@@ -529,19 +682,20 @@ func TestQuestionUseCase_UpdateQuestionVisibility_ByOwner(t *testing.T) {
 	if q.Status != domain.QuestionStatusPublished {
 		t.Errorf("statusが期待値と異なります: got %s, want published", q.Status)
 	}
-	if q.VisibilityScope != domain.VisibilityScopeAll {
-		t.Errorf("visibility_scopeが期待値と異なります: got %s, want all", q.VisibilityScope)
-	}
 }
 
-// TestQuestionUseCase_UpdateQuestionVisibility_ByAdmin は admin による公開設定変更テストです。
+// TestQuestionUseCase_UpdateQuestionVisibility_ByAdmin は admin による公開設定変更テストです（チームメンバーである前提）。
 func TestQuestionUseCase_UpdateQuestionVisibility_ByAdmin(t *testing.T) {
 	repo := newMockQuestionRepository()
-	repo.addQuestion(testQuestion("q-1", "問題1", "user-1"))
+	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
 
-	uc := newQuestionUseCase(repo)
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "admin-1", Role: domain.MemberRoleMember})
 
-	q, err := uc.UpdateQuestionVisibility(context.Background(), "q-1", usecase.UpdateQuestionVisibilityInput{
+	uc := newQuestionUseCaseWithTeam(repo, tRepo)
+
+	q, err := uc.UpdateQuestionVisibility(context.Background(), "q-1", testTeamID, usecase.UpdateQuestionVisibilityInput{
 		CallerID:   "admin-1",
 		CallerRole: domain.RoleAdmin,
 		Status:     domain.QuestionStatusPrivate,
@@ -555,15 +709,43 @@ func TestQuestionUseCase_UpdateQuestionVisibility_ByAdmin(t *testing.T) {
 	}
 }
 
+// TestQuestionUseCase_UpdateQuestionVisibility_AdminCanUpdateWithoutMembership は admin がチーム非メンバーでも変更できるテストです。
+func TestQuestionUseCase_UpdateQuestionVisibility_AdminCanUpdateWithoutMembership(t *testing.T) {
+	repo := newMockQuestionRepository()
+	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
+
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+
+	uc := newQuestionUseCaseWithTeam(repo, tRepo)
+
+	q, err := uc.UpdateQuestionVisibility(context.Background(), "q-1", testTeamID, usecase.UpdateQuestionVisibilityInput{
+		CallerID:   "admin-1",
+		CallerRole: domain.RoleAdmin,
+		Status:     domain.QuestionStatusPublished,
+	})
+
+	if err != nil {
+		t.Errorf("admin はチーム非メンバーでも変更できるべきです: %v", err)
+	}
+	if q != nil && q.Status != domain.QuestionStatusPublished {
+		t.Errorf("statusが期待値と異なります: got %s, want published", q.Status)
+	}
+}
+
 // TestQuestionUseCase_UpdateQuestionVisibility_PermissionDenied は権限のないユーザーによる変更テストです。
 func TestQuestionUseCase_UpdateQuestionVisibility_PermissionDenied(t *testing.T) {
 	repo := newMockQuestionRepository()
-	repo.addQuestion(testQuestion("q-1", "問題1", "user-1"))
+	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
 
-	uc := newQuestionUseCase(repo)
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "user-2", Role: domain.MemberRoleMember})
 
-	_, err := uc.UpdateQuestionVisibility(context.Background(), "q-1", usecase.UpdateQuestionVisibilityInput{
-		CallerID:   "user-2", // 作成者でも admin でもない
+	uc := newQuestionUseCaseWithTeam(repo, tRepo)
+
+	_, err := uc.UpdateQuestionVisibility(context.Background(), "q-1", testTeamID, usecase.UpdateQuestionVisibilityInput{
+		CallerID:   "user-2", // チームメンバーだが作成者でも admin でもない
 		CallerRole: domain.RoleUser,
 		Status:     domain.QuestionStatusPublished,
 	})
@@ -578,8 +760,8 @@ func TestQuestionUseCase_UpdateQuestionVisibility_NotFound(t *testing.T) {
 	repo := newMockQuestionRepository()
 	uc := newQuestionUseCase(repo)
 
-	_, err := uc.UpdateQuestionVisibility(context.Background(), "nonexistent-id", usecase.UpdateQuestionVisibilityInput{
-		CallerID:   "user-1",
+	_, err := uc.UpdateQuestionVisibility(context.Background(), "nonexistent-id", testTeamID, usecase.UpdateQuestionVisibilityInput{
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 		Status:     domain.QuestionStatusPublished,
 	})
@@ -592,12 +774,12 @@ func TestQuestionUseCase_UpdateQuestionVisibility_NotFound(t *testing.T) {
 // TestQuestionUseCase_UpdateQuestionVisibility_InvalidStatus は無効なステータスのテストです。
 func TestQuestionUseCase_UpdateQuestionVisibility_InvalidStatus(t *testing.T) {
 	repo := newMockQuestionRepository()
-	repo.addQuestion(testQuestion("q-1", "問題1", "user-1"))
+	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
 
 	uc := newQuestionUseCase(repo)
 
-	_, err := uc.UpdateQuestionVisibility(context.Background(), "q-1", usecase.UpdateQuestionVisibilityInput{
-		CallerID:   "user-1",
+	_, err := uc.UpdateQuestionVisibility(context.Background(), "q-1", testTeamID, usecase.UpdateQuestionVisibilityInput{
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 		Status:     domain.QuestionStatus("invalid"),
 	})
@@ -607,68 +789,31 @@ func TestQuestionUseCase_UpdateQuestionVisibility_InvalidStatus(t *testing.T) {
 	}
 }
 
-// TestQuestionUseCase_UpdateQuestionVisibility_InvalidScope は無効な公開範囲のテストです。
-func TestQuestionUseCase_UpdateQuestionVisibility_InvalidScope(t *testing.T) {
-	repo := newMockQuestionRepository()
-	repo.addQuestion(testQuestion("q-1", "問題1", "user-1"))
-
-	uc := newQuestionUseCase(repo)
-
-	vs := domain.VisibilityScope("invalid")
-	_, err := uc.UpdateQuestionVisibility(context.Background(), "q-1", usecase.UpdateQuestionVisibilityInput{
-		CallerID:        "user-1",
-		CallerRole:      domain.RoleUser,
-		Status:          domain.QuestionStatusPublished,
-		VisibilityScope: &vs,
-	})
-
-	if !errors.Is(err, domain.ErrInvalidVisibilityScope) {
-		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrInvalidVisibilityScope)
-	}
-}
-
-// TestQuestionUseCase_UpdateQuestionVisibility_TeamScope はチーム公開設定のテストです。
-func TestQuestionUseCase_UpdateQuestionVisibility_TeamScope(t *testing.T) {
-	repo := newMockQuestionRepository()
-	repo.addQuestion(testQuestion("q-1", "問題1", "user-1"))
-
-	uc := newQuestionUseCase(repo)
-
-	vs := domain.VisibilityScopeTeam
-	teamIDs := []string{"team-1", "team-2"}
-	q, err := uc.UpdateQuestionVisibility(context.Background(), "q-1", usecase.UpdateQuestionVisibilityInput{
-		CallerID:            "user-1",
-		CallerRole:          domain.RoleUser,
-		Status:              domain.QuestionStatusPublished,
-		VisibilityScope:     &vs,
-		PublishedTeamIDs:    teamIDs,
-		PublishedTeamIDsSet: true,
-	})
-
-	if err != nil {
-		t.Fatalf("公開設定変更に失敗しました: %v", err)
-	}
-	if q.VisibilityScope != domain.VisibilityScopeTeam {
-		t.Errorf("visibility_scopeが期待値と異なります: got %s, want team", q.VisibilityScope)
-	}
-	if len(q.PublishedTeamIDs) != 2 {
-		t.Errorf("published_team_ids の件数が期待値と異なります: got %d, want 2", len(q.PublishedTeamIDs))
-	}
-}
-
 // --- ListQuestions 可視性フィルタリングのテスト ---
 
-// TestQuestionUseCase_ListQuestions_PublishedAll は全公開問題が全ユーザーに返るテストです。
-func TestQuestionUseCase_ListQuestions_PublishedAll(t *testing.T) {
+// testPublishedQuestion は公開済みの問題エンティティを生成します（testTeamID に所属）。
+func testPublishedQuestion(id, createdBy string) *domain.Question {
+	q := testQuestion(id, "公開問題", createdBy)
+	q.Status = domain.QuestionStatusPublished
+	return q
+}
+
+// TestQuestionUseCase_ListQuestions_PublishedVisibleToAllMembers は
+// published 問題がチームメンバー全員に返るテストです。
+func TestQuestionUseCase_ListQuestions_PublishedVisibleToAllMembers(t *testing.T) {
 	repo := newMockQuestionRepository()
-	// user-1 が公開した問題（全体公開）
-	q := testPublishedQuestion("q-1", "user-1", domain.VisibilityScopeAll, []string{})
-	repo.addQuestion(q)
+	// testCallerID が作成した published 問題
+	repo.addQuestion(testPublishedQuestion("q-1", testCallerID))
 
-	uc := newQuestionUseCase(repo)
+	tRepo := newMockTeamRepository()
+	// testCallerID と "user-2" を両方メンバーとして登録
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "user-2", Role: domain.MemberRoleMember})
 
-	// user-2 として取得 → 全体公開なので見える
-	questions, err := uc.ListQuestions(context.Background(), usecase.ListQuestionsInput{
+	uc := newQuestionUseCaseWithTeam(repo, tRepo)
+
+	// user-2 として取得 → published なので見える
+	questions, err := uc.ListQuestions(context.Background(), testTeamID, usecase.ListQuestionsInput{
 		CallerID:   "user-2",
 		CallerRole: domain.RoleUser,
 	})
@@ -677,70 +822,23 @@ func TestQuestionUseCase_ListQuestions_PublishedAll(t *testing.T) {
 	}
 	if len(questions) != 1 {
 		t.Errorf("取得件数が期待値と異なります: got %d, want 1", len(questions))
-	}
-}
-
-// TestQuestionUseCase_ListQuestions_PublishedTeam_Visible はチームメンバーにチーム公開問題が返るテストです。
-func TestQuestionUseCase_ListQuestions_PublishedTeam_Visible(t *testing.T) {
-	qRepo := newMockQuestionRepository()
-	tRepo := newMockTeamRepository()
-
-	// user-1 が team-1 に公開した問題
-	q := testPublishedQuestion("q-1", "user-1", domain.VisibilityScopeTeam, []string{"team-1"})
-	qRepo.addQuestion(q)
-
-	// user-2 が team-1 のオーナー
-	tRepo.addTeam(&domain.Team{ID: "team-1", Name: "チーム1", OwnerID: "user-2"})
-
-	uc := usecase.NewQuestionUseCase(qRepo, tRepo)
-
-	// user-2 として取得 → team-1 のオーナーなので見える
-	questions, err := uc.ListQuestions(context.Background(), usecase.ListQuestionsInput{
-		CallerID:   "user-2",
-		CallerRole: domain.RoleUser,
-	})
-	if err != nil {
-		t.Fatalf("問題一覧取得に失敗しました: %v", err)
-	}
-	if len(questions) != 1 {
-		t.Errorf("取得件数が期待値と異なります: got %d, want 1", len(questions))
-	}
-}
-
-// TestQuestionUseCase_ListQuestions_PublishedTeam_NotVisible はチーム非所属ユーザーにチーム公開問題が返らないテストです。
-func TestQuestionUseCase_ListQuestions_PublishedTeam_NotVisible(t *testing.T) {
-	qRepo := newMockQuestionRepository()
-	tRepo := newMockTeamRepository()
-
-	// user-1 が team-1 に公開した問題
-	q := testPublishedQuestion("q-1", "user-1", domain.VisibilityScopeTeam, []string{"team-1"})
-	qRepo.addQuestion(q)
-
-	// user-3 はどのチームにも所属していない
-	uc := usecase.NewQuestionUseCase(qRepo, tRepo)
-
-	questions, err := uc.ListQuestions(context.Background(), usecase.ListQuestionsInput{
-		CallerID:   "user-3",
-		CallerRole: domain.RoleUser,
-	})
-	if err != nil {
-		t.Fatalf("問題一覧取得に失敗しました: %v", err)
-	}
-	if len(questions) != 0 {
-		t.Errorf("チーム非所属ユーザーには見えないはずです: got %d, want 0", len(questions))
 	}
 }
 
 // TestQuestionUseCase_ListQuestions_DraftOnlyOwner は draft 問題が作成者のみに返るテストです。
 func TestQuestionUseCase_ListQuestions_DraftOnlyOwner(t *testing.T) {
 	repo := newMockQuestionRepository()
-	// user-1 の draft 問題
-	repo.addQuestion(testQuestion("q-1", "問題1", "user-1"))
+	// testCallerID の draft 問題
+	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
 
-	uc := newQuestionUseCase(repo)
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "user-2", Role: domain.MemberRoleMember})
+
+	uc := newQuestionUseCaseWithTeam(repo, tRepo)
 
 	// user-2 には返らない
-	questions, err := uc.ListQuestions(context.Background(), usecase.ListQuestionsInput{
+	questions, err := uc.ListQuestions(context.Background(), testTeamID, usecase.ListQuestionsInput{
 		CallerID:   "user-2",
 		CallerRole: domain.RoleUser,
 	})
@@ -751,9 +849,9 @@ func TestQuestionUseCase_ListQuestions_DraftOnlyOwner(t *testing.T) {
 		t.Errorf("draft 問題は作成者以外には見えないはずです: got %d, want 0", len(questions))
 	}
 
-	// user-1 には返る
-	questions, err = uc.ListQuestions(context.Background(), usecase.ListQuestionsInput{
-		CallerID:   "user-1",
+	// testCallerID には返る
+	questions, err = uc.ListQuestions(context.Background(), testTeamID, usecase.ListQuestionsInput{
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 	})
 	if err != nil {
@@ -764,82 +862,21 @@ func TestQuestionUseCase_ListQuestions_DraftOnlyOwner(t *testing.T) {
 	}
 }
 
-// TestQuestionUseCase_ListQuestions_PublishedTeam_MemberVisible は
-// TeamMember レコード経由で追加されたメンバーにチーム公開問題が返るテストです（指摘 #2 対応）。
-func TestQuestionUseCase_ListQuestions_PublishedTeam_MemberVisible(t *testing.T) {
-	qRepo := newMockQuestionRepository()
-	tRepo := newMockTeamRepository()
-
-	// user-1 が team-1 に公開した問題
-	q := testPublishedQuestion("q-1", "user-1", domain.VisibilityScopeTeam, []string{"team-1"})
-	qRepo.addQuestion(q)
-
-	// team-1 を登録（オーナーは user-1 自身）
-	tRepo.addTeam(&domain.Team{ID: "team-1", Name: "チーム1", OwnerID: "user-1"})
-
-	// user-3 を team-1 の TeamMember として追加（オーナーではなくメンバー）
-	tRepo.members = append(tRepo.members, domain.TeamMember{TeamID: "team-1", UserID: "user-3"})
-
-	uc := usecase.NewQuestionUseCase(qRepo, tRepo)
-
-	// user-3 として取得 → team-1 のメンバーなので見える
-	questions, err := uc.ListQuestions(context.Background(), usecase.ListQuestionsInput{
-		CallerID:   "user-3",
-		CallerRole: domain.RoleUser,
-	})
-	if err != nil {
-		t.Fatalf("問題一覧取得に失敗しました: %v", err)
-	}
-	if len(questions) != 1 {
-		t.Errorf("チームメンバーには公開問題が見えるはずです: got %d, want 1", len(questions))
-	}
-}
-
-// TestQuestionUseCase_ListQuestions_PublishedTeam_NonMemberNotVisible は
-// team-1 に所属していないユーザーにはチーム公開問題が返らないテストです（指摘 #2 対応）。
-func TestQuestionUseCase_ListQuestions_PublishedTeam_NonMemberNotVisible(t *testing.T) {
-	qRepo := newMockQuestionRepository()
-	tRepo := newMockTeamRepository()
-
-	// user-1 が team-1 に公開した問題
-	q := testPublishedQuestion("q-1", "user-1", domain.VisibilityScopeTeam, []string{"team-1"})
-	qRepo.addQuestion(q)
-
-	// team-1 を登録（user-3 はメンバーとして追加しない）
-	tRepo.addTeam(&domain.Team{ID: "team-1", Name: "チーム1", OwnerID: "user-1"})
-	tRepo.members = append(tRepo.members, domain.TeamMember{TeamID: "team-1", UserID: "user-3"})
-
-	// user-4 は team-1 に所属していない
-	uc := usecase.NewQuestionUseCase(qRepo, tRepo)
-
-	questions, err := uc.ListQuestions(context.Background(), usecase.ListQuestionsInput{
-		CallerID:   "user-4",
-		CallerRole: domain.RoleUser,
-	})
-	if err != nil {
-		t.Fatalf("問題一覧取得に失敗しました: %v", err)
-	}
-	if len(questions) != 0 {
-		t.Errorf("チーム非所属ユーザーには見えないはずです: got %d, want 0", len(questions))
-	}
-}
-
 // --- SearchQuestions のテスト ---
 
-// testPublishedQuestionWithFields はキーワード検索テスト用の公開問題エンティティを生成します。
+// testPublishedQuestionWithFields はキーワード検索テスト用の公開問題エンティティを生成します（testTeamID に所属）。
 func testPublishedQuestionWithFields(id, title, body, explanation, memo string, tags []string) *domain.Question {
 	return &domain.Question{
-		ID:               id,
-		Title:            title,
-		Body:             body,
-		Answer:           "## 解答\nテスト解答",
-		Explanation:      explanation,
-		Memo:             memo,
-		Tags:             tags,
-		Status:           domain.QuestionStatusPublished,
-		VisibilityScope:  domain.VisibilityScopeAll,
-		PublishedTeamIDs: []string{},
-		CreatedBy:        "user-1",
+		ID:          id,
+		TeamID:      testTeamID,
+		Title:       title,
+		Body:        body,
+		Answer:      "## 解答\nテスト解答",
+		Explanation: explanation,
+		Memo:        memo,
+		Tags:        tags,
+		Status:      domain.QuestionStatusPublished,
+		CreatedBy:   testCallerID,
 	}
 }
 
@@ -851,8 +888,8 @@ func TestQuestionUseCase_SearchQuestions_NoFilter(t *testing.T) {
 
 	uc := newQuestionUseCase(repo)
 
-	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
-		CallerID:   "user-1",
+	result, err := uc.SearchQuestions(context.Background(), testTeamID, usecase.SearchQuestionsInput{
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 		Page:       1,
 		PerPage:    20,
@@ -868,6 +905,24 @@ func TestQuestionUseCase_SearchQuestions_NoFilter(t *testing.T) {
 	}
 }
 
+// TestQuestionUseCase_SearchQuestions_NonMemberDenied はチーム非メンバーが検索できないテストです。
+func TestQuestionUseCase_SearchQuestions_NonMemberDenied(t *testing.T) {
+	repo := newMockQuestionRepository()
+	repo.addQuestion(testPublishedQuestionWithFields("q-1", "問題1", "本文1", "解説1", "メモ1", []string{}))
+
+	uc := newQuestionUseCase(repo) // testCallerID のみメンバー登録済み
+
+	_, err := uc.SearchQuestions(context.Background(), testTeamID, usecase.SearchQuestionsInput{
+		CallerID:   "user-not-member",
+		CallerRole: domain.RoleUser,
+		Page:       1,
+		PerPage:    20,
+	})
+	if !errors.Is(err, domain.ErrMemberNotFound) {
+		t.Errorf("チーム非メンバーは 403 になるべきです: got %v, want %v", err, domain.ErrMemberNotFound)
+	}
+}
+
 // TestQuestionUseCase_SearchQuestions_TagFilter はタグIDでフィルタリングするテストです。
 func TestQuestionUseCase_SearchQuestions_TagFilter(t *testing.T) {
 	repo := newMockQuestionRepository()
@@ -878,8 +933,8 @@ func TestQuestionUseCase_SearchQuestions_TagFilter(t *testing.T) {
 	uc := newQuestionUseCase(repo)
 
 	// tag-2 のみ指定 → q-1, q-2 の2件
-	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
-		CallerID:   "user-1",
+	result, err := uc.SearchQuestions(context.Background(), testTeamID, usecase.SearchQuestionsInput{
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 		TagIDs:     []string{"tag-2"},
 		Page:       1,
@@ -902,8 +957,8 @@ func TestQuestionUseCase_SearchQuestions_TagFilterAND(t *testing.T) {
 	uc := newQuestionUseCase(repo)
 
 	// tag-1 AND tag-2 → q-1 のみ1件
-	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
-		CallerID:   "user-1",
+	result, err := uc.SearchQuestions(context.Background(), testTeamID, usecase.SearchQuestionsInput{
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 		TagIDs:     []string{"tag-1", "tag-2"},
 		Page:       1,
@@ -925,8 +980,8 @@ func TestQuestionUseCase_SearchQuestions_KeywordTitle(t *testing.T) {
 
 	uc := newQuestionUseCase(repo)
 
-	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
-		CallerID:   "user-1",
+	result, err := uc.SearchQuestions(context.Background(), testTeamID, usecase.SearchQuestionsInput{
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 		Keyword:    "暗号化",
 		Page:       1,
@@ -937,101 +992,6 @@ func TestQuestionUseCase_SearchQuestions_KeywordTitle(t *testing.T) {
 	}
 	if result.Total != 1 {
 		t.Errorf("総件数が期待値と異なります: got %d, want 1", result.Total)
-	}
-}
-
-// TestQuestionUseCase_SearchQuestions_KeywordBody は問題文のキーワード検索テストです。
-func TestQuestionUseCase_SearchQuestions_KeywordBody(t *testing.T) {
-	repo := newMockQuestionRepository()
-	repo.addQuestion(testPublishedQuestionWithFields("q-1", "問題1", "CIAトライアドとは何か", "解説1", "メモ1", []string{}))
-	repo.addQuestion(testPublishedQuestionWithFields("q-2", "問題2", "PKIの概念について", "解説2", "メモ2", []string{}))
-
-	uc := newQuestionUseCase(repo)
-
-	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
-		CallerID:   "user-1",
-		CallerRole: domain.RoleUser,
-		Keyword:    "CIA",
-		Page:       1,
-		PerPage:    20,
-	})
-	if err != nil {
-		t.Fatalf("問題検索に失敗しました: %v", err)
-	}
-	if result.Total != 1 {
-		t.Errorf("総件数が期待値と異なります: got %d, want 1", result.Total)
-	}
-}
-
-// TestQuestionUseCase_SearchQuestions_KeywordExplanation は解説のキーワード検索テストです。
-func TestQuestionUseCase_SearchQuestions_KeywordExplanation(t *testing.T) {
-	repo := newMockQuestionRepository()
-	repo.addQuestion(testPublishedQuestionWithFields("q-1", "問題1", "本文1", "機密性・完全性・可用性の三要素", "メモ1", []string{}))
-	repo.addQuestion(testPublishedQuestionWithFields("q-2", "問題2", "本文2", "デジタル署名の仕組み", "メモ2", []string{}))
-
-	uc := newQuestionUseCase(repo)
-
-	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
-		CallerID:   "user-1",
-		CallerRole: domain.RoleUser,
-		Keyword:    "機密性",
-		Page:       1,
-		PerPage:    20,
-	})
-	if err != nil {
-		t.Fatalf("問題検索に失敗しました: %v", err)
-	}
-	if result.Total != 1 {
-		t.Errorf("総件数が期待値と異なります: got %d, want 1", result.Total)
-	}
-}
-
-// TestQuestionUseCase_SearchQuestions_KeywordMemo はメモのキーワード検索テストです。
-func TestQuestionUseCase_SearchQuestions_KeywordMemo(t *testing.T) {
-	repo := newMockQuestionRepository()
-	repo.addQuestion(testPublishedQuestionWithFields("q-1", "問題1", "本文1", "解説1", "議論点：暗号化強度", []string{}))
-	repo.addQuestion(testPublishedQuestionWithFields("q-2", "問題2", "本文2", "解説2", "議論点：認証方式", []string{}))
-
-	uc := newQuestionUseCase(repo)
-
-	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
-		CallerID:   "user-1",
-		CallerRole: domain.RoleUser,
-		Keyword:    "暗号化",
-		Page:       1,
-		PerPage:    20,
-	})
-	if err != nil {
-		t.Fatalf("問題検索に失敗しました: %v", err)
-	}
-	if result.Total != 1 {
-		t.Errorf("総件数が期待値と異なります: got %d, want 1", result.Total)
-	}
-}
-
-// TestQuestionUseCase_SearchQuestions_TagAndKeyword はタグとキーワードの複合検索テストです。
-func TestQuestionUseCase_SearchQuestions_TagAndKeyword(t *testing.T) {
-	repo := newMockQuestionRepository()
-	repo.addQuestion(testPublishedQuestionWithFields("q-1", "暗号化の基礎", "本文1", "解説1", "メモ1", []string{"tag-1"}))
-	repo.addQuestion(testPublishedQuestionWithFields("q-2", "暗号化の応用", "本文2", "解説2", "メモ2", []string{"tag-2"}))
-	repo.addQuestion(testPublishedQuestionWithFields("q-3", "リスク管理", "本文3", "解説3", "メモ3", []string{"tag-1"}))
-
-	uc := newQuestionUseCase(repo)
-
-	// tag-1 AND keyword=暗号化 → q-1 のみ1件
-	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
-		CallerID:   "user-1",
-		CallerRole: domain.RoleUser,
-		TagIDs:     []string{"tag-1"},
-		Keyword:    "暗号化",
-		Page:       1,
-		PerPage:    20,
-	})
-	if err != nil {
-		t.Fatalf("問題検索に失敗しました: %v", err)
-	}
-	if result.Total != 1 {
-		t.Errorf("複合検索の総件数が期待値と異なります: got %d, want 1", result.Total)
 	}
 }
 
@@ -1042,8 +1002,8 @@ func TestQuestionUseCase_SearchQuestions_EmptyResult(t *testing.T) {
 
 	uc := newQuestionUseCase(repo)
 
-	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
-		CallerID:   "user-1",
+	result, err := uc.SearchQuestions(context.Background(), testTeamID, usecase.SearchQuestionsInput{
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 		Keyword:    "存在しないキーワードxyz",
 		Page:       1,
@@ -1081,8 +1041,8 @@ func TestQuestionUseCase_SearchQuestions_Pagination(t *testing.T) {
 	uc := newQuestionUseCase(repo)
 
 	// 1ページあたり2件、2ページ目を取得
-	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
-		CallerID:   "user-1",
+	result, err := uc.SearchQuestions(context.Background(), testTeamID, usecase.SearchQuestionsInput{
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 		Page:       2,
 		PerPage:    2,
@@ -1118,8 +1078,8 @@ func TestQuestionUseCase_SearchQuestions_PaginationFirstPage(t *testing.T) {
 	uc := newQuestionUseCase(repo)
 
 	// デフォルトパラメータ（page=0はpage=1として扱われる）
-	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
-		CallerID:   "user-1",
+	result, err := uc.SearchQuestions(context.Background(), testTeamID, usecase.SearchQuestionsInput{
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 		Page:       0, // 0以下は1とみなす
 		PerPage:    0, // 0以下はデフォルト20とみなす
@@ -1141,15 +1101,19 @@ func TestQuestionUseCase_SearchQuestions_PaginationFirstPage(t *testing.T) {
 // TestQuestionUseCase_SearchQuestions_VisibilityFilter は可視性フィルタが検索に適用されるテストです。
 func TestQuestionUseCase_SearchQuestions_VisibilityFilter(t *testing.T) {
 	repo := newMockQuestionRepository()
-	// user-1 の draft 問題（user-2 からは見えない）
-	repo.addQuestion(testQuestion("q-1", "テスト問題", "user-1"))
-	// user-1 の公開問題（全ユーザーに見える）
+	// testCallerID の draft 問題（"user-2" からは見えない）
+	repo.addQuestion(testQuestion("q-1", "テスト問題", testCallerID))
+	// testCallerID の公開問題（全メンバーに見える）
 	repo.addQuestion(testPublishedQuestionWithFields("q-2", "テスト問題（公開）", "本文", "解説", "メモ", []string{}))
 
-	uc := newQuestionUseCase(repo)
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "user-2", Role: domain.MemberRoleMember})
 
-	// user-2 として検索 → 公開問題q-2のみ見える
-	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
+	uc := newQuestionUseCaseWithTeam(repo, tRepo)
+
+	// user-2 として検索 → 公開問題 q-2 のみ見える
+	result, err := uc.SearchQuestions(context.Background(), testTeamID, usecase.SearchQuestionsInput{
 		CallerID:   "user-2",
 		CallerRole: domain.RoleUser,
 		Keyword:    "テスト",
@@ -1164,18 +1128,23 @@ func TestQuestionUseCase_SearchQuestions_VisibilityFilter(t *testing.T) {
 	}
 }
 
-// TestQuestionUseCase_SearchQuestions_AdminSeesAll は admin が全問題を検索できるテストです。
-func TestQuestionUseCase_SearchQuestions_AdminSeesAll(t *testing.T) {
+// TestQuestionUseCase_SearchQuestions_AdminMemberSeesAll は
+// admin かつチームメンバーが全問題を検索できるテストです。
+func TestQuestionUseCase_SearchQuestions_AdminMemberSeesAll(t *testing.T) {
 	repo := newMockQuestionRepository()
-	// draft 問題（通常ユーザーからは作成者のみ見える）
-	repo.addQuestion(testQuestion("q-1", "テスト問題（draft）", "user-1"))
+	// draft 問題（作成者のみ見える）
+	repo.addQuestion(testQuestion("q-1", "テスト問題（draft）", testCallerID))
 	// 公開問題
 	repo.addQuestion(testPublishedQuestionWithFields("q-2", "テスト問題（公開）", "本文", "解説", "メモ", []string{}))
 
-	uc := newQuestionUseCase(repo)
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "admin-1", Role: domain.MemberRoleMember})
 
-	// admin として検索 → 全2件が見える
-	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
+	uc := newQuestionUseCaseWithTeam(repo, tRepo)
+
+	// admin-1 として検索 → チームメンバーなので draft 以外は見える（draft は testCallerID のものなので見えない）
+	result, err := uc.SearchQuestions(context.Background(), testTeamID, usecase.SearchQuestionsInput{
 		CallerID:   "admin-1",
 		CallerRole: domain.RoleAdmin,
 		Keyword:    "テスト",
@@ -1185,8 +1154,9 @@ func TestQuestionUseCase_SearchQuestions_AdminSeesAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("問題検索に失敗しました: %v", err)
 	}
+	// admin はすべての問題（draft 含む）が見える → q-1 と q-2 の 2件
 	if result.Total != 2 {
-		t.Errorf("admin の場合の総件数が期待値と異なります: got %d, want 2", result.Total)
+		t.Errorf("admin のチームメンバーが見える件数が期待値と異なります: got %d, want 2", result.Total)
 	}
 }
 
@@ -1204,8 +1174,8 @@ func TestQuestionUseCase_SearchQuestions_PerPageMax(t *testing.T) {
 	uc := newQuestionUseCase(repo)
 
 	// per_page=200 は最大値100に正規化される
-	result, err := uc.SearchQuestions(context.Background(), usecase.SearchQuestionsInput{
-		CallerID:   "user-1",
+	result, err := uc.SearchQuestions(context.Background(), testTeamID, usecase.SearchQuestionsInput{
+		CallerID:   testCallerID,
 		CallerRole: domain.RoleUser,
 		Page:       1,
 		PerPage:    200,
@@ -1215,34 +1185,5 @@ func TestQuestionUseCase_SearchQuestions_PerPageMax(t *testing.T) {
 	}
 	if result.PerPage != 100 {
 		t.Errorf("per_page が最大値に正規化されていません: got %d, want 100", result.PerPage)
-	}
-}
-
-// TestQuestionUseCase_UpdateQuestionVisibility_TooManyTeamIDs は
-// published_team_ids の上限超過のバリデーションテストです（指摘 #5 対応）。
-func TestQuestionUseCase_UpdateQuestionVisibility_TooManyTeamIDs(t *testing.T) {
-	repo := newMockQuestionRepository()
-	repo.addQuestion(testQuestion("q-1", "問題1", "user-1"))
-
-	uc := newQuestionUseCase(repo)
-
-	// 51件のチームIDを生成（上限50件を超える）
-	teamIDs := make([]string, 51)
-	for i := range teamIDs {
-		teamIDs[i] = fmt.Sprintf("team-%d", i+1)
-	}
-
-	vs := domain.VisibilityScopeTeam
-	_, err := uc.UpdateQuestionVisibility(context.Background(), "q-1", usecase.UpdateQuestionVisibilityInput{
-		CallerID:            "user-1",
-		CallerRole:          domain.RoleUser,
-		Status:              domain.QuestionStatusPublished,
-		VisibilityScope:     &vs,
-		PublishedTeamIDs:    teamIDs,
-		PublishedTeamIDsSet: true,
-	})
-
-	if err == nil {
-		t.Fatal("published_team_ids が上限を超える場合はエラーが返されるべきです")
 	}
 }

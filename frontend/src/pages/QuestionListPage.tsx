@@ -56,6 +56,7 @@ export default function QuestionListPage() {
 
   const loadQuestions = useCallback(
     (currentPage: number, currentKeyword: string, currentTagNames: string[]) => {
+      if (!activeTeam) return;
       let isMounted = true;
       setIsLoading(true);
       setLoadError('');
@@ -71,7 +72,7 @@ export default function QuestionListPage() {
         params.tag_ids = currentTagNames.join(',');
       }
 
-      fetchQuestions(params)
+      fetchQuestions(activeTeam.id, params)
         .then((data) => {
           if (isMounted) {
             setQuestions(data.items);
@@ -92,7 +93,7 @@ export default function QuestionListPage() {
         isMounted = false;
       };
     },
-    [t]
+    [activeTeam, t]
   );
 
   useEffect(() => {

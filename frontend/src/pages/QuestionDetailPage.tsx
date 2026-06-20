@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
 import { fetchQuestion, deleteQuestion } from '../utils/questionApi';
 import { useAuth } from '../context/AuthContext';
+import { useTeam } from '../context/TeamContext';
 import { Question } from '../types/question';
 import CommentSection from '../components/CommentSection';
 import AccordionSection from '../components/AccordionSection';
@@ -23,6 +24,7 @@ export default function QuestionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { activeTeam } = useTeam();
 
   const [question, setQuestion] = useState<Question | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,11 +33,11 @@ export default function QuestionDetailPage() {
   const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !activeTeam) return;
     let isMounted = true;
     setIsLoading(true);
     setLoadError('');
-    fetchQuestion(id)
+    fetchQuestion(activeTeam.id, id)
       .then((q) => {
         if (isMounted) setQuestion(q);
       })
@@ -48,7 +50,7 @@ export default function QuestionDetailPage() {
     return () => {
       isMounted = false;
     };
-  }, [id, t]);
+  }, [id, activeTeam, t]);
 
   const canEdit = user !== null && question !== null &&
     (user.id === question.created_by || user.role === 'admin');
@@ -61,7 +63,7 @@ export default function QuestionDetailPage() {
     setIsDeleting(true);
     setDeleteError('');
     try {
-      await deleteQuestion(question.id);
+      await deleteQuestion(question.team_id, question.id);
       navigate('/questions');
     } catch {
       setDeleteError(t('question.error.deleteFailed'));
@@ -186,7 +188,7 @@ export default function QuestionDetailPage() {
         </AccordionSection>
       )}
 
-      <CommentSection questionId={question.id} />
+      <CommentSection teamId={question.team_id} questionId={question.id} />
     </article>
   );
 }
