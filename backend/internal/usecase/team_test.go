@@ -824,3 +824,173 @@ func TestTeamUseCase_ChangeMemberRole_MemberNotFound(t *testing.T) {
 		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrMemberNotFound)
 	}
 }
+
+// --- ListMemberStats のテスト ---
+
+func TestTeamUseCase_ListMemberStats_Success_Member(t *testing.T) {
+	teamRepo := newMockTeamRepository()
+	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
+	_ = teamRepo.AddMember(context.Background(), &domain.TeamMember{
+		TeamID:   "team-1",
+		UserID:   "owner-1",
+		Role:     domain.MemberRoleOwner,
+		JoinedAt: time.Now(),
+	})
+	_ = teamRepo.AddMember(context.Background(), &domain.TeamMember{
+		TeamID:   "team-1",
+		UserID:   "user-2",
+		Role:     domain.MemberRoleMember,
+		JoinedAt: time.Now(),
+	})
+
+	userRepo := newMockUserRepository()
+	userRepo.addUser(testUser("owner-1", "owner", "owner@example.com", domain.RoleUser, true))
+	userRepo.addUser(testUser("user-2", "user2", "user2@example.com", domain.RoleUser, true))
+
+	questionRepo := newMockQuestionRepository()
+	questionRepo.questions["q-1"] = &domain.Question{ID: "q-1", TeamID: "team-1", CreatedBy: "owner-1"}
+	questionRepo.questions["q-2"] = &domain.Question{ID: "q-2", TeamID: "team-1", CreatedBy: "owner-1"}
+	questionRepo.questions["q-3"] = &domain.Question{ID: "q-3", TeamID: "team-1", CreatedBy: "user-2"}
+
+	commentRepo := newMockCommentRepository()
+	commentRepo.comments[commentKey("q-1", "c-1")] = &domain.Comment{ID: "c-1", QuestionID: "q-1", CreatedBy: "user-2"}
+	commentRepo.comments[commentKey("q-2", "c-2")] = &domain.Comment{ID: "c-2", QuestionID: "q-2", CreatedBy: "owner-1"}
+	commentRepo.comments[commentKey("q-2", "c-3")] = &domain.Comment{ID: "c-3", QuestionID: "q-2", CreatedBy: "user-2"}
+
+	uc := usecase.NewTeamUseCaseWithStats(teamRepo, userRepo, questionRepo, commentRepo)
+
+	stats, err := uc.ListMemberStats(context.Background(), "user-2", domain.RoleUser, "team-1")
+	if err != nil {
+		t.Fatalf("ListMemberStats に失敗しました: %v", err)
+	}
+	if len(stats) != 2 {
+		t.Fatalf("メンバー数が期待値と異なります: got %d, want 2", len(stats))
+	}
+
+	// ユーザーIDでインデックスを作成して検証
+	statsByUser := make(map[string]*usecase.MemberStats)
+	for _, s := range stats {
+		statsByUser[s.UserID] = s
+	}
+
+	ownerStats := statsByUser["owner-1"]
+	if ownerStats == nil {
+		t.Fatal("owner-1 の統計が存在しません")
+	}
+	if ownerStats.QuestionCount != 2 {
+		t.Errorf("owner-1 の問題数が期待値と異なります: got %d, want 2", ownerStats.QuestionCount)
+	}
+	if ownerStats.CommentCount != 1 {
+		t.Errorf("owner-1 のコメント数が期待値と異なります: got %d, want 1", ownerStats.CommentCount)
+	}
+	if ownerStats.Role != domain.MemberRoleOwner {
+		t.Errorf("owner-1 のロールが期待値と異なります: got %s, want owner", ownerStats.Role)
+	}
+
+	user2Stats := statsByUser["user-2"]
+	if user2Stats == nil {
+		t.Fatal("user-2 の統計が存在しません")
+	}
+	if user2Stats.QuestionCount != 1 {
+		t.Errorf("user-2 の問題数が期待値と異なります: got %d, want 1", user2Stats.QuestionCount)
+	}
+	if user2Stats.CommentCount != 2 {
+		t.Errorf("user-2 のコメント数が期待値と異なります: got %d, want 2", user2Stats.CommentCount)
+	}
+}
+
+func TestTeamUseCase_ListMemberStats_PermissionDenied_NonMember(t *testing.T) {
+	teamRepo := newMockTeamRepository()
+	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
+	_ = teamRepo.AddMember(context.Background(), &domain.TeamMember{
+		TeamID:   "team-1",
+		UserID:   "owner-1",
+		Role:     domain.MemberRoleOwner,
+		JoinedAt: time.Now(),
+	})
+
+	userRepo := newMockUserRepository()
+	questionRepo := newMockQuestionRepository()
+	commentRepo := newMockCommentRepository()
+	uc := usecase.NewTeamUseCaseWithStats(teamRepo, userRepo, questionRepo, commentRepo)
+
+	// 非メンバーがアクセスしようとする
+	_, err := uc.ListMemberStats(context.Background(), "stranger-id", domain.RoleUser, "team-1")
+	if !errors.Is(err, domain.ErrPermissionDenied) {
+		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrPermissionDenied)
+	}
+}
+
+func TestTeamUseCase_ListMemberStats_Success_Admin(t *testing.T) {
+	teamRepo := newMockTeamRepository()
+	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
+	_ = teamRepo.AddMember(context.Background(), &domain.TeamMember{
+		TeamID:   "team-1",
+		UserID:   "owner-1",
+		Role:     domain.MemberRoleOwner,
+		JoinedAt: time.Now(),
+	})
+
+	userRepo := newMockUserRepository()
+	userRepo.addUser(testUser("owner-1", "owner", "owner@example.com", domain.RoleUser, true))
+	questionRepo := newMockQuestionRepository()
+	commentRepo := newMockCommentRepository()
+	uc := usecase.NewTeamUseCaseWithStats(teamRepo, userRepo, questionRepo, commentRepo)
+
+	// admin は非メンバーでもアクセス可能
+	stats, err := uc.ListMemberStats(context.Background(), "admin-id", domain.RoleAdmin, "team-1")
+	if err != nil {
+		t.Fatalf("ListMemberStats に失敗しました: %v", err)
+	}
+	if len(stats) != 1 {
+		t.Errorf("メンバー数が期待値と異なります: got %d, want 1", len(stats))
+	}
+}
+
+func TestTeamUseCase_ListMemberStats_TeamNotFound(t *testing.T) {
+	teamRepo := newMockTeamRepository()
+	userRepo := newMockUserRepository()
+	questionRepo := newMockQuestionRepository()
+	commentRepo := newMockCommentRepository()
+	uc := usecase.NewTeamUseCaseWithStats(teamRepo, userRepo, questionRepo, commentRepo)
+
+	_, err := uc.ListMemberStats(context.Background(), "admin-id", domain.RoleAdmin, "nonexistent-team")
+	if !errors.Is(err, domain.ErrTeamNotFound) {
+		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrTeamNotFound)
+	}
+}
+
+func TestTeamUseCase_ListMemberStats_LastLoginAt(t *testing.T) {
+	teamRepo := newMockTeamRepository()
+	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
+	_ = teamRepo.AddMember(context.Background(), &domain.TeamMember{
+		TeamID:   "team-1",
+		UserID:   "owner-1",
+		Role:     domain.MemberRoleOwner,
+		JoinedAt: time.Now(),
+	})
+
+	loginTime := time.Now().Add(-1 * time.Hour)
+	owner := testUser("owner-1", "owner", "owner@example.com", domain.RoleUser, true)
+	owner.LastLoginAt = &loginTime
+
+	userRepo := newMockUserRepository()
+	userRepo.addUser(owner)
+	questionRepo := &mockQuestionRepository{}
+	commentRepo := newMockCommentRepository()
+	uc := usecase.NewTeamUseCaseWithStats(teamRepo, userRepo, questionRepo, commentRepo)
+
+	stats, err := uc.ListMemberStats(context.Background(), "admin-id", domain.RoleAdmin, "team-1")
+	if err != nil {
+		t.Fatalf("ListMemberStats に失敗しました: %v", err)
+	}
+	if len(stats) != 1 {
+		t.Fatalf("メンバー数が期待値と異なります: got %d, want 1", len(stats))
+	}
+	if stats[0].LastLoginAt == nil {
+		t.Fatal("LastLoginAt が nil です")
+	}
+	if !stats[0].LastLoginAt.Equal(loginTime) {
+		t.Errorf("LastLoginAt が期待値と異なります: got %v, want %v", *stats[0].LastLoginAt, loginTime)
+	}
+}

@@ -21,17 +21,18 @@ const usersObjectName = "users.json"
 // userRecord はGCS上のJSONファイルに保存するユーザーレコードです。
 // domain.User と対応しており、JSON直列化のための構造体です。
 type userRecord struct {
-	ID           string    `json:"id"`
-	Username     string    `json:"username"`
-	DisplayName  string    `json:"display_name"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"password_hash"`
-	Role         string    `json:"role"`
-	IsActive     bool      `json:"is_active"`
-	IsTeamOwner  bool      `json:"is_team_owner"`
-	MaxTeams     int       `json:"max_teams"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID           string     `json:"id"`
+	Username     string     `json:"username"`
+	DisplayName  string     `json:"display_name"`
+	Email        string     `json:"email"`
+	PasswordHash string     `json:"password_hash"`
+	Role         string     `json:"role"`
+	IsActive     bool       `json:"is_active"`
+	IsTeamOwner  bool       `json:"is_team_owner"`
+	MaxTeams     int        `json:"max_teams"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+	LastLoginAt  *time.Time `json:"last_login_at,omitempty"`
 }
 
 // toUserRecord はドメインエンティティをJSONレコードに変換します。
@@ -48,6 +49,7 @@ func toUserRecord(u *domain.User) userRecord {
 		MaxTeams:     u.MaxTeams,
 		CreatedAt:    u.CreatedAt,
 		UpdatedAt:    u.UpdatedAt,
+		LastLoginAt:  u.LastLoginAt,
 	}
 }
 
@@ -65,6 +67,7 @@ func toUser(r userRecord) *domain.User {
 		MaxTeams:     r.MaxTeams,
 		CreatedAt:    r.CreatedAt,
 		UpdatedAt:    r.UpdatedAt,
+		LastLoginAt:  r.LastLoginAt,
 	}
 }
 

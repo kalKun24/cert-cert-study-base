@@ -187,6 +187,47 @@ func (h *TeamHandler) HandleDeleteTeam(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, response{Data: map[string]string{"message": "チームを削除しました"}})
 }
 
+// HandleListTeamMembers は GET /api/v1/teams/{id}/members を処理します。
+// チームメンバーごとの問題数・コメント数・最終ログイン日時を返します。
+// admin またはチームメンバーのみアクセス可能です。
+func (h *TeamHandler) HandleListTeamMembers(w http.ResponseWriter, r *http.Request) {
+	callerID, callerRole := callerInfo(r)
+	teamID := r.PathValue("id")
+	if teamID == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+		return
+	}
+
+	stats, err := h.teamUC.ListMemberStats(r.Context(), callerID, callerRole, teamID)
+	if err != nil {
+		switch {
+		case errors.Is(err, domain.ErrTeamNotFound):
+			writeJSON(w, http.StatusNotFound, response{Error: "チームが見つかりません"})
+		case errors.Is(err, domain.ErrPermissionDenied):
+			writeJSON(w, http.StatusForbidden, response{Error: err.Error()})
+		default:
+			slog.Error("チームメンバー統計取得でエラーが発生しました", "team_id", teamID, "error", err)
+			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
+		}
+		return
+	}
+
+	dtos := make([]TeamMemberStatsDTO, 0, len(stats))
+	for _, s := range stats {
+		dtos = append(dtos, TeamMemberStatsDTO{
+			UserID:        s.UserID,
+			DisplayName:   s.DisplayName,
+			Role:          string(s.Role),
+			IsTeamOwner:   s.IsTeamOwner,
+			QuestionCount: s.QuestionCount,
+			CommentCount:  s.CommentCount,
+			LastLoginAt:   s.LastLoginAt,
+		})
+	}
+
+	writeJSON(w, http.StatusOK, response{Data: dtos})
+}
+
 // HandleAddTeamMember は POST /api/v1/teams/{id}/members を処理します。
 func (h *TeamHandler) HandleAddTeamMember(w http.ResponseWriter, r *http.Request) {
 	callerID, callerRole := callerInfo(r)

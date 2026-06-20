@@ -5,6 +5,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -85,6 +86,16 @@ func (uc *AuthUseCase) Login(input LoginInput) (*LoginOutput, error) {
 	token, err := uc.tokenGen.Generate(user)
 	if err != nil {
 		return nil, fmt.Errorf("JWTトークン生成に失敗しました: %w", err)
+	}
+
+	// 最終ログイン日時を更新して保存
+	// 保存に失敗してもログイン自体は成功とみなし、警告ログのみ記録する
+	now := time.Now().UTC()
+	user.LastLoginAt = &now
+	user.UpdatedAt = now
+	if err := uc.userRepo.Save(context.TODO(), user); err != nil {
+		// GCS の一時的な障害時もログインを失敗させないため、エラーは握り潰してログのみ出力する
+		slog.Warn("最終ログイン日時の更新に失敗しました", "user_id", user.ID, "error", err)
 	}
 
 	return &LoginOutput{

@@ -191,6 +191,18 @@ type TeamDetailDTO struct {
 	Members []TeamMemberDTO `json:"members"`
 }
 
+// TeamMemberStatsDTO はチームメンバーの統計情報DTOです。
+// GET /api/v1/teams/{id}/members のレスポンス用に使用します。
+type TeamMemberStatsDTO struct {
+	UserID        string     `json:"user_id"`
+	DisplayName   string     `json:"display_name"`
+	Role          string     `json:"role"`
+	IsTeamOwner   bool       `json:"is_team_owner"`
+	QuestionCount int        `json:"question_count"`
+	CommentCount  int        `json:"comment_count"`
+	LastLoginAt   *time.Time `json:"last_login_at"`
+}
+
 // CreateTeamRequestDTO はチーム作成リクエストのDTOです。
 type CreateTeamRequestDTO struct {
 	Name        string `json:"name"`
