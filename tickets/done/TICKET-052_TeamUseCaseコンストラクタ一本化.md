@@ -5,13 +5,13 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-052 |
-| ステータス | 🟡 作業中 |
+| ステータス | 🟢 完了 |
 | 作成日 | 2026-06-20 |
 | 着手日 | 2026-06-20 |
-| 完了日 | - |
+| 完了日 | 2026-06-20 |
 | ブランチ名 | `refactor/team-usecase-constructor` |
-| PR番号 | - |
-| PRリンク | - |
+| PR番号 | #33 |
+| PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/33 |
 
 ---
 
@@ -29,15 +29,15 @@ TICKET-042 で `ListMemberStats` ユースケース追加のために `NewTeamUs
 
 ## 受け入れ条件
 
-- [ ] `NewTeamUseCase` と `NewTeamUseCaseWithStats` が一本化され、コンストラクタが1つになっている
-- [ ] 既存のテストがすべて通る（`go test ./...`）
-- [ ] `golangci-lint` が通る
+- [x] `NewTeamUseCase` と `NewTeamUseCaseWithStats` が一本化され、コンストラクタが1つになっている
+- [x] 既存のテストがすべて通る（`go test ./...`）
+- [x] `golangci-lint` が通る
 
 ---
 
 ## サブチケット（コミット単位）
 
-- [ ] `refactor(usecase): TeamUseCase コンストラクタを一本化`
+- [x] `refactor(usecase): TeamUseCase コンストラクタを一本化`
 
 ---
 
