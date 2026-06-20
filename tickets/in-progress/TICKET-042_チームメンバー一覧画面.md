@@ -29,23 +29,23 @@
 
 ## 受け入れ条件
 
-- [ ] `GET /api/v1/teams/{id}/members` がメンバーごとの統計を返す
+- [x] `GET /api/v1/teams/{id}/members` がメンバーごとの統計を返す
   - フィールド: `user_id`, `display_name`, `role`, `is_team_owner`, `question_count`, `comment_count`, `last_login_at`
-- [ ] ユーザーエンティティに `last_login_at` フィールドが追加され、ログイン時に更新される
-- [ ] フロントエンドに `/teams/{id}/members` ページが存在する
-- [ ] 一覧には表示名・権限・問題数・コメント数・最終ログイン日時が表示される
-- [ ] `api/openapi.yaml` が更新されている
+- [x] ユーザーエンティティに `last_login_at` フィールドが追加され、ログイン時に更新される
+- [x] フロントエンドに `/teams/{id}/members` ページが存在する
+- [x] 一覧には表示名・権限・問題数・コメント数・最終ログイン日時が表示される
+- [x] `api/openapi.yaml` が更新されている
 
 ---
 
 ## サブチケット（コミット単位）
 
-- [ ] `feat(domain): ユーザーエンティティに last_login_at フィールドを追加`
-- [ ] `feat(usecase): 認証時に last_login_at を更新するロジックを追加`
-- [ ] `feat(usecase): チームメンバー統計取得ユースケースを実装`
-- [ ] `feat(interface): GET /api/v1/teams/{id}/members エンドポイントを追加`
-- [ ] `docs(api): openapi.yaml を更新`
-- [ ] `feat(page): チームメンバー一覧ページを作成`
+- [x] `feat(domain): ユーザーエンティティに last_login_at フィールドを追加`
+- [x] `feat(usecase): 認証時に last_login_at を更新するロジックを追加`
+- [x] `feat(usecase): チームメンバー統計取得ユースケースを実装`
+- [x] `feat(interface): GET /api/v1/teams/{id}/members エンドポイントを追加`
+- [x] `docs(api): openapi.yaml を更新`
+- [x] `feat(page): チームメンバー一覧ページを作成`
 
 ---
 
