@@ -30,7 +30,7 @@ func (h *QuestionHandler) HandleCreateQuestion(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	callerID, _ := callerInfo(r)
+	callerID, callerRole := callerInfo(r)
 	if callerID == "" {
 		writeJSON(w, http.StatusUnauthorized, response{Error: "認証情報が取得できません"})
 		return
@@ -49,6 +49,7 @@ func (h *QuestionHandler) HandleCreateQuestion(w http.ResponseWriter, r *http.Re
 
 	input := usecase.CreateQuestionInput{
 		CallerID:    callerID,
+		CallerRole:  callerRole,
 		Title:       req.Title,
 		Body:        req.Body,
 		Answer:      req.Answer,

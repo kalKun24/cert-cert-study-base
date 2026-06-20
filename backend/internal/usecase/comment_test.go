@@ -292,8 +292,8 @@ func TestCommentUseCase_CreateComment_NonMemberForbidden(t *testing.T) {
 	}
 }
 
-// TestCommentUseCase_CreateComment_AdminNonMemberForbidden は admin でもチーム非メンバーならコメント投稿が拒否されるテストです。
-func TestCommentUseCase_CreateComment_AdminNonMemberForbidden(t *testing.T) {
+// TestCommentUseCase_CreateComment_AdminNonMemberAllowed は admin がチーム非メンバーでもコメント投稿できるテストです。
+func TestCommentUseCase_CreateComment_AdminNonMemberAllowed(t *testing.T) {
 	qRepo := newMockQuestionRepository()
 	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
 
@@ -311,26 +311,23 @@ func TestCommentUseCase_CreateComment_AdminNonMemberForbidden(t *testing.T) {
 		CallerRole: domain.RoleAdmin,
 	})
 
-	if !errors.Is(err, domain.ErrPermissionDenied) {
-		t.Errorf("admin もチーム非メンバーなら拒否されるべきです: got %v, want %v", err, domain.ErrPermissionDenied)
+	if err != nil {
+		t.Errorf("admin はチーム非メンバーでもコメント投稿できるべきです: %v", err)
 	}
 }
 
-// TestCommentUseCase_CreateComment_AdminMemberAllowed は admin かつチームメンバーなら draft 問題にもコメント投稿できるテストです。
-func TestCommentUseCase_CreateComment_AdminMemberAllowed(t *testing.T) {
+// TestCommentUseCase_CreateComment_AdminCanCommentOnDraft は admin が他者の draft 問題にもコメント投稿できるテストです。
+func TestCommentUseCase_CreateComment_AdminCanCommentOnDraft(t *testing.T) {
 	qRepo := newMockQuestionRepository()
 	// draft 問題: "owner-1" が作成
 	qRepo.addQuestion(testQuestion("q-1", "draft問題", "owner-1"))
 
 	tRepo := newMockTeamRepository()
-	// "owner-1" と "admin-user" を両方メンバーとして登録
 	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "owner-1", Role: domain.MemberRoleMember})
-	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "admin-user", Role: domain.MemberRoleMember})
 
 	uc := newCommentUseCaseWithTeam(newMockCommentRepository(), qRepo, newMockUserRepository(), tRepo)
 
-	// "admin-user" はチームメンバーだが draft の作成者ではないので ErrPermissionDenied になる
-	// （チームスコープ化後は「チームメンバー + draft は作成者のみ」のルール）
+	// admin は draft の作成者でなくてもコメント可能
 	_, err := uc.CreateComment(context.Background(), usecase.CreateCommentInput{
 		QuestionID: "q-1",
 		TeamID:     testTeamID,
@@ -339,9 +336,8 @@ func TestCommentUseCase_CreateComment_AdminMemberAllowed(t *testing.T) {
 		CallerRole: domain.RoleAdmin,
 	})
 
-	// チームメンバーの admin が draft 問題（他者作成）にコメントしようとしても不可
-	if !errors.Is(err, domain.ErrPermissionDenied) {
-		t.Errorf("admin でも draft の作成者でなければ拒否されるべきです: got %v, want %v", err, domain.ErrPermissionDenied)
+	if err != nil {
+		t.Errorf("admin は他者の draft 問題にもコメントできるべきです: %v", err)
 	}
 }
 
@@ -579,8 +575,8 @@ func TestCommentUseCase_DeleteComment_AdminMemberSuccess(t *testing.T) {
 	}
 }
 
-// TestCommentUseCase_DeleteComment_AdminNonMemberForbidden は admin でもチーム非メンバーなら削除が拒否されるテストです。
-func TestCommentUseCase_DeleteComment_AdminNonMemberForbidden(t *testing.T) {
+// TestCommentUseCase_DeleteComment_AdminNonMemberAllowed は admin がチーム非メンバーでも他者のコメントを削除できるテストです。
+func TestCommentUseCase_DeleteComment_AdminNonMemberAllowed(t *testing.T) {
 	qRepo := newMockQuestionRepository()
 	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
 
@@ -601,8 +597,8 @@ func TestCommentUseCase_DeleteComment_AdminNonMemberForbidden(t *testing.T) {
 		CallerRole: domain.RoleAdmin,
 	})
 
-	if !errors.Is(err, domain.ErrPermissionDenied) {
-		t.Errorf("admin もチーム非メンバーなら拒否されるべきです: got %v, want %v", err, domain.ErrPermissionDenied)
+	if err != nil {
+		t.Errorf("admin はチーム非メンバーでも削除できるべきです: %v", err)
 	}
 }
 

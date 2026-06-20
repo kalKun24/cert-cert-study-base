@@ -26,8 +26,11 @@ func NewQuestionUseCase(questionRepo domain.QuestionRepository, teamRepo domain.
 }
 
 // checkTeamMembership は呼び出し元がチームメンバーかどうかを確認します。
-// admin を含む全ユーザーがメンバーチェックの対象です（admin 特権スキップなし）。
-func (uc *QuestionUseCase) checkTeamMembership(ctx context.Context, callerID, teamID string) error {
+// admin の場合はメンバーシップチェックをスキップします。
+func (uc *QuestionUseCase) checkTeamMembership(ctx context.Context, callerID string, callerRole domain.Role, teamID string) error {
+	if callerRole == domain.RoleAdmin {
+		return nil
+	}
 	isMember, err := uc.teamRepo.IsMember(ctx, teamID, callerID)
 	if err != nil {
 		return fmt.Errorf("チームメンバー確認に失敗しました: %w", err)
@@ -42,6 +45,8 @@ func (uc *QuestionUseCase) checkTeamMembership(ctx context.Context, callerID, te
 type CreateQuestionInput struct {
 	// CallerID は操作を実行するユーザーのID
 	CallerID string
+	// CallerRole は操作を実行するユーザーのロール
+	CallerRole domain.Role
 	// Title は問題タイトル（必須）
 	Title string
 	// Body は問題文（Markdown形式、必須）
@@ -59,9 +64,9 @@ type CreateQuestionInput struct {
 }
 
 // CreateQuestion は新しい問題を作成します。
-// チームメンバーであれば作成可能です（admin も例外なくメンバーチェックを行います）。
+// チームメンバーまたは admin が作成可能です。
 func (uc *QuestionUseCase) CreateQuestion(ctx context.Context, teamID string, input CreateQuestionInput) (*domain.Question, error) {
-	if err := uc.checkTeamMembership(ctx, input.CallerID, teamID); err != nil {
+	if err := uc.checkTeamMembership(ctx, input.CallerID, input.CallerRole, teamID); err != nil {
 		return nil, err
 	}
 
@@ -143,13 +148,13 @@ const defaultPerPage = 20
 const maxPerPage = 100
 
 // SearchQuestions は検索・フィルタリング条件に基づき、可視性フィルタを適用した問題一覧をページネーション付きで返します。
-// - チームメンバーチェックを行います（admin も例外なし）。
+// - チームメンバーまたは admin のみアクセス可能です。
 // - タグIDは複数指定した場合AND絞り込みを行います。
 // - キーワードはtitle / body / explanation / memo を対象に部分一致検索します。
-// - 可視性ルール: draft は作成者本人のみ、published/private はメンバー全員。
+// - 可視性ルール: draft は作成者本人または admin のみ、published/private はメンバー全員。
 // - 検索結果0件は空のItemsと200を返します（エラーにしません）。
 func (uc *QuestionUseCase) SearchQuestions(ctx context.Context, teamID string, input SearchQuestionsInput) (*SearchQuestionsResult, error) {
-	if err := uc.checkTeamMembership(ctx, input.CallerID, teamID); err != nil {
+	if err := uc.checkTeamMembership(ctx, input.CallerID, input.CallerRole, teamID); err != nil {
 		return nil, err
 	}
 
@@ -176,10 +181,10 @@ func (uc *QuestionUseCase) SearchQuestions(ctx context.Context, teamID string, i
 		return nil, fmt.Errorf("問題検索に失敗しました: %w", err)
 	}
 
-	// 可視性フィルタリング: draft は作成者本人のみ、published/private はメンバー全員
+	// 可視性フィルタリング: draft は作成者本人または admin のみ、published/private はメンバー全員
 	visible := make([]*domain.Question, 0, len(candidates))
 	for _, q := range candidates {
-		if isVisibleToTeamMember(q, input.CallerID) {
+		if input.CallerRole == domain.RoleAdmin || isVisibleToTeamMember(q, input.CallerID) {
 			visible = append(visible, q)
 		}
 	}
@@ -236,11 +241,11 @@ type ListQuestionsInput struct {
 }
 
 // ListQuestions は可視性ルールに基づいてフィルタリングした問題一覧を返します。
-// - チームメンバーチェックを行います（admin も例外なし）。
-// - status=draft → 作成者本人のみ返す。
+// - チームメンバーまたは admin のみアクセス可能です。
+// - status=draft → 作成者本人または admin のみ返す。
 // - status=published / private → チームメンバー全員に返す。
 func (uc *QuestionUseCase) ListQuestions(ctx context.Context, teamID string, input ListQuestionsInput) ([]*domain.Question, error) {
-	if err := uc.checkTeamMembership(ctx, input.CallerID, teamID); err != nil {
+	if err := uc.checkTeamMembership(ctx, input.CallerID, input.CallerRole, teamID); err != nil {
 		return nil, err
 	}
 
@@ -251,7 +256,7 @@ func (uc *QuestionUseCase) ListQuestions(ctx context.Context, teamID string, inp
 
 	visible := make([]*domain.Question, 0, len(questions))
 	for _, q := range questions {
-		if isVisibleToTeamMember(q, input.CallerID) {
+		if input.CallerRole == domain.RoleAdmin || isVisibleToTeamMember(q, input.CallerID) {
 			visible = append(visible, q)
 		}
 	}
@@ -270,7 +275,7 @@ type GetQuestionInput struct {
 // チームメンバーチェックを行い、問題がそのチームに属するかを確認します。
 // チーム不一致の場合や可視性ルールによりアクセス不可の場合は ErrQuestionNotFound を返します。
 func (uc *QuestionUseCase) GetQuestion(ctx context.Context, id string, teamID string, input GetQuestionInput) (*domain.Question, error) {
-	if err := uc.checkTeamMembership(ctx, input.CallerID, teamID); err != nil {
+	if err := uc.checkTeamMembership(ctx, input.CallerID, input.CallerRole, teamID); err != nil {
 		return nil, err
 	}
 
@@ -284,7 +289,8 @@ func (uc *QuestionUseCase) GetQuestion(ctx context.Context, id string, teamID st
 		return nil, fmt.Errorf("問題の取得に失敗しました: %w", domain.ErrQuestionNotFound)
 	}
 
-	if !isVisibleToTeamMember(question, input.CallerID) {
+	// admin はすべての問題（draft 含む）を閲覧可能
+	if input.CallerRole != domain.RoleAdmin && !isVisibleToTeamMember(question, input.CallerID) {
 		return nil, fmt.Errorf("問題の取得に失敗しました: %w", domain.ErrQuestionNotFound)
 	}
 
@@ -304,7 +310,7 @@ type UpdateQuestionVisibilityInput struct {
 // UpdateQuestionVisibility は指定IDの問題の公開設定を変更します。
 // チームメンバーチェックを行い、作成者本人または admin のみ変更可能です。
 func (uc *QuestionUseCase) UpdateQuestionVisibility(ctx context.Context, id string, teamID string, input UpdateQuestionVisibilityInput) (*domain.Question, error) {
-	if err := uc.checkTeamMembership(ctx, input.CallerID, teamID); err != nil {
+	if err := uc.checkTeamMembership(ctx, input.CallerID, input.CallerRole, teamID); err != nil {
 		return nil, err
 	}
 
@@ -366,7 +372,7 @@ type UpdateQuestionInput struct {
 // UpdateQuestion は指定IDの問題を更新します。
 // チームメンバーチェックを行い、作成者本人または admin のみ更新可能です。
 func (uc *QuestionUseCase) UpdateQuestion(ctx context.Context, id string, teamID string, input UpdateQuestionInput) (*domain.Question, error) {
-	if err := uc.checkTeamMembership(ctx, input.CallerID, teamID); err != nil {
+	if err := uc.checkTeamMembership(ctx, input.CallerID, input.CallerRole, teamID); err != nil {
 		return nil, err
 	}
 
@@ -429,7 +435,7 @@ func (uc *QuestionUseCase) UpdateQuestion(ctx context.Context, id string, teamID
 // DeleteQuestion は指定IDの問題を削除します。
 // チームメンバーチェックを行い、作成者本人または admin のみ削除可能です。
 func (uc *QuestionUseCase) DeleteQuestion(ctx context.Context, id string, teamID string, callerID string, callerRole domain.Role) error {
-	if err := uc.checkTeamMembership(ctx, callerID, teamID); err != nil {
+	if err := uc.checkTeamMembership(ctx, callerID, callerRole, teamID); err != nil {
 		return err
 	}
 

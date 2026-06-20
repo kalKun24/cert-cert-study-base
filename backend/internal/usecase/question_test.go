@@ -216,20 +216,25 @@ func TestQuestionUseCase_CreateQuestion_NonMemberDenied(t *testing.T) {
 	}
 }
 
-// TestQuestionUseCase_CreateQuestion_AdminNonMemberDenied は admin でもチーム非メンバーなら作成できないテストです。
-func TestQuestionUseCase_CreateQuestion_AdminNonMemberDenied(t *testing.T) {
+// TestQuestionUseCase_CreateQuestion_AdminCanCreateWithoutMembership は admin がチーム非メンバーでも作成できるテストです。
+func TestQuestionUseCase_CreateQuestion_AdminCanCreateWithoutMembership(t *testing.T) {
 	repo := newMockQuestionRepository()
 	// admin-1 はどのチームにもメンバー登録されていない
 	tRepo := newMockTeamRepository()
 	uc := usecase.NewQuestionUseCase(repo, tRepo)
 
-	_, err := uc.CreateQuestion(context.Background(), testTeamID, usecase.CreateQuestionInput{
-		CallerID: "admin-1",
-		Title:    "テスト問題",
+	q, err := uc.CreateQuestion(context.Background(), testTeamID, usecase.CreateQuestionInput{
+		CallerID:   "admin-1",
+		CallerRole: domain.RoleAdmin,
+		Title:      "テスト問題",
+		Body:       "問題文",
 	})
 
-	if !errors.Is(err, domain.ErrMemberNotFound) {
-		t.Errorf("admin もチーム非メンバーなら 403 になるべきです: got %v, want %v", err, domain.ErrMemberNotFound)
+	if err != nil {
+		t.Errorf("admin はチーム非メンバーでも作成できるべきです: %v", err)
+	}
+	if q == nil || q.TeamID != testTeamID {
+		t.Errorf("作成された問題のチームIDが期待値と異なります")
 	}
 }
 
@@ -311,8 +316,8 @@ func TestQuestionUseCase_ListQuestions_NonMemberDenied(t *testing.T) {
 	}
 }
 
-// TestQuestionUseCase_ListQuestions_AdminNonMemberDenied は admin もチーム非メンバーなら 403 になるテストです。
-func TestQuestionUseCase_ListQuestions_AdminNonMemberDenied(t *testing.T) {
+// TestQuestionUseCase_ListQuestions_AdminCanListWithoutMembership は admin がチーム非メンバーでも一覧取得できるテストです。
+func TestQuestionUseCase_ListQuestions_AdminCanListWithoutMembership(t *testing.T) {
 	repo := newMockQuestionRepository()
 	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
 
@@ -320,12 +325,16 @@ func TestQuestionUseCase_ListQuestions_AdminNonMemberDenied(t *testing.T) {
 	tRepo := newMockTeamRepository()
 	uc := usecase.NewQuestionUseCase(repo, tRepo)
 
-	_, err := uc.ListQuestions(context.Background(), testTeamID, usecase.ListQuestionsInput{
+	questions, err := uc.ListQuestions(context.Background(), testTeamID, usecase.ListQuestionsInput{
 		CallerID:   "admin-1",
 		CallerRole: domain.RoleAdmin,
 	})
-	if !errors.Is(err, domain.ErrMemberNotFound) {
-		t.Errorf("admin もチーム非メンバーなら 403 になるべきです: got %v, want %v", err, domain.ErrMemberNotFound)
+	if err != nil {
+		t.Errorf("admin はチーム非メンバーでも一覧取得できるべきです: %v", err)
+	}
+	// admin は draft も含めて全件取得できる
+	if len(questions) != 1 {
+		t.Errorf("取得件数が期待値と異なります: got %d, want 1", len(questions))
 	}
 }
 
@@ -485,8 +494,8 @@ func TestQuestionUseCase_UpdateQuestion_ByAdmin(t *testing.T) {
 	}
 }
 
-// TestQuestionUseCase_UpdateQuestion_AdminNonMemberDenied は admin でもチーム非メンバーなら更新できないテストです。
-func TestQuestionUseCase_UpdateQuestion_AdminNonMemberDenied(t *testing.T) {
+// TestQuestionUseCase_UpdateQuestion_AdminCanUpdateWithoutMembership は admin がチーム非メンバーでも更新できるテストです。
+func TestQuestionUseCase_UpdateQuestion_AdminCanUpdateWithoutMembership(t *testing.T) {
 	repo := newMockQuestionRepository()
 	repo.addQuestion(testQuestion("q-1", "元のタイトル", testCallerID))
 
@@ -496,14 +505,17 @@ func TestQuestionUseCase_UpdateQuestion_AdminNonMemberDenied(t *testing.T) {
 	uc := newQuestionUseCaseWithTeam(repo, tRepo)
 
 	newTitle := "adminが更新"
-	_, err := uc.UpdateQuestion(context.Background(), "q-1", testTeamID, usecase.UpdateQuestionInput{
-		CallerID:   "admin-1", // チームメンバーではない
+	q, err := uc.UpdateQuestion(context.Background(), "q-1", testTeamID, usecase.UpdateQuestionInput{
+		CallerID:   "admin-1",
 		CallerRole: domain.RoleAdmin,
 		Title:      &newTitle,
 	})
 
-	if !errors.Is(err, domain.ErrMemberNotFound) {
-		t.Errorf("admin もチーム非メンバーなら 403 になるべきです: got %v, want %v", err, domain.ErrMemberNotFound)
+	if err != nil {
+		t.Errorf("admin はチーム非メンバーでも更新できるべきです: %v", err)
+	}
+	if q != nil && q.Title != newTitle {
+		t.Errorf("タイトルが更新されていません: got %s, want %s", q.Title, newTitle)
 	}
 }
 
@@ -604,8 +616,8 @@ func TestQuestionUseCase_DeleteQuestion_ByAdmin(t *testing.T) {
 	}
 }
 
-// TestQuestionUseCase_DeleteQuestion_AdminNonMemberDenied は admin でもチーム非メンバーなら削除できないテストです。
-func TestQuestionUseCase_DeleteQuestion_AdminNonMemberDenied(t *testing.T) {
+// TestQuestionUseCase_DeleteQuestion_AdminCanDeleteWithoutMembership は admin がチーム非メンバーでも削除できるテストです。
+func TestQuestionUseCase_DeleteQuestion_AdminCanDeleteWithoutMembership(t *testing.T) {
 	repo := newMockQuestionRepository()
 	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
 
@@ -615,8 +627,8 @@ func TestQuestionUseCase_DeleteQuestion_AdminNonMemberDenied(t *testing.T) {
 	uc := newQuestionUseCaseWithTeam(repo, tRepo)
 
 	err := uc.DeleteQuestion(context.Background(), "q-1", testTeamID, "admin-1", domain.RoleAdmin)
-	if !errors.Is(err, domain.ErrMemberNotFound) {
-		t.Errorf("admin もチーム非メンバーなら 403 になるべきです: got %v, want %v", err, domain.ErrMemberNotFound)
+	if err != nil {
+		t.Errorf("admin はチーム非メンバーでも削除できるべきです: %v", err)
 	}
 }
 
@@ -697,8 +709,8 @@ func TestQuestionUseCase_UpdateQuestionVisibility_ByAdmin(t *testing.T) {
 	}
 }
 
-// TestQuestionUseCase_UpdateQuestionVisibility_AdminNonMemberDenied は admin でもチーム非メンバーなら変更できないテストです。
-func TestQuestionUseCase_UpdateQuestionVisibility_AdminNonMemberDenied(t *testing.T) {
+// TestQuestionUseCase_UpdateQuestionVisibility_AdminCanUpdateWithoutMembership は admin がチーム非メンバーでも変更できるテストです。
+func TestQuestionUseCase_UpdateQuestionVisibility_AdminCanUpdateWithoutMembership(t *testing.T) {
 	repo := newMockQuestionRepository()
 	repo.addQuestion(testQuestion("q-1", "問題1", testCallerID))
 
@@ -707,14 +719,17 @@ func TestQuestionUseCase_UpdateQuestionVisibility_AdminNonMemberDenied(t *testin
 
 	uc := newQuestionUseCaseWithTeam(repo, tRepo)
 
-	_, err := uc.UpdateQuestionVisibility(context.Background(), "q-1", testTeamID, usecase.UpdateQuestionVisibilityInput{
+	q, err := uc.UpdateQuestionVisibility(context.Background(), "q-1", testTeamID, usecase.UpdateQuestionVisibilityInput{
 		CallerID:   "admin-1",
 		CallerRole: domain.RoleAdmin,
 		Status:     domain.QuestionStatusPublished,
 	})
 
-	if !errors.Is(err, domain.ErrMemberNotFound) {
-		t.Errorf("admin もチーム非メンバーなら 403 になるべきです: got %v, want %v", err, domain.ErrMemberNotFound)
+	if err != nil {
+		t.Errorf("admin はチーム非メンバーでも変更できるべきです: %v", err)
+	}
+	if q != nil && q.Status != domain.QuestionStatusPublished {
+		t.Errorf("statusが期待値と異なります: got %s, want published", q.Status)
 	}
 }
 
@@ -1139,9 +1154,9 @@ func TestQuestionUseCase_SearchQuestions_AdminMemberSeesAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("問題検索に失敗しました: %v", err)
 	}
-	// admin-1 は draft の作成者ではないので q-1 は見えない。q-2 のみ見える
-	if result.Total != 1 {
-		t.Errorf("admin のチームメンバーが見える件数が期待値と異なります: got %d, want 1", result.Total)
+	// admin はすべての問題（draft 含む）が見える → q-1 と q-2 の 2件
+	if result.Total != 2 {
+		t.Errorf("admin のチームメンバーが見える件数が期待値と異なります: got %d, want 2", result.Total)
 	}
 }
 

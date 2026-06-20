@@ -38,8 +38,11 @@ func NewCommentUseCase(
 }
 
 // checkTeamMembershipForComment は呼び出し元がチームメンバーかどうかを確認します。
-// admin を含む全ユーザーがメンバーチェックの対象です（admin 特権スキップなし）。
-func (uc *CommentUseCase) checkTeamMembershipForComment(ctx context.Context, callerID, teamID string) error {
+// admin の場合はメンバーシップチェックをスキップします。
+func (uc *CommentUseCase) checkTeamMembershipForComment(ctx context.Context, callerID string, callerRole domain.Role, teamID string) error {
+	if callerRole == domain.RoleAdmin {
+		return nil
+	}
 	isMember, err := uc.teamRepo.IsMember(ctx, teamID, callerID)
 	if err != nil {
 		return fmt.Errorf("チームメンバー確認に失敗しました: %w", err)
@@ -51,11 +54,11 @@ func (uc *CommentUseCase) checkTeamMembershipForComment(ctx context.Context, cal
 }
 
 // checkQuestionAccess は指定した問題の閲覧権限をチームスコープで確認します。
-// チームメンバーチェックを行い、問題がチームに属することを確認します。
+// チームメンバーまたは admin のみアクセス可能です。問題がチームに属することも確認します。
 // チーム不一致 / メンバー非所属の場合は ErrPermissionDenied を返します。
 // 問題が存在しない場合は ErrQuestionNotFound をラップして返します。
 func (uc *CommentUseCase) checkQuestionAccess(ctx context.Context, questionID, teamID, callerID string, callerRole domain.Role) (*domain.Question, error) {
-	if err := uc.checkTeamMembershipForComment(ctx, callerID, teamID); err != nil {
+	if err := uc.checkTeamMembershipForComment(ctx, callerID, callerRole, teamID); err != nil {
 		return nil, domain.ErrPermissionDenied
 	}
 
@@ -69,8 +72,8 @@ func (uc *CommentUseCase) checkQuestionAccess(ctx context.Context, questionID, t
 		return nil, fmt.Errorf("問題の取得に失敗しました: %w", domain.ErrQuestionNotFound)
 	}
 
-	// チームメンバーへの可視性チェック: draft は作成者本人のみ
-	if !isVisibleToTeamMember(question, callerID) {
+	// admin はすべての問題（draft 含む）を閲覧可能
+	if callerRole != domain.RoleAdmin && !isVisibleToTeamMember(question, callerID) {
 		return nil, domain.ErrPermissionDenied
 	}
 
