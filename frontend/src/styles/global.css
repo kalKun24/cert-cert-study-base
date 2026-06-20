@@ -38,6 +38,9 @@
   /* --- Topbarレイアウト寸法 --- */
   --topbar-height:        52px;
 
+  /* --- エディタメタバーレイアウト寸法 --- */
+  --editor-meta-bar-height: 52px;
+
   /* --- タイポグラフィ --- */
   --font-family-base:     'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
   --font-size-xs:         0.75rem;   /* 12px */
@@ -2416,3 +2419,390 @@ img {
   color: var(--color-text-body) !important;
   border-left: var(--border-width-base) solid var(--color-border-default) !important;
 }
+
+/* =============================================================================
+   エディタメタバー（sticky 上部バー）
+   ============================================================================= */
+
+.editor-meta-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  flex-shrink: 0;
+  background-color: var(--color-bg-card);
+  border-bottom: var(--border-width-base) solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  height: var(--editor-meta-bar-height);
+}
+
+/* メタバー内部: 1行フレックス配置 */
+.editor-meta-bar-inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 100%;
+  padding: 0 var(--space-4);
+}
+
+/* タイトル入力フィールドラッパー（flex:1 で余白を埋める） */
+.editor-meta-title-field {
+  flex: 1;
+  min-width: 0; /* flex 子要素のオーバーフロー防止 */
+  position: relative;
+}
+
+/* タイトル入力テキストボックス */
+.editor-meta-title-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-bg-page);
+  border: var(--border-width-base) solid var(--color-border);
+  border-radius: var(--border-radius-base);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  line-height: var(--line-height-base);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.editor-meta-title-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 var(--focus-ring-width) rgba(0, 137, 123, 0.20);
+}
+
+/* バリデーションエラー時のボーダー色変更 */
+.editor-meta-title-input--error {
+  border-color: var(--color-error);
+}
+
+/* タイトル下のインラインエラーメッセージ */
+.editor-meta-field-error {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 2px);
+  font-size: var(--font-size-xs);
+  color: var(--color-error);
+  margin: 0;
+  white-space: nowrap;
+  background-color: var(--color-bg-card);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--border-radius-sm);
+  border: var(--border-width-base) solid var(--color-error);
+  z-index: 10;
+}
+
+/* ステータスセレクト */
+.editor-meta-select {
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-bg-page);
+  border: var(--border-width-base) solid var(--color-border);
+  border-radius: var(--border-radius-base);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  line-height: var(--line-height-base);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  appearance: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.editor-meta-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 var(--focus-ring-width) rgba(0, 137, 123, 0.20);
+}
+
+/* アクションボタン群 */
+.editor-meta-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* 送信エラーメッセージ（メタバー直下） */
+.editor-meta-submit-error {
+  font-size: var(--font-size-xs);
+  color: var(--color-error);
+  margin: 0;
+  padding: var(--space-1) var(--space-4);
+  background-color: rgba(211, 47, 47, 0.06);
+  border-top: var(--border-width-base) solid var(--color-error);
+}
+
+/* =============================================================================
+   タグドロップダウン（TagDropdown コンポーネント）
+   ============================================================================= */
+
+.tag-dropdown {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* ドロップダウントリガーボタン */
+.tag-dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-bg-page);
+  border: var(--border-width-base) solid var(--color-border);
+  border-radius: var(--border-radius-base);
+  color: var(--color-text-body);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 200px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.tag-dropdown-trigger:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.tag-dropdown-trigger:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* 選択中タグラベル（省略表示） */
+.tag-dropdown-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+
+/* ドロップダウン矢印アイコン */
+.tag-dropdown-arrow {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+/* ドロップダウンメニュー */
+.tag-dropdown-menu {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  min-width: 180px;
+  max-height: 260px;
+  overflow-y: auto;
+  background-color: var(--color-bg-card);
+  border: var(--border-width-base) solid var(--color-border);
+  border-radius: var(--border-radius-base);
+  box-shadow: var(--shadow-md);
+  z-index: 200;
+  list-style: none;
+  margin: 0;
+  padding: var(--space-1) 0;
+}
+
+/* メニューアイテム */
+.tag-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-body);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.tag-dropdown-item:hover {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.tag-dropdown-item:focus,
+.tag-dropdown-item:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: -2px;
+  background-color: var(--color-primary-light);
+}
+
+/* 選択中のアイテム */
+.tag-dropdown-item--selected {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* チェックボックスアイコン */
+.tag-dropdown-checkbox {
+  font-size: var(--font-size-base);
+  line-height: 1;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+/* タグなし表示 */
+.tag-dropdown-empty {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+/* =============================================================================
+   エディタページレイアウト（QuestionCreatePage / QuestionEditPage）
+   メタバー1行型フルワイドエディタ
+   ============================================================================= */
+
+/*
+  .editor-page: ページ全体のコンテナ
+  Topbar（--topbar-height）の下から画面の下端まで全高を占有する
+*/
+.editor-page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--topbar-height));
+  overflow: hidden;
+}
+
+/* =============================================================================
+   エディタ本体（タブ + MDEditor 全幅・全高さ）
+   ============================================================================= */
+
+/* エディタ本体エリア（タブとエディタを縦に並べる） */
+.editor-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0; /* flex 子要素のオーバーフロー防止 */
+  overflow: hidden;
+}
+
+/* タブバー（全幅） */
+.editor-tabs--fullwidth {
+  width: 100%;
+  flex-shrink: 0;
+  background-color: var(--color-bg-card);
+  padding: 0 var(--space-4);
+}
+
+/* エディタ本体エラーメッセージ */
+.editor-body-error {
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+  margin: 0;
+  padding: var(--space-1) var(--space-4);
+  background-color: rgba(211, 47, 47, 0.06);
+  border-top: var(--border-width-base) solid var(--color-error);
+  flex-shrink: 0;
+}
+
+/* MDEditor ラッパー（残り全高さを使う） */
+.editor-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* MDEditor を全幅・全高さに伸張させる */
+.editor-wrapper .w-md-editor {
+  height: 100% !important;
+  border-radius: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+}
+
+.editor-wrapper .w-md-editor-content {
+  height: calc(100% - 30px) !important; /* ツールバー分を引く */
+}
+
+/* =============================================================================
+   main-content: エディタページ使用時はパディングを除去
+   ============================================================================= */
+
+/*
+  通常ページは main-content に padding が付いているが、
+  エディタページは edge-to-edge に使いたいので除去する
+*/
+.main-content:has(.editor-page) {
+  padding: 0;
+}
+
+/* =============================================================================
+   モバイル対応（〜768px）: エディタページ
+   ============================================================================= */
+
+@media (max-width: 768px) {
+  /* モバイルではメタバーを2行に折り返し */
+  .editor-meta-bar {
+    height: auto;
+    min-height: var(--editor-meta-bar-height);
+  }
+
+  .editor-meta-bar-inner {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    row-gap: var(--space-2);
+  }
+
+  /* タイトル入力は1行目を全幅で占有 */
+  .editor-meta-title-field {
+    flex: 1 1 100%;
+    order: 0;
+  }
+
+  /* タグドロップダウン: 2行目左側 */
+  .tag-dropdown {
+    order: 1;
+    flex: 1;
+  }
+
+  .tag-dropdown-trigger {
+    max-width: none;
+    width: 100%;
+  }
+
+  .tag-dropdown-label {
+    max-width: none;
+    flex: 1;
+  }
+
+  /* ステータスセレクト: 2行目中央 */
+  .editor-meta-select {
+    order: 2;
+    flex: 0 1 auto;
+  }
+
+  /* アクションボタン: 2行目右端 */
+  .editor-meta-actions {
+    order: 3;
+    flex-shrink: 0;
+  }
+
+  /* モバイルでは MDEditor の高さをビューポートベースで制御（プレビューなし） */
+  .editor-wrapper .w-md-editor {
+    height: calc(100vh - var(--topbar-height) - var(--editor-meta-bar-height) - 100px) !important;
+  }
+
+  /* モバイルではタブを横スクロール可能に */
+  .editor-tabs--fullwidth {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .editor-tabs--fullwidth::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+
+  /* タグドロップダウンメニューは全幅に */
+  .tag-dropdown-menu {
+    width: 100%;
+    left: 0;
+    right: 0;
+  }
+}
+
