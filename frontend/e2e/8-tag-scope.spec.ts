@@ -65,8 +65,8 @@ test.describe('8: タグのチームスコープ化', () => {
     const tagItem = page.locator('.tag-manage-item', { hasText: tagName });
     await tagItem.getByRole('button', { name: '削除' }).click();
 
-    // 一覧から消える
-    await expect(page.locator('.tag-manage-list')).not.toContainText(tagName);
+    // タグアイテムが一覧から消える（削除成功時はリスト自体もなくなるため tag-manage-item で確認）
+    await expect(page.locator('.tag-manage-item', { hasText: tagName })).toHaveCount(0);
   });
 
   // ───────────────────────────────────────────────────────────────────────────

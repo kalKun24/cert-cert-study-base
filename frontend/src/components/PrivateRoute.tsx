@@ -7,8 +7,12 @@ interface Props {
 }
 
 export default function PrivateRoute({ requiredRoles }: Props) {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, isAuthLoading, user } = useAuth();
   const location = useLocation();
+
+  if (isAuthLoading) {
+    return null;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;

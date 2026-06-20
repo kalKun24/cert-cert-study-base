@@ -13,6 +13,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
+  isAuthLoading: boolean;
   login: (user: AuthUser, token: string) => void;
   logout: () => void;
 }
@@ -22,6 +23,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setTokenState] = useState<string | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
     const savedToken = getToken();
@@ -36,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       clearAuthStorage();
     }
+    setIsAuthLoading(false);
   }, []);
 
   const login = (newUser: AuthUser, newToken: string) => {
@@ -52,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated: !!token, login, logout }}>
+    <AuthContext.Provider value={{ user, token, isAuthenticated: !!token, isAuthLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
