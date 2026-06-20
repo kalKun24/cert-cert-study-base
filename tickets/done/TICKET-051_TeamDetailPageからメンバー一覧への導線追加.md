@@ -5,13 +5,13 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-051 |
-| ステータス | 🟡 作業中 |
+| ステータス | ✅ 完了 |
 | 作成日 | 2026-06-20 |
 | 着手日 | 2026-06-20 |
-| 完了日 | - |
+| 完了日 | 2026-06-20 |
 | ブランチ名 | `feature/team-member-list-link` |
-| PR番号 | - |
-| PRリンク | - |
+| PR番号 | #34 |
+| PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/34 |
 
 ---
 
@@ -29,16 +29,16 @@ TICKET-042 実装時に「TeamDetailPage からメンバー一覧への導線」
 
 ## 受け入れ条件
 
-- [ ] `TeamDetailPage` にメンバー一覧（`/teams/{id}/members`）へのリンクが存在する
-- [ ] `HomePage` の「チームメンバー数」表示がリンクになっており、クリックで `/teams/{id}/members` へ遷移する
-- [ ] 追加した文字列は `locales/ja.json` で管理されている
+- [x] `TeamDetailPage` にメンバー一覧（`/teams/{id}/members`）へのリンクが存在する
+- [x] `HomePage` の「チームメンバー数」表示がリンクになっており、クリックで `/teams/{id}/members` へ遷移する
+- [x] 追加した文字列は `locales/ja.json` で管理されている
 
 ---
 
 ## サブチケット（コミット単位）
 
-- [ ] `feat(page): TeamDetailPage にメンバー一覧へのリンクを追加`
-- [ ] `feat(page): HomePage のチームメンバー数をリンク化`
+- [x] `feat(page): TeamDetailPage にメンバー一覧へのリンクを追加`
+- [x] `feat(page): HomePage のチームメンバー数をリンク化`
 
 ---
 
