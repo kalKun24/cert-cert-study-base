@@ -18,16 +18,8 @@ type TeamUseCase struct {
 }
 
 // NewTeamUseCase は TeamUseCase を生成します（コンストラクタインジェクション）。
-func NewTeamUseCase(teamRepo domain.TeamRepository, userRepo domain.UserRepository) *TeamUseCase {
-	return &TeamUseCase{
-		teamRepo: teamRepo,
-		userRepo: userRepo,
-	}
-}
-
-// NewTeamUseCaseWithStats は問題・コメントリポジトリを含む TeamUseCase を生成します。
-// チームメンバー統計機能を使用する場合はこちらを使用してください。
-func NewTeamUseCaseWithStats(
+// questionRepo / commentRepo はメンバー統計機能（ListMemberStats）で使用します。
+func NewTeamUseCase(
 	teamRepo domain.TeamRepository,
 	userRepo domain.UserRepository,
 	questionRepo domain.QuestionRepository,
