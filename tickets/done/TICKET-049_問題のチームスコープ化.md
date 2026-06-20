@@ -49,7 +49,7 @@
 - [x] `refactor(question): チームスコープ対応・handler/dto/repository/routing更新`
 - [x] `refactor(question): フロントエンドをチームスコープAPI対応に更新`
 - [x] `test(e2e): 問題チームスコープ化のE2Eテストを追加`
-- [ ] `docs(api): openapi.yamlの問題エンドポイントをチームスコープに更新`
+- [x] `docs(api): openapi.yamlの問題エンドポイントをチームスコープに更新`（feat(question)コミットで実施済み）
 
 ---
 
