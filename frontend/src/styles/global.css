@@ -2728,3 +2728,80 @@ img {
   padding: 0;
 }
 
+/* =============================================================================
+   モバイル対応（〜768px）: エディタページ
+   ============================================================================= */
+
+@media (max-width: 768px) {
+  /* モバイルではメタバーを2行に折り返し */
+  .editor-meta-bar {
+    height: auto;
+    min-height: var(--editor-meta-bar-height);
+  }
+
+  .editor-meta-bar-inner {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    row-gap: var(--space-2);
+  }
+
+  /* タイトル入力は1行目を全幅で占有 */
+  .editor-meta-title-field {
+    flex: 1 1 100%;
+    order: 0;
+  }
+
+  /* タグドロップダウン: 2行目左側 */
+  .tag-dropdown {
+    order: 1;
+    flex: 1;
+  }
+
+  .tag-dropdown-trigger {
+    max-width: none;
+    width: 100%;
+  }
+
+  .tag-dropdown-label {
+    max-width: none;
+    flex: 1;
+  }
+
+  /* ステータスセレクト: 2行目中央 */
+  .editor-meta-select {
+    order: 2;
+    flex: 0 1 auto;
+  }
+
+  /* アクションボタン: 2行目右端 */
+  .editor-meta-actions {
+    order: 3;
+    flex-shrink: 0;
+  }
+
+  /* モバイルでは MDEditor の高さをビューポートベースで制御（プレビューなし） */
+  .editor-wrapper .w-md-editor {
+    height: calc(100vh - var(--topbar-height) - var(--editor-meta-bar-height) - 100px) !important;
+  }
+
+  /* モバイルではタブを横スクロール可能に */
+  .editor-tabs--fullwidth {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .editor-tabs--fullwidth::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+
+  /* タグドロップダウンメニューは全幅に */
+  .tag-dropdown-menu {
+    width: 100%;
+    left: 0;
+    right: 0;
+  }
+}
+
