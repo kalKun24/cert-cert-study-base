@@ -326,3 +326,75 @@ export async function removeSatoFromTeamA(): Promise<void> {
   const adminToken = await adminLogin();
   await removeMember(adminToken, TEAM_IDS.TEAM_A, USER_IDS.SATO);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// タグ管理
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface Tag {
+  id: string;
+  team_id: string;
+  name: string;
+}
+
+interface TagResponse {
+  data: Tag;
+  error: string | null;
+}
+
+interface TagListResponse {
+  data: Tag[];
+  error: string | null;
+}
+
+/** チームのタグ一覧を取得する */
+export async function listTagsViaApi(token: string, teamId: string): Promise<Tag[]> {
+  const res = await fetch(`${API_BASE}/teams/${teamId}/tags`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    throw new Error(`listTagsViaApi failed: ${res.status}`);
+  }
+  const json = (await res.json()) as TagListResponse;
+  return json.data ?? [];
+}
+
+/** チームにタグを作成してタグIDを返す */
+export async function createTagViaApi(token: string, teamId: string, name: string): Promise<string> {
+  const res = await fetch(`${API_BASE}/teams/${teamId}/tags`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) {
+    throw new Error(`createTagViaApi failed: ${res.status} ${await res.text()}`);
+  }
+  const json = (await res.json()) as TagResponse;
+  return json.data.id;
+}
+
+/** チームのタグを削除する */
+export async function deleteTagViaApi(token: string, teamId: string, tagId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/teams/${teamId}/tags/${tagId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok && res.status !== 404) {
+    throw new Error(`deleteTagViaApi failed: ${res.status}`);
+  }
+}
+
+/**
+ * チームのタグを全削除する（テスト後クリーンアップ用）。
+ * 問題に使用中のタグは削除できないため、409 は無視する。
+ */
+export async function cleanupTeamTags(teamId: string): Promise<void> {
+  const adminToken = await adminLogin();
+  const tags = await listTagsViaApi(adminToken, teamId);
+  await Promise.allSettled(
+    tags.map((tag) => deleteTagViaApi(adminToken, teamId, tag.id)),
+  );
+}
