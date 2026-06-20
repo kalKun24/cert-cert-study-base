@@ -365,7 +365,8 @@
       "questions": "問題数",
       "tags": "タグ数",
       "teams": "チーム数",
-      "members": "チームメンバー数"
+      "members": "チームメンバー数",
+      "membersAriaLabel": "チームメンバー数: {{count}}人"
     },
     "recentQuestions": {
       "title": "最近の問題",

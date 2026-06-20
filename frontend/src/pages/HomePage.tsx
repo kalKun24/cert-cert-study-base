@@ -84,7 +84,7 @@ export default function HomePage() {
             <Link
               to={`/teams/${activeTeam.id}/members`}
               className="stat-card"
-              aria-label={t('home.stats.members')}
+              aria-label={t('home.stats.membersAriaLabel', { count: stats.members })}
             >
               <span className="stat-label">{t('home.stats.members')}</span>
               <span className="stat-value">{stats.members}</span>

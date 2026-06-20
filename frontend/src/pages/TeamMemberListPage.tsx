@@ -1,16 +1,27 @@
 import { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TeamMemberStats } from '../types/team';
 import { fetchTeamMemberStats } from '../utils/teamApi';
+import { useTeam } from '../context/TeamContext';
 
 export default function TeamMemberListPage() {
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
+  const { activeTeam, isLoading: isTeamLoading } = useTeam();
+  const navigate = useNavigate();
 
   const [members, setMembers] = useState<TeamMemberStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState('');
+
+  // TeamContext のロードが完了してから、URL の id と所属チームを照合してアクセス制御を行う
+  useEffect(() => {
+    if (isTeamLoading) return;
+    if (activeTeam === null || id !== activeTeam.id) {
+      navigate(activeTeam === null ? '/no-team' : '/', { replace: true });
+    }
+  }, [id, activeTeam, isTeamLoading, navigate]);
 
   useEffect(() => {
     if (!id) return;
