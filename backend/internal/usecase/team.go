@@ -504,8 +504,10 @@ func (uc *TeamUseCase) ListMemberStats(ctx context.Context, callerID string, cal
 		return nil, fmt.Errorf("メンバー一覧取得に失敗しました: %w", err)
 	}
 
-	// 問題数をユーザーID別に集計（questionRepo が設定されている場合のみ）
+	// 問題一覧を一度取得し、問題数・コメント数の両方の集計に再利用する
+	// （questionRepo が未設定の場合は集計をスキップし 0 のままとする）
 	questionCountByUser := make(map[string]int)
+	commentCountByUser := make(map[string]int)
 	if uc.questionRepo != nil {
 		questions, err := uc.questionRepo.ListByTeam(ctx, teamID)
 		if err != nil {
@@ -514,24 +516,18 @@ func (uc *TeamUseCase) ListMemberStats(ctx context.Context, callerID string, cal
 		for _, q := range questions {
 			questionCountByUser[q.CreatedBy]++
 		}
-	}
 
-	// コメント数をユーザーID別に集計（commentRepo が設定されている場合のみ）
-	// チーム内の全問題のコメントを集計するため、まず問題一覧を取得する
-	commentCountByUser := make(map[string]int)
-	if uc.commentRepo != nil {
-		// questionRepo が未設定の場合は問題一覧を別途取得
-		questions, err := uc.questionRepo.ListByTeam(ctx, teamID)
-		if err != nil {
-			return nil, fmt.Errorf("問題一覧取得に失敗しました（コメント集計用）: %w", err)
-		}
-		for _, q := range questions {
-			comments, err := uc.commentRepo.ListByQuestionID(ctx, q.ID)
-			if err != nil {
-				return nil, fmt.Errorf("コメント一覧取得に失敗しました（question_id=%s）: %w", q.ID, err)
-			}
-			for _, c := range comments {
-				commentCountByUser[c.CreatedBy]++
+		// コメント数の集計（commentRepo が設定されている場合のみ）
+		// 既に取得した questions スライスを再利用することで二重取得を防ぐ
+		if uc.commentRepo != nil {
+			for _, q := range questions {
+				comments, err := uc.commentRepo.ListByQuestionID(ctx, q.ID)
+				if err != nil {
+					return nil, fmt.Errorf("コメント一覧取得に失敗しました（question_id=%s）: %w", q.ID, err)
+				}
+				for _, c := range comments {
+					commentCountByUser[c.CreatedBy]++
+				}
 			}
 		}
 	}

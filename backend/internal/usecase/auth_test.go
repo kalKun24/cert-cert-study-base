@@ -785,6 +785,8 @@ func TestAuthUseCase_Login_UpdatesLastLoginAt(t *testing.T) {
 }
 
 func TestAuthUseCase_Login_LastLoginAt_SaveError(t *testing.T) {
+	// LastLoginAt の保存に失敗しても、ログイン自体は成功することを検証する
+	// GCS の一時障害などで Save が失敗しても認証トークンは返すべき仕様
 	repo := newMockUserRepository()
 	user := testUser("id-1", "alice", "alice@example.com", domain.RoleUser, true)
 	repo.addUser(user)
@@ -795,12 +797,15 @@ func TestAuthUseCase_Login_LastLoginAt_SaveError(t *testing.T) {
 	tokenGen := &mockTokenGenerator{token: "jwt-token"}
 	uc := usecase.NewAuthUseCase(repo, hasher, tokenGen)
 
-	_, err := uc.Login(usecase.LoginInput{
+	out, err := uc.Login(usecase.LoginInput{
 		Username: "alice",
 		Password: "password123",
 	})
 
-	if err == nil {
-		t.Fatal("LastLoginAt 保存エラー時はエラーを返すべきです")
+	if err != nil {
+		t.Fatalf("LastLoginAt 保存エラー時もログインは成功するべきです: %v", err)
+	}
+	if out == nil || out.Token != "jwt-token" {
+		t.Fatal("ログイントークンが返されていません")
 	}
 }
