@@ -22,6 +22,7 @@ const tagsObjectName = "tags.json"
 // domain.Tag と対応しており、JSON直列化のための構造体です。
 type tagRecord struct {
 	ID        string    `json:"id"`
+	TeamID    string    `json:"team_id"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"created_at"`
 }
@@ -30,6 +31,7 @@ type tagRecord struct {
 func toTagRecord(t *domain.Tag) tagRecord {
 	return tagRecord{
 		ID:        t.ID,
+		TeamID:    t.TeamID,
 		Name:      t.Name,
 		CreatedAt: t.CreatedAt,
 	}
@@ -39,6 +41,7 @@ func toTagRecord(t *domain.Tag) tagRecord {
 func toTag(r tagRecord) *domain.Tag {
 	return &domain.Tag{
 		ID:        r.ID,
+		TeamID:    r.TeamID,
 		Name:      r.Name,
 		CreatedAt: r.CreatedAt,
 	}
@@ -134,8 +137,8 @@ func (r *GCSTagRepository) FindByID(ctx context.Context, id string) (*domain.Tag
 	return nil, domain.ErrTagNotFound
 }
 
-// FindByName はタグ名でタグを検索します。
-func (r *GCSTagRepository) FindByName(ctx context.Context, name string) (*domain.Tag, error) {
+// FindByName はチームIDとタグ名でタグを検索します。
+func (r *GCSTagRepository) FindByName(ctx context.Context, teamID string, name string) (*domain.Tag, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -145,7 +148,7 @@ func (r *GCSTagRepository) FindByName(ctx context.Context, name string) (*domain
 	}
 
 	for _, rec := range records {
-		if rec.Name == name {
+		if rec.TeamID == teamID && rec.Name == name {
 			return toTag(rec), nil
 		}
 	}
@@ -153,8 +156,8 @@ func (r *GCSTagRepository) FindByName(ctx context.Context, name string) (*domain
 	return nil, domain.ErrTagNotFound
 }
 
-// List は全タグを返します。
-func (r *GCSTagRepository) List(ctx context.Context) ([]*domain.Tag, error) {
+// ListByTeam は指定チームのタグ一覧を返します。
+func (r *GCSTagRepository) ListByTeam(ctx context.Context, teamID string) ([]*domain.Tag, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -163,9 +166,11 @@ func (r *GCSTagRepository) List(ctx context.Context) ([]*domain.Tag, error) {
 		return nil, fmt.Errorf("タグデータ読み込みに失敗しました: %w", err)
 	}
 
-	tags := make([]*domain.Tag, 0, len(records))
+	tags := make([]*domain.Tag, 0)
 	for _, rec := range records {
-		tags = append(tags, toTag(rec))
+		if rec.TeamID == teamID {
+			tags = append(tags, toTag(rec))
+		}
 	}
 
 	return tags, nil

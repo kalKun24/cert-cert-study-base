@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { fetchQuestions } from '../utils/questionApi';
 import { fetchTags } from '../utils/tagApi';
 import { fetchTeams } from '../utils/teamApi';
+import { useTeam } from '../context/TeamContext';
 import { Question } from '../types/question';
 import { DashboardSkeleton } from '../components/Skeleton';
 
@@ -15,6 +16,7 @@ interface DashboardStats {
 
 export default function HomePage() {
   const { t } = useTranslation();
+  const { activeTeam } = useTeam();
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentQuestions, setRecentQuestions] = useState<Question[]>([]);
@@ -25,13 +27,12 @@ export default function HomePage() {
 
     Promise.allSettled([
       fetchQuestions({ page: 1, per_page: 5 }),
-      fetchTags(),
+      activeTeam ? fetchTags(activeTeam.id) : Promise.resolve([]),
       fetchTeams(),
     ]).then(([questionsResult, tagsResult, teamsResult]) => {
       if (!isMounted) return;
 
       setStats({
-        // total フィールドで全件数を表示
         questions: questionsResult.status === 'fulfilled' ? questionsResult.value.total : 0,
         tags: tagsResult.status === 'fulfilled' ? tagsResult.value.length : 0,
         teams: teamsResult.status === 'fulfilled' ? teamsResult.value.length : 0,
@@ -47,7 +48,7 @@ export default function HomePage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [activeTeam?.id]);
 
   if (isLoading) {
     return <DashboardSkeleton />;

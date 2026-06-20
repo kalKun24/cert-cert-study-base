@@ -1,5 +1,6 @@
 export interface Tag {
   id: string;
+  team_id: string;
   name: string;
   created_at: string;
 }

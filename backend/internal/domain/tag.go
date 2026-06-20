@@ -9,11 +9,13 @@ import (
 )
 
 // Tag はタグエンティティです。
-// 問題に付与するフラット構造のタグを表します。
+// 問題に付与するフラット構造のタグを表します。各タグは1つのチームに属します。
 type Tag struct {
 	// ID はタグID（UUID形式）
 	ID string
-	// Name はタグ名（一意）
+	// TeamID は所属チームID
+	TeamID string
+	// Name はタグ名（チーム内で一意）
 	Name string
 	// CreatedAt は作成日時
 	CreatedAt time.Time
@@ -27,6 +29,8 @@ var (
 	ErrTagNameAlreadyExists = errors.New("このタグ名は既に使用されています")
 	// ErrTagInUse はタグが問題に使用中で削除できない場合のエラーです。
 	ErrTagInUse = errors.New("このタグは使用中のため削除できません")
+	// ErrTagTeamMismatch はタグが指定チームに属さない場合のエラーです。
+	ErrTagTeamMismatch = errors.New("このタグは指定チームに属しません")
 )
 
 // TagRepository はタグの永続化操作を抽象化するインターフェースです。
@@ -38,12 +42,12 @@ type TagRepository interface {
 	// タグが存在しない場合は ErrTagNotFound を返します。
 	FindByID(ctx context.Context, id string) (*Tag, error)
 
-	// FindByName はタグ名でタグを検索します。
+	// FindByName はチームIDとタグ名でタグを検索します。
 	// タグが存在しない場合は ErrTagNotFound を返します。
-	FindByName(ctx context.Context, name string) (*Tag, error)
+	FindByName(ctx context.Context, teamID string, name string) (*Tag, error)
 
-	// List は全タグの一覧を返します。
-	List(ctx context.Context) ([]*Tag, error)
+	// ListByTeam は指定チームのタグ一覧を返します。
+	ListByTeam(ctx context.Context, teamID string) ([]*Tag, error)
 
 	// Save はタグを新規作成または更新します。
 	// IDが一致するレコードが存在する場合は更新、存在しない場合は追加します。

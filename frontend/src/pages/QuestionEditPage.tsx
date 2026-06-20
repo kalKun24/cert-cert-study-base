@@ -6,6 +6,7 @@ import rehypeSanitize from 'rehype-sanitize';
 import { fetchQuestion, updateQuestion } from '../utils/questionApi';
 import { fetchTags } from '../utils/tagApi';
 import { useAuth } from '../context/AuthContext';
+import { useTeam } from '../context/TeamContext';
 import { QuestionStatus } from '../types/question';
 import { Tag } from '../types/tag';
 
@@ -28,6 +29,7 @@ export default function QuestionEditPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { activeTeam } = useTeam();
 
   const [form, setForm] = useState<FormValues | null>(null);
   const [activeTab, setActiveTab] = useState<EditorTab>('body');
@@ -44,7 +46,7 @@ export default function QuestionEditPage() {
 
     Promise.all([
       fetchQuestion(id),
-      fetchTags(),
+      activeTeam ? fetchTags(activeTeam.id) : Promise.resolve([]),
     ])
       .then(([q, tagList]) => {
         if (!isMounted) return;
@@ -74,7 +76,7 @@ export default function QuestionEditPage() {
     return () => {
       isMounted = false;
     };
-  }, [id, t, user, navigate]);
+  }, [id, t, user, navigate, activeTeam]);
 
   const handleTagToggle = (tagName: string) => {
     if (!form) return;

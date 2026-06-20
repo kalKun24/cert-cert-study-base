@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import MDEditor from '@uiw/react-md-editor';
 import { createQuestion } from '../utils/questionApi';
 import { fetchTags } from '../utils/tagApi';
+import { useTeam } from '../context/TeamContext';
 import { QuestionStatus, VisibilityScope } from '../types/question';
 import { Tag } from '../types/tag';
 
@@ -34,6 +35,7 @@ const INITIAL_FORM: FormValues = {
 export default function QuestionCreatePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { activeTeam } = useTeam();
 
   const [form, setForm] = useState<FormValues>(INITIAL_FORM);
   const [activeTab, setActiveTab] = useState<EditorTab>('body');
@@ -43,12 +45,11 @@ export default function QuestionCreatePage() {
   const [validationErrors, setValidationErrors] = useState<Partial<Record<keyof FormValues, string>>>({});
 
   useEffect(() => {
-    fetchTags()
-      .then(setTags)
-      .catch(() => {
-        // タグ取得エラーは非致命的
-      });
-  }, []);
+    if (!activeTeam) return;
+    fetchTags(activeTeam.id).then(setTags).catch(() => {
+      // タグ取得エラーは非致命的
+    });
+  }, [activeTeam?.id]);
 
   const handleTagToggle = (tagName: string) => {
     setForm((prev) => ({

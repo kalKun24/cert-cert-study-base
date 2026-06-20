@@ -47,10 +47,29 @@ afterEach(() => {
 });
 
 describe('PrivateRoute', () => {
+  describe('認証確認中の場合', () => {
+    it('isAuthLoading=true のとき何もレンダリングしない', () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: false,
+        isAuthLoading: true,
+        user: null,
+        token: null,
+        login: vi.fn(),
+        logout: vi.fn(),
+      });
+
+      renderWithRouter(['/']);
+
+      expect(screen.queryByText('ログインページ')).not.toBeInTheDocument();
+      expect(screen.queryByText('保護されたコンテンツ')).not.toBeInTheDocument();
+    });
+  });
+
   describe('未認証の場合', () => {
     it('/login にリダイレクトされる', () => {
       mockUseAuth.mockReturnValue({
         isAuthenticated: false,
+        isAuthLoading: false,
         user: null,
         token: null,
         login: vi.fn(),
@@ -68,6 +87,7 @@ describe('PrivateRoute', () => {
     it('requiredRoles なし: Outlet がレンダリングされる', () => {
       mockUseAuth.mockReturnValue({
         isAuthenticated: true,
+        isAuthLoading: false,
         user: mockUser,
         token: 'token',
         login: vi.fn(),
@@ -83,6 +103,7 @@ describe('PrivateRoute', () => {
     it('ロールが requiredRoles に含まれる場合: Outlet がレンダリングされる', () => {
       mockUseAuth.mockReturnValue({
         isAuthenticated: true,
+        isAuthLoading: false,
         user: adminUser,
         token: 'token',
         login: vi.fn(),
@@ -97,6 +118,7 @@ describe('PrivateRoute', () => {
     it('ロールが requiredRoles に含まれない場合: / にリダイレクトされる（ルートにフォールバック）', () => {
       mockUseAuth.mockReturnValue({
         isAuthenticated: true,
+        isAuthLoading: false,
         user: mockUser,
         token: 'token',
         login: vi.fn(),
