@@ -740,3 +740,67 @@ func TestUserUseCase_UpdateTeamOwnerStatus_UserNotFound(t *testing.T) {
 		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrUserNotFound)
 	}
 }
+
+// --- AuthUseCase.Login の LastLoginAt 更新テスト ---
+
+func TestAuthUseCase_Login_UpdatesLastLoginAt(t *testing.T) {
+	repo := newMockUserRepository()
+	user := testUser("id-1", "alice", "alice@example.com", domain.RoleUser, true)
+	// 初期状態では LastLoginAt が nil
+	if user.LastLoginAt != nil {
+		t.Fatal("初期状態では LastLoginAt は nil であるべきです")
+	}
+	repo.addUser(user)
+
+	hasher := &mockPasswordHasher{verifyResult: true}
+	tokenGen := &mockTokenGenerator{token: "jwt-token"}
+	uc := usecase.NewAuthUseCase(repo, hasher, tokenGen)
+
+	beforeLogin := time.Now()
+	out, err := uc.Login(usecase.LoginInput{
+		Username: "alice",
+		Password: "password123",
+	})
+
+	if err != nil {
+		t.Fatalf("ログインに失敗しました: %v", err)
+	}
+
+	// ログイン後に LastLoginAt が設定されていること
+	if out.User.LastLoginAt == nil {
+		t.Fatal("ログイン後に LastLoginAt が設定されていません")
+	}
+	if out.User.LastLoginAt.Before(beforeLogin) {
+		t.Errorf("LastLoginAt が古い時刻です: got %v, want >= %v", *out.User.LastLoginAt, beforeLogin)
+	}
+
+	// リポジトリにも保存されていること
+	saved, err := repo.FindByID(context.Background(), "id-1")
+	if err != nil {
+		t.Fatalf("ユーザー取得に失敗しました: %v", err)
+	}
+	if saved.LastLoginAt == nil {
+		t.Fatal("リポジトリに LastLoginAt が保存されていません")
+	}
+}
+
+func TestAuthUseCase_Login_LastLoginAt_SaveError(t *testing.T) {
+	repo := newMockUserRepository()
+	user := testUser("id-1", "alice", "alice@example.com", domain.RoleUser, true)
+	repo.addUser(user)
+	// 保存時にエラーを返すように設定
+	repo.saveErr = errors.New("GCS書き込みエラー")
+
+	hasher := &mockPasswordHasher{verifyResult: true}
+	tokenGen := &mockTokenGenerator{token: "jwt-token"}
+	uc := usecase.NewAuthUseCase(repo, hasher, tokenGen)
+
+	_, err := uc.Login(usecase.LoginInput{
+		Username: "alice",
+		Password: "password123",
+	})
+
+	if err == nil {
+		t.Fatal("LastLoginAt 保存エラー時はエラーを返すべきです")
+	}
+}

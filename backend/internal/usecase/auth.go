@@ -87,6 +87,15 @@ func (uc *AuthUseCase) Login(input LoginInput) (*LoginOutput, error) {
 		return nil, fmt.Errorf("JWTトークン生成に失敗しました: %w", err)
 	}
 
+	// 最終ログイン日時を更新して保存
+	now := time.Now().UTC()
+	user.LastLoginAt = &now
+	user.UpdatedAt = now
+	if err := uc.userRepo.Save(context.TODO(), user); err != nil {
+		// ログイン日時更新の失敗はログに記録するが、ログイン自体は成功とみなす
+		return nil, fmt.Errorf("最終ログイン日時の更新に失敗しました: %w", err)
+	}
+
 	return &LoginOutput{
 		Token: token,
 		User:  user,
