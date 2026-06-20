@@ -33,8 +33,14 @@ func NewCommentHandler(commentUC *usecase.CommentUseCase) *CommentHandler {
 	return &CommentHandler{commentUC: commentUC}
 }
 
-// HandleCreateComment は POST /api/v1/questions/{id}/comments を処理します。
+// HandleCreateComment は POST /api/v1/teams/{team_id}/questions/{id}/comments を処理します。
 func (h *CommentHandler) HandleCreateComment(w http.ResponseWriter, r *http.Request) {
+	teamID := r.PathValue("team_id")
+	if teamID == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+		return
+	}
+
 	questionID := r.PathValue("id")
 	if questionID == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "問題IDは必須です"})
@@ -60,6 +66,7 @@ func (h *CommentHandler) HandleCreateComment(w http.ResponseWriter, r *http.Requ
 
 	comment, err := h.commentUC.CreateComment(r.Context(), usecase.CreateCommentInput{
 		QuestionID: questionID,
+		TeamID:     teamID,
 		Body:       req.Body,
 		CallerID:   callerID,
 		CallerRole: callerRole,
@@ -72,10 +79,10 @@ func (h *CommentHandler) HandleCreateComment(w http.ResponseWriter, r *http.Requ
 			writeJSON(w, http.StatusBadRequest, response{Error: err.Error()})
 		case errors.Is(err, domain.ErrQuestionNotFound):
 			writeJSON(w, http.StatusNotFound, response{Error: "問題が見つかりません"})
-		case errors.Is(err, domain.ErrPermissionDenied):
+		case errors.Is(err, domain.ErrPermissionDenied), errors.Is(err, domain.ErrMemberNotFound):
 			writeJSON(w, http.StatusForbidden, response{Error: "この操作を行う権限がありません"})
 		default:
-			slog.Error("コメント投稿でエラーが発生しました", "question_id", questionID, "caller_id", callerID, "error", err)
+			slog.Error("コメント投稿でエラーが発生しました", "team_id", teamID, "question_id", questionID, "caller_id", callerID, "error", err)
 			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
 		}
 		return
@@ -84,8 +91,14 @@ func (h *CommentHandler) HandleCreateComment(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusCreated, response{Data: toCommentDTO(comment.Comment, comment.DisplayName)})
 }
 
-// HandleListComments は GET /api/v1/questions/{id}/comments を処理します。
+// HandleListComments は GET /api/v1/teams/{team_id}/questions/{id}/comments を処理します。
 func (h *CommentHandler) HandleListComments(w http.ResponseWriter, r *http.Request) {
+	teamID := r.PathValue("team_id")
+	if teamID == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+		return
+	}
+
 	questionID := r.PathValue("id")
 	if questionID == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "問題IDは必須です"})
@@ -104,6 +117,7 @@ func (h *CommentHandler) HandleListComments(w http.ResponseWriter, r *http.Reque
 
 	comments, err := h.commentUC.ListComments(r.Context(), usecase.ListCommentsInput{
 		QuestionID: questionID,
+		TeamID:     teamID,
 		CallerID:   callerID,
 		CallerRole: callerRole,
 	})
@@ -111,10 +125,10 @@ func (h *CommentHandler) HandleListComments(w http.ResponseWriter, r *http.Reque
 		switch {
 		case errors.Is(err, domain.ErrQuestionNotFound):
 			writeJSON(w, http.StatusNotFound, response{Error: "問題が見つかりません"})
-		case errors.Is(err, domain.ErrPermissionDenied):
+		case errors.Is(err, domain.ErrPermissionDenied), errors.Is(err, domain.ErrMemberNotFound):
 			writeJSON(w, http.StatusForbidden, response{Error: "この操作を行う権限がありません"})
 		default:
-			slog.Error("コメント一覧取得でエラーが発生しました", "question_id", questionID, "error", err)
+			slog.Error("コメント一覧取得でエラーが発生しました", "team_id", teamID, "question_id", questionID, "error", err)
 			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
 		}
 		return
@@ -128,8 +142,14 @@ func (h *CommentHandler) HandleListComments(w http.ResponseWriter, r *http.Reque
 	writeJSON(w, http.StatusOK, response{Data: dtos})
 }
 
-// HandleUpdateComment は PUT /api/v1/questions/{id}/comments/{comment_id} を処理します。
+// HandleUpdateComment は PUT /api/v1/teams/{team_id}/questions/{id}/comments/{comment_id} を処理します。
 func (h *CommentHandler) HandleUpdateComment(w http.ResponseWriter, r *http.Request) {
+	teamID := r.PathValue("team_id")
+	if teamID == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+		return
+	}
+
 	questionID := r.PathValue("id")
 	if questionID == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "問題IDは必須です"})
@@ -165,6 +185,7 @@ func (h *CommentHandler) HandleUpdateComment(w http.ResponseWriter, r *http.Requ
 
 	comment, err := h.commentUC.UpdateComment(r.Context(), usecase.UpdateCommentInput{
 		QuestionID: questionID,
+		TeamID:     teamID,
 		CommentID:  commentID,
 		Body:       req.Body,
 		CallerID:   callerID,
@@ -180,10 +201,10 @@ func (h *CommentHandler) HandleUpdateComment(w http.ResponseWriter, r *http.Requ
 			writeJSON(w, http.StatusNotFound, response{Error: "問題が見つかりません"})
 		case errors.Is(err, domain.ErrCommentNotFound):
 			writeJSON(w, http.StatusNotFound, response{Error: "コメントが見つかりません"})
-		case errors.Is(err, domain.ErrPermissionDenied):
+		case errors.Is(err, domain.ErrPermissionDenied), errors.Is(err, domain.ErrMemberNotFound):
 			writeJSON(w, http.StatusForbidden, response{Error: "この操作を行う権限がありません"})
 		default:
-			slog.Error("コメント編集でエラーが発生しました", "question_id", questionID, "comment_id", commentID, "error", err)
+			slog.Error("コメント編集でエラーが発生しました", "team_id", teamID, "question_id", questionID, "comment_id", commentID, "error", err)
 			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
 		}
 		return
@@ -192,8 +213,14 @@ func (h *CommentHandler) HandleUpdateComment(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusOK, response{Data: toCommentDTO(comment.Comment, comment.DisplayName)})
 }
 
-// HandleDeleteComment は DELETE /api/v1/questions/{id}/comments/{comment_id} を処理します。
+// HandleDeleteComment は DELETE /api/v1/teams/{team_id}/questions/{id}/comments/{comment_id} を処理します。
 func (h *CommentHandler) HandleDeleteComment(w http.ResponseWriter, r *http.Request) {
+	teamID := r.PathValue("team_id")
+	if teamID == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+		return
+	}
+
 	questionID := r.PathValue("id")
 	if questionID == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "問題IDは必須です"})
@@ -222,6 +249,7 @@ func (h *CommentHandler) HandleDeleteComment(w http.ResponseWriter, r *http.Requ
 
 	if err := h.commentUC.DeleteComment(r.Context(), usecase.DeleteCommentInput{
 		QuestionID: questionID,
+		TeamID:     teamID,
 		CommentID:  commentID,
 		CallerID:   callerID,
 		CallerRole: callerRole,
@@ -231,10 +259,10 @@ func (h *CommentHandler) HandleDeleteComment(w http.ResponseWriter, r *http.Requ
 			writeJSON(w, http.StatusNotFound, response{Error: "問題が見つかりません"})
 		case errors.Is(err, domain.ErrCommentNotFound):
 			writeJSON(w, http.StatusNotFound, response{Error: "コメントが見つかりません"})
-		case errors.Is(err, domain.ErrPermissionDenied):
+		case errors.Is(err, domain.ErrPermissionDenied), errors.Is(err, domain.ErrMemberNotFound):
 			writeJSON(w, http.StatusForbidden, response{Error: "この操作を行う権限がありません"})
 		default:
-			slog.Error("コメント削除でエラーが発生しました", "question_id", questionID, "comment_id", commentID, "error", err)
+			slog.Error("コメント削除でエラーが発生しました", "team_id", teamID, "question_id", questionID, "comment_id", commentID, "error", err)
 			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
 		}
 		return

@@ -65,6 +65,7 @@ const mockComment: Comment = {
   updated_at: '2026-01-01T10:00:00Z',
 };
 
+const TEAM_ID = 'team-1';
 const QUESTION_ID = 'question-1';
 
 function setupAuth(user: AuthUser | null = testUser) {
@@ -82,14 +83,14 @@ afterEach(() => {
 });
 
 describe('CommentSection', () => {
-  it('マウント時に fetchComments(questionId) が呼ばれる', async () => {
+  it('マウント時に fetchComments(teamId, questionId) が呼ばれる', async () => {
     setupAuth();
     mockFetchComments.mockResolvedValue([]);
 
-    render(<CommentSection questionId={QUESTION_ID} />);
+    render(<CommentSection teamId={TEAM_ID} questionId={QUESTION_ID} />);
 
     await waitFor(() => {
-      expect(mockFetchComments).toHaveBeenCalledWith(QUESTION_ID);
+      expect(mockFetchComments).toHaveBeenCalledWith(TEAM_ID, QUESTION_ID);
     });
     await waitFor(() => {
       expect(screen.queryByRole('status')).not.toBeInTheDocument();
@@ -101,7 +102,7 @@ describe('CommentSection', () => {
     // 解決しない Promise でローディング状態を維持する
     mockFetchComments.mockImplementation(() => new Promise<Comment[]>(() => {}));
 
-    render(<CommentSection questionId={QUESTION_ID} />);
+    render(<CommentSection teamId={TEAM_ID} questionId={QUESTION_ID} />);
 
     expect(screen.getByRole('status')).toBeInTheDocument();
     expect(screen.getByRole('status').textContent).toBe('common.loading');
@@ -111,7 +112,7 @@ describe('CommentSection', () => {
     setupAuth();
     mockFetchComments.mockResolvedValue([mockComment]);
 
-    render(<CommentSection questionId={QUESTION_ID} />);
+    render(<CommentSection teamId={TEAM_ID} questionId={QUESTION_ID} />);
 
     await waitFor(() => {
       expect(screen.getByText(mockComment.display_name)).toBeInTheDocument();
@@ -126,7 +127,7 @@ describe('CommentSection', () => {
       throw new Error('fetch failed');
     });
 
-    render(<CommentSection questionId={QUESTION_ID} />);
+    render(<CommentSection teamId={TEAM_ID} questionId={QUESTION_ID} />);
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toBeInTheDocument();
@@ -145,7 +146,7 @@ describe('CommentSection', () => {
       body: 'テスト投稿',
     });
 
-    render(<CommentSection questionId={QUESTION_ID} />);
+    render(<CommentSection teamId={TEAM_ID} questionId={QUESTION_ID} />);
 
     const textarea = screen.getByRole('textbox', {
       name: 'comment.form.bodyLabel',
@@ -158,7 +159,7 @@ describe('CommentSection', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(mockPostComment).toHaveBeenCalledWith(QUESTION_ID, 'テスト投稿');
+      expect(mockPostComment).toHaveBeenCalledWith(TEAM_ID, QUESTION_ID, 'テスト投稿');
     });
   });
 
@@ -167,7 +168,7 @@ describe('CommentSection', () => {
     // フォームは loading 中でも常時レンダーされるため、loading 完了を待たずに操作できる
     mockFetchComments.mockImplementation(() => new Promise<Comment[]>(() => {}));
 
-    render(<CommentSection questionId={QUESTION_ID} />);
+    render(<CommentSection teamId={TEAM_ID} questionId={QUESTION_ID} />);
 
     const submitButton = screen.getByRole('button', {
       name: 'comment.form.submit',

@@ -167,21 +167,6 @@ func main() {
 	mux.Handle("PATCH /api/v1/users/me/profile", withAuth(userHandler.HandleUpdateMyProfile))
 	mux.Handle("PATCH /api/v1/users/me/password", withAuth(userHandler.HandleChangeMyPassword))
 
-	// 問題CRUD（認証済み全ユーザー。認可はユースケース層で実施）
-	mux.Handle("POST /api/v1/questions", withAuth(questionHandler.HandleCreateQuestion))
-	mux.Handle("GET /api/v1/questions", withAuth(questionHandler.HandleListQuestions))
-	mux.Handle("GET /api/v1/questions/{id}", withAuth(questionHandler.HandleGetQuestion))
-	mux.Handle("PUT /api/v1/questions/{id}", withAuth(questionHandler.HandleUpdateQuestion))
-	mux.Handle("DELETE /api/v1/questions/{id}", withAuth(questionHandler.HandleDeleteQuestion))
-	// 公開設定変更（作成者本人または admin のみ。認可はユースケース層で実施）
-	mux.Handle("PATCH /api/v1/questions/{id}/visibility", withAuth(questionHandler.HandleUpdateQuestionVisibility))
-
-	// コメントCRUD（認証済みかつ問題の閲覧権限を持つユーザー。認可はユースケース層で実施）
-	mux.Handle("POST /api/v1/questions/{id}/comments", withAuth(commentHandler.HandleCreateComment))
-	mux.Handle("GET /api/v1/questions/{id}/comments", withAuth(commentHandler.HandleListComments))
-	mux.Handle("PUT /api/v1/questions/{id}/comments/{comment_id}", withAuth(commentHandler.HandleUpdateComment))
-	mux.Handle("DELETE /api/v1/questions/{id}/comments/{comment_id}", withAuth(commentHandler.HandleDeleteComment))
-
 	// チーム管理（認証済み全ユーザー。各エンドポイントで認可チェックをユースケース層が実施）
 	mux.Handle("POST /api/v1/teams", withAuth(teamHandler.HandleCreateTeam))
 	mux.Handle("GET /api/v1/teams", withAuth(teamHandler.HandleListTeams))
@@ -205,6 +190,21 @@ func main() {
 	mux.Handle("POST /api/v1/teams/{team_id}/tags", withAuth(tagHandler.HandleCreateTag))
 	mux.Handle("PUT /api/v1/teams/{team_id}/tags/{id}", withAuth(tagHandler.HandleUpdateTag))
 	mux.Handle("DELETE /api/v1/teams/{team_id}/tags/{id}", withAuth(tagHandler.HandleDeleteTag))
+
+	// 問題CRUD（チームスコープ: チームメンバーのみアクセス可能。admin も例外なしでメンバーチェック）
+	mux.Handle("POST /api/v1/teams/{team_id}/questions", withAuth(questionHandler.HandleCreateQuestion))
+	mux.Handle("GET /api/v1/teams/{team_id}/questions", withAuth(questionHandler.HandleListQuestions))
+	mux.Handle("GET /api/v1/teams/{team_id}/questions/{id}", withAuth(questionHandler.HandleGetQuestion))
+	mux.Handle("PUT /api/v1/teams/{team_id}/questions/{id}", withAuth(questionHandler.HandleUpdateQuestion))
+	mux.Handle("DELETE /api/v1/teams/{team_id}/questions/{id}", withAuth(questionHandler.HandleDeleteQuestion))
+	// 公開設定変更（作成者本人または admin のみ。認可はユースケース層で実施）
+	mux.Handle("PATCH /api/v1/teams/{team_id}/questions/{id}/visibility", withAuth(questionHandler.HandleUpdateQuestionVisibility))
+
+	// コメントCRUD（チームスコープ: チームメンバーかつ問題の閲覧権限を持つユーザー）
+	mux.Handle("POST /api/v1/teams/{team_id}/questions/{id}/comments", withAuth(commentHandler.HandleCreateComment))
+	mux.Handle("GET /api/v1/teams/{team_id}/questions/{id}/comments", withAuth(commentHandler.HandleListComments))
+	mux.Handle("PUT /api/v1/teams/{team_id}/questions/{id}/comments/{comment_id}", withAuth(commentHandler.HandleUpdateComment))
+	mux.Handle("DELETE /api/v1/teams/{team_id}/questions/{id}/comments/{comment_id}", withAuth(commentHandler.HandleDeleteComment))
 
 	srv := &http.Server{
 		Addr:         net.JoinHostPort("", port),

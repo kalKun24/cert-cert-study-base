@@ -5,10 +5,10 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-035 |
-| ステータス | 🟡 作業中 |
+| ステータス | ✅ 完了 |
 | 作成日 | 2026-06-20 |
 | 着手日 | 2026-06-20 |
-| 完了日 | - |
+| 完了日 | 2026-06-20 |
 | ブランチ名 | `feature/team-owner-role-backend` |
 | PR番号 | #24 |
 | PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/24 |

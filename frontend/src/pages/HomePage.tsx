@@ -26,19 +26,19 @@ export default function HomePage() {
     let isMounted = true;
 
     Promise.allSettled([
-      fetchQuestions({ page: 1, per_page: 5 }),
+      activeTeam ? fetchQuestions(activeTeam.id, { page: 1, per_page: 5 }) : Promise.resolve(null),
       activeTeam ? fetchTags(activeTeam.id) : Promise.resolve([]),
       fetchTeams(),
     ]).then(([questionsResult, tagsResult, teamsResult]) => {
       if (!isMounted) return;
 
       setStats({
-        questions: questionsResult.status === 'fulfilled' ? questionsResult.value.total : 0,
+        questions: questionsResult.status === 'fulfilled' && questionsResult.value !== null ? questionsResult.value.total : 0,
         tags: tagsResult.status === 'fulfilled' ? tagsResult.value.length : 0,
         teams: teamsResult.status === 'fulfilled' ? teamsResult.value.length : 0,
       });
 
-      if (questionsResult.status === 'fulfilled') {
+      if (questionsResult.status === 'fulfilled' && questionsResult.value !== null) {
         setRecentQuestions(questionsResult.value.items.slice(0, 5));
       }
 

@@ -37,44 +37,40 @@ func NewCommentUseCase(
 	}
 }
 
-// commentCallerTeamIDs はリクエストユーザーが所属するチームIDの集合を返します。
-// teamRepo が nil の場合（テスト用）は空の集合を返します。
-func (uc *CommentUseCase) commentCallerTeamIDs(ctx context.Context, callerID string) (map[string]struct{}, error) {
-	if uc.teamRepo == nil {
-		return map[string]struct{}{}, nil
-	}
-	teams, err := uc.teamRepo.ListByOwnerOrMember(ctx, callerID)
+// checkTeamMembershipForComment は呼び出し元がチームメンバーかどうかを確認します。
+// admin を含む全ユーザーがメンバーチェックの対象です（admin 特権スキップなし）。
+func (uc *CommentUseCase) checkTeamMembershipForComment(ctx context.Context, callerID, teamID string) error {
+	isMember, err := uc.teamRepo.IsMember(ctx, teamID, callerID)
 	if err != nil {
-		return nil, fmt.Errorf("所属チームの取得に失敗しました: %w", err)
+		return fmt.Errorf("チームメンバー確認に失敗しました: %w", err)
 	}
-	ids := make(map[string]struct{}, len(teams))
-	for _, t := range teams {
-		ids[t.ID] = struct{}{}
+	if !isMember {
+		return domain.ErrMemberNotFound
 	}
-	return ids, nil
+	return nil
 }
 
-// checkQuestionVisibility は指定した問題の閲覧権限をチェックします。
-// 閲覧不可の場合は ErrPermissionDenied を返します。
+// checkQuestionAccess は指定した問題の閲覧権限をチームスコープで確認します。
+// チームメンバーチェックを行い、問題がチームに属することを確認します。
+// チーム不一致 / メンバー非所属の場合は ErrPermissionDenied を返します。
 // 問題が存在しない場合は ErrQuestionNotFound をラップして返します。
-func (uc *CommentUseCase) checkQuestionVisibility(ctx context.Context, questionID, callerID string, callerRole domain.Role) (*domain.Question, error) {
+func (uc *CommentUseCase) checkQuestionAccess(ctx context.Context, questionID, teamID, callerID string, callerRole domain.Role) (*domain.Question, error) {
+	if err := uc.checkTeamMembershipForComment(ctx, callerID, teamID); err != nil {
+		return nil, domain.ErrPermissionDenied
+	}
+
 	question, err := uc.questionRepo.FindByID(ctx, questionID)
 	if err != nil {
 		return nil, fmt.Errorf("問題の取得に失敗しました: %w", err)
 	}
 
-	isAdmin := callerRole == domain.RoleAdmin
-
-	var callerTeamIDs map[string]struct{}
-	if !isAdmin {
-		var err error
-		callerTeamIDs, err = uc.commentCallerTeamIDs(ctx, callerID)
-		if err != nil {
-			return nil, fmt.Errorf("チーム情報の取得に失敗しました: %w", err)
-		}
+	// 問題が指定チームに属することを確認
+	if question.TeamID != teamID {
+		return nil, fmt.Errorf("問題の取得に失敗しました: %w", domain.ErrQuestionNotFound)
 	}
 
-	if !question.IsVisibleTo(callerID, isAdmin, callerTeamIDs) {
+	// チームメンバーへの可視性チェック: draft は作成者本人のみ
+	if !isVisibleToTeamMember(question, callerID) {
 		return nil, domain.ErrPermissionDenied
 	}
 
@@ -91,6 +87,8 @@ type CommentWithDisplayName struct {
 type CreateCommentInput struct {
 	// QuestionID は対象の問題ID
 	QuestionID string
+	// TeamID は対象のチームID
+	TeamID string
 	// Body はコメント本文（Markdown形式、必須）
 	Body string
 	// CallerID は操作を実行するユーザーのID
@@ -100,7 +98,7 @@ type CreateCommentInput struct {
 }
 
 // CreateComment は指定した問題にコメントを投稿します。
-// その問題の閲覧権限を持つユーザーのみ投稿可能です。
+// チームメンバーであり、問題の閲覧権限を持つユーザーのみ投稿可能です。
 func (uc *CommentUseCase) CreateComment(ctx context.Context, input CreateCommentInput) (*CommentWithDisplayName, error) {
 	if strings.TrimSpace(input.Body) == "" {
 		return nil, domain.ErrCommentBodyEmpty
@@ -109,8 +107,8 @@ func (uc *CommentUseCase) CreateComment(ctx context.Context, input CreateComment
 		return nil, domain.ErrCommentBodyTooLong
 	}
 
-	// 閲覧権限チェック
-	if _, err := uc.checkQuestionVisibility(ctx, input.QuestionID, input.CallerID, input.CallerRole); err != nil {
+	// チームメンバーかつ問題の閲覧権限チェック
+	if _, err := uc.checkQuestionAccess(ctx, input.QuestionID, input.TeamID, input.CallerID, input.CallerRole); err != nil {
 		return nil, err
 	}
 
@@ -140,6 +138,8 @@ func (uc *CommentUseCase) CreateComment(ctx context.Context, input CreateComment
 type ListCommentsInput struct {
 	// QuestionID は対象の問題ID
 	QuestionID string
+	// TeamID は対象のチームID
+	TeamID string
 	// CallerID はリクエストユーザーのID
 	CallerID string
 	// CallerRole はリクエストユーザーのロール
@@ -147,10 +147,10 @@ type ListCommentsInput struct {
 }
 
 // ListComments は指定した問題のコメント一覧を投稿日時の昇順で返します。
-// その問題の閲覧権限を持つユーザーのみ取得可能です。
+// チームメンバーであり、問題の閲覧権限を持つユーザーのみ取得可能です。
 func (uc *CommentUseCase) ListComments(ctx context.Context, input ListCommentsInput) ([]*CommentWithDisplayName, error) {
-	// 閲覧権限チェック
-	if _, err := uc.checkQuestionVisibility(ctx, input.QuestionID, input.CallerID, input.CallerRole); err != nil {
+	// チームメンバーかつ問題の閲覧権限チェック
+	if _, err := uc.checkQuestionAccess(ctx, input.QuestionID, input.TeamID, input.CallerID, input.CallerRole); err != nil {
 		return nil, err
 	}
 
@@ -185,6 +185,8 @@ func (uc *CommentUseCase) ListComments(ctx context.Context, input ListCommentsIn
 type UpdateCommentInput struct {
 	// QuestionID は対象の問題ID
 	QuestionID string
+	// TeamID は対象のチームID
+	TeamID string
 	// CommentID は編集するコメントのID
 	CommentID string
 	// Body は新しいコメント本文（Markdown形式、必須）
@@ -196,7 +198,7 @@ type UpdateCommentInput struct {
 }
 
 // UpdateComment は指定したコメントを編集します。
-// 投稿者本人のみ編集可能です。その問題の閲覧権限も必要です。
+// 投稿者本人のみ編集可能です。チームメンバーであり問題の閲覧権限も必要です。
 func (uc *CommentUseCase) UpdateComment(ctx context.Context, input UpdateCommentInput) (*CommentWithDisplayName, error) {
 	if strings.TrimSpace(input.Body) == "" {
 		return nil, domain.ErrCommentBodyEmpty
@@ -205,8 +207,8 @@ func (uc *CommentUseCase) UpdateComment(ctx context.Context, input UpdateComment
 		return nil, domain.ErrCommentBodyTooLong
 	}
 
-	// 閲覧権限チェック
-	if _, err := uc.checkQuestionVisibility(ctx, input.QuestionID, input.CallerID, input.CallerRole); err != nil {
+	// チームメンバーかつ問題の閲覧権限チェック
+	if _, err := uc.checkQuestionAccess(ctx, input.QuestionID, input.TeamID, input.CallerID, input.CallerRole); err != nil {
 		return nil, err
 	}
 
@@ -239,6 +241,8 @@ func (uc *CommentUseCase) UpdateComment(ctx context.Context, input UpdateComment
 type DeleteCommentInput struct {
 	// QuestionID は対象の問題ID
 	QuestionID string
+	// TeamID は対象のチームID
+	TeamID string
 	// CommentID は削除するコメントのID
 	CommentID string
 	// CallerID は操作を実行するユーザーのID
@@ -248,10 +252,10 @@ type DeleteCommentInput struct {
 }
 
 // DeleteComment は指定したコメントを削除します。
-// 投稿者本人または admin のみ削除可能です。その問題の閲覧権限も必要です。
+// 投稿者本人または admin のみ削除可能です。チームメンバーであり問題の閲覧権限も必要です。
 func (uc *CommentUseCase) DeleteComment(ctx context.Context, input DeleteCommentInput) error {
-	// 閲覧権限チェック
-	if _, err := uc.checkQuestionVisibility(ctx, input.QuestionID, input.CallerID, input.CallerRole); err != nil {
+	// チームメンバーかつ問題の閲覧権限チェック
+	if _, err := uc.checkQuestionAccess(ctx, input.QuestionID, input.TeamID, input.CallerID, input.CallerRole); err != nil {
 		return err
 	}
 

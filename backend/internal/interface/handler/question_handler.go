@@ -22,8 +22,14 @@ func NewQuestionHandler(questionUC *usecase.QuestionUseCase) *QuestionHandler {
 	return &QuestionHandler{questionUC: questionUC}
 }
 
-// HandleCreateQuestion は POST /api/v1/questions を処理します（認証済みユーザー）。
+// HandleCreateQuestion は POST /api/v1/teams/{team_id}/questions を処理します（チームメンバーのみ）。
 func (h *QuestionHandler) HandleCreateQuestion(w http.ResponseWriter, r *http.Request) {
+	teamID := r.PathValue("team_id")
+	if teamID == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+		return
+	}
+
 	callerID, _ := callerInfo(r)
 	if callerID == "" {
 		writeJSON(w, http.StatusUnauthorized, response{Error: "認証情報が取得できません"})
@@ -42,31 +48,27 @@ func (h *QuestionHandler) HandleCreateQuestion(w http.ResponseWriter, r *http.Re
 	}
 
 	input := usecase.CreateQuestionInput{
-		CallerID:         callerID,
-		Title:            req.Title,
-		Body:             req.Body,
-		Answer:           req.Answer,
-		Explanation:      req.Explanation,
-		Memo:             req.Memo,
-		Tags:             req.Tags,
-		PublishedTeamIDs: req.PublishedTeamIDs,
+		CallerID:    callerID,
+		Title:       req.Title,
+		Body:        req.Body,
+		Answer:      req.Answer,
+		Explanation: req.Explanation,
+		Memo:        req.Memo,
+		Tags:        req.Tags,
 	}
 	if req.Status != "" {
 		input.Status = domain.QuestionStatus(req.Status)
 	}
-	if req.VisibilityScope != "" {
-		input.VisibilityScope = domain.VisibilityScope(req.VisibilityScope)
-	}
 
-	question, err := h.questionUC.CreateQuestion(r.Context(), input)
+	question, err := h.questionUC.CreateQuestion(r.Context(), teamID, input)
 	if err != nil {
 		switch {
+		case errors.Is(err, domain.ErrMemberNotFound):
+			writeJSON(w, http.StatusForbidden, response{Error: "このチームのメンバーではありません"})
 		case errors.Is(err, domain.ErrInvalidQuestionStatus):
 			writeJSON(w, http.StatusBadRequest, response{Error: err.Error()})
-		case errors.Is(err, domain.ErrInvalidVisibilityScope):
-			writeJSON(w, http.StatusBadRequest, response{Error: err.Error()})
 		default:
-			slog.Error("問題作成でエラーが発生しました", "caller_id", callerID, "error", err)
+			slog.Error("問題作成でエラーが発生しました", "team_id", teamID, "caller_id", callerID, "error", err)
 			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
 		}
 		return
@@ -75,7 +77,7 @@ func (h *QuestionHandler) HandleCreateQuestion(w http.ResponseWriter, r *http.Re
 	writeJSON(w, http.StatusCreated, response{Data: toQuestionDTO(question)})
 }
 
-// HandleListQuestions は GET /api/v1/questions を処理します（認証済みユーザー）。
+// HandleListQuestions は GET /api/v1/teams/{team_id}/questions を処理します（チームメンバーのみ）。
 // クエリパラメータによるタグフィルタリング・キーワード検索・ページネーションに対応しています。
 //
 // クエリパラメータ:
@@ -84,6 +86,12 @@ func (h *QuestionHandler) HandleCreateQuestion(w http.ResponseWriter, r *http.Re
 //   - page: ページ番号（1始まり。省略時は1）
 //   - per_page: 1ページあたりの件数（省略時は20、最大100）
 func (h *QuestionHandler) HandleListQuestions(w http.ResponseWriter, r *http.Request) {
+	teamID := r.PathValue("team_id")
+	if teamID == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+		return
+	}
+
 	callerID, callerRole := callerInfo(r)
 
 	// tag_ids クエリパラメータのパース（カンマ区切り、空要素除去）
@@ -122,7 +130,7 @@ func (h *QuestionHandler) HandleListQuestions(w http.ResponseWriter, r *http.Req
 		perPage = parsed
 	}
 
-	result, err := h.questionUC.SearchQuestions(r.Context(), usecase.SearchQuestionsInput{
+	result, err := h.questionUC.SearchQuestions(r.Context(), teamID, usecase.SearchQuestionsInput{
 		CallerID:   callerID,
 		CallerRole: callerRole,
 		TagIDs:     tagIDs,
@@ -131,8 +139,13 @@ func (h *QuestionHandler) HandleListQuestions(w http.ResponseWriter, r *http.Req
 		PerPage:    perPage,
 	})
 	if err != nil {
-		slog.Error("問題一覧取得でエラーが発生しました", "error", err)
-		writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
+		switch {
+		case errors.Is(err, domain.ErrMemberNotFound):
+			writeJSON(w, http.StatusForbidden, response{Error: "このチームのメンバーではありません"})
+		default:
+			slog.Error("問題一覧取得でエラーが発生しました", "team_id", teamID, "error", err)
+			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
+		}
 		return
 	}
 
@@ -150,9 +163,15 @@ func (h *QuestionHandler) HandleListQuestions(w http.ResponseWriter, r *http.Req
 	}})
 }
 
-// HandleGetQuestion は GET /api/v1/questions/{id} を処理します（認証済みユーザー）。
-// 可視性ルールに基づき、閲覧不可の場合は404を返します。
+// HandleGetQuestion は GET /api/v1/teams/{team_id}/questions/{id} を処理します（チームメンバーのみ）。
+// チームスコープ外の問題や可視性ルール上アクセス不可の場合は404を返します。
 func (h *QuestionHandler) HandleGetQuestion(w http.ResponseWriter, r *http.Request) {
+	teamID := r.PathValue("team_id")
+	if teamID == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+		return
+	}
+
 	id := r.PathValue("id")
 	if id == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "問題IDは必須です"})
@@ -161,25 +180,34 @@ func (h *QuestionHandler) HandleGetQuestion(w http.ResponseWriter, r *http.Reque
 
 	callerID, callerRole := callerInfo(r)
 
-	question, err := h.questionUC.GetQuestion(r.Context(), id, usecase.GetQuestionInput{
+	question, err := h.questionUC.GetQuestion(r.Context(), id, teamID, usecase.GetQuestionInput{
 		CallerID:   callerID,
 		CallerRole: callerRole,
 	})
 	if err != nil {
-		if errors.Is(err, domain.ErrQuestionNotFound) {
+		switch {
+		case errors.Is(err, domain.ErrMemberNotFound):
+			writeJSON(w, http.StatusForbidden, response{Error: "このチームのメンバーではありません"})
+		case errors.Is(err, domain.ErrQuestionNotFound):
 			writeJSON(w, http.StatusNotFound, response{Error: "問題が見つかりません"})
-			return
+		default:
+			slog.Error("問題取得でエラーが発生しました", "team_id", teamID, "id", id, "error", err)
+			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
 		}
-		slog.Error("問題取得でエラーが発生しました", "id", id, "error", err)
-		writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
 		return
 	}
 
 	writeJSON(w, http.StatusOK, response{Data: toQuestionDTO(question)})
 }
 
-// HandleUpdateQuestion は PUT /api/v1/questions/{id} を処理します（作成者本人または admin のみ）。
+// HandleUpdateQuestion は PUT /api/v1/teams/{team_id}/questions/{id} を処理します（作成者本人または admin のみ）。
 func (h *QuestionHandler) HandleUpdateQuestion(w http.ResponseWriter, r *http.Request) {
+	teamID := r.PathValue("team_id")
+	if teamID == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+		return
+	}
+
 	id := r.PathValue("id")
 	if id == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "問題IDは必須です"})
@@ -199,40 +227,34 @@ func (h *QuestionHandler) HandleUpdateQuestion(w http.ResponseWriter, r *http.Re
 	}
 
 	input := usecase.UpdateQuestionInput{
-		CallerID:            callerID,
-		CallerRole:          callerRole,
-		Title:               req.Title,
-		Body:                req.Body,
-		Answer:              req.Answer,
-		Explanation:         req.Explanation,
-		Memo:                req.Memo,
-		TagsSet:             req.Tags != nil,
-		Tags:                req.Tags,
-		PublishedTeamIDsSet: req.PublishedTeamIDs != nil,
-		PublishedTeamIDs:    req.PublishedTeamIDs,
+		CallerID:    callerID,
+		CallerRole:  callerRole,
+		Title:       req.Title,
+		Body:        req.Body,
+		Answer:      req.Answer,
+		Explanation: req.Explanation,
+		Memo:        req.Memo,
+		TagsSet:     req.Tags != nil,
+		Tags:        req.Tags,
 	}
 	if req.Status != nil {
 		s := domain.QuestionStatus(*req.Status)
 		input.Status = &s
 	}
-	if req.VisibilityScope != nil {
-		vs := domain.VisibilityScope(*req.VisibilityScope)
-		input.VisibilityScope = &vs
-	}
 
-	question, err := h.questionUC.UpdateQuestion(r.Context(), id, input)
+	question, err := h.questionUC.UpdateQuestion(r.Context(), id, teamID, input)
 	if err != nil {
 		switch {
+		case errors.Is(err, domain.ErrMemberNotFound):
+			writeJSON(w, http.StatusForbidden, response{Error: "このチームのメンバーではありません"})
 		case errors.Is(err, domain.ErrQuestionNotFound):
 			writeJSON(w, http.StatusNotFound, response{Error: "問題が見つかりません"})
 		case errors.Is(err, domain.ErrPermissionDenied):
 			writeJSON(w, http.StatusForbidden, response{Error: err.Error()})
 		case errors.Is(err, domain.ErrInvalidQuestionStatus):
 			writeJSON(w, http.StatusBadRequest, response{Error: err.Error()})
-		case errors.Is(err, domain.ErrInvalidVisibilityScope):
-			writeJSON(w, http.StatusBadRequest, response{Error: err.Error()})
 		default:
-			slog.Error("問題更新でエラーが発生しました", "id", id, "error", err)
+			slog.Error("問題更新でエラーが発生しました", "team_id", teamID, "id", id, "error", err)
 			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
 		}
 		return
@@ -241,8 +263,14 @@ func (h *QuestionHandler) HandleUpdateQuestion(w http.ResponseWriter, r *http.Re
 	writeJSON(w, http.StatusOK, response{Data: toQuestionDTO(question)})
 }
 
-// HandleUpdateQuestionVisibility は PATCH /api/v1/questions/{id}/visibility を処理します（作成者本人または admin のみ）。
+// HandleUpdateQuestionVisibility は PATCH /api/v1/teams/{team_id}/questions/{id}/visibility を処理します（作成者本人または admin のみ）。
 func (h *QuestionHandler) HandleUpdateQuestionVisibility(w http.ResponseWriter, r *http.Request) {
+	teamID := r.PathValue("team_id")
+	if teamID == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+		return
+	}
+
 	id := r.PathValue("id")
 	if id == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "問題IDは必須です"})
@@ -267,30 +295,24 @@ func (h *QuestionHandler) HandleUpdateQuestionVisibility(w http.ResponseWriter, 
 	}
 
 	input := usecase.UpdateQuestionVisibilityInput{
-		CallerID:            callerID,
-		CallerRole:          callerRole,
-		Status:              domain.QuestionStatus(req.Status),
-		PublishedTeamIDsSet: req.PublishedTeamIDs != nil,
-		PublishedTeamIDs:    req.PublishedTeamIDs,
-	}
-	if req.VisibilityScope != nil {
-		vs := domain.VisibilityScope(*req.VisibilityScope)
-		input.VisibilityScope = &vs
+		CallerID:   callerID,
+		CallerRole: callerRole,
+		Status:     domain.QuestionStatus(req.Status),
 	}
 
-	question, err := h.questionUC.UpdateQuestionVisibility(r.Context(), id, input)
+	question, err := h.questionUC.UpdateQuestionVisibility(r.Context(), id, teamID, input)
 	if err != nil {
 		switch {
+		case errors.Is(err, domain.ErrMemberNotFound):
+			writeJSON(w, http.StatusForbidden, response{Error: "このチームのメンバーではありません"})
 		case errors.Is(err, domain.ErrQuestionNotFound):
 			writeJSON(w, http.StatusNotFound, response{Error: "問題が見つかりません"})
 		case errors.Is(err, domain.ErrPermissionDenied):
 			writeJSON(w, http.StatusForbidden, response{Error: err.Error()})
 		case errors.Is(err, domain.ErrInvalidQuestionStatus):
 			writeJSON(w, http.StatusBadRequest, response{Error: err.Error()})
-		case errors.Is(err, domain.ErrInvalidVisibilityScope):
-			writeJSON(w, http.StatusBadRequest, response{Error: err.Error()})
 		default:
-			slog.Error("問題公開設定変更でエラーが発生しました", "id", id, "error", err)
+			slog.Error("問題公開設定変更でエラーが発生しました", "team_id", teamID, "id", id, "error", err)
 			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
 		}
 		return
@@ -299,8 +321,14 @@ func (h *QuestionHandler) HandleUpdateQuestionVisibility(w http.ResponseWriter, 
 	writeJSON(w, http.StatusOK, response{Data: toQuestionDTO(question)})
 }
 
-// HandleDeleteQuestion は DELETE /api/v1/questions/{id} を処理します（作成者本人または admin のみ）。
+// HandleDeleteQuestion は DELETE /api/v1/teams/{team_id}/questions/{id} を処理します（作成者本人または admin のみ）。
 func (h *QuestionHandler) HandleDeleteQuestion(w http.ResponseWriter, r *http.Request) {
+	teamID := r.PathValue("team_id")
+	if teamID == "" {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+		return
+	}
+
 	id := r.PathValue("id")
 	if id == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "問題IDは必須です"})
@@ -313,14 +341,16 @@ func (h *QuestionHandler) HandleDeleteQuestion(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if err := h.questionUC.DeleteQuestion(r.Context(), id, callerID, callerRole); err != nil {
+	if err := h.questionUC.DeleteQuestion(r.Context(), id, teamID, callerID, callerRole); err != nil {
 		switch {
+		case errors.Is(err, domain.ErrMemberNotFound):
+			writeJSON(w, http.StatusForbidden, response{Error: "このチームのメンバーではありません"})
 		case errors.Is(err, domain.ErrQuestionNotFound):
 			writeJSON(w, http.StatusNotFound, response{Error: "問題が見つかりません"})
 		case errors.Is(err, domain.ErrPermissionDenied):
 			writeJSON(w, http.StatusForbidden, response{Error: err.Error()})
 		default:
-			slog.Error("問題削除でエラーが発生しました", "id", id, "error", err)
+			slog.Error("問題削除でエラーが発生しました", "team_id", teamID, "id", id, "error", err)
 			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
 		}
 		return

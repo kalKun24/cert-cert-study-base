@@ -1,8 +1,8 @@
 export type QuestionStatus = 'draft' | 'private' | 'published';
-export type VisibilityScope = 'all' | 'team';
 
 export interface Question {
   id: string;
+  team_id: string;
   title: string;
   body: string;
   answer: string;
@@ -10,8 +10,6 @@ export interface Question {
   memo: string;
   tags: string[];
   status: QuestionStatus;
-  visibility_scope: VisibilityScope;
-  published_team_ids: string[];
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -43,8 +41,6 @@ export interface CreateQuestionRequest {
   memo?: string;
   tags?: string[];
   status?: QuestionStatus;
-  visibility_scope?: VisibilityScope;
-  published_team_ids?: string[];
 }
 
 export interface UpdateQuestionRequest {
@@ -55,6 +51,4 @@ export interface UpdateQuestionRequest {
   memo?: string;
   tags?: string[];
   status?: QuestionStatus;
-  visibility_scope?: VisibilityScope;
-  published_team_ids?: string[];
 }

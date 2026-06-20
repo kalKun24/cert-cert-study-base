@@ -22,19 +22,18 @@ const questionsObjectName = "questions.json"
 // questionRecord はGCS上のJSONファイルに保存する問題レコードです。
 // domain.Question と対応しており、JSON直列化のための構造体です。
 type questionRecord struct {
-	ID               string    `json:"id"`
-	Title            string    `json:"title"`
-	Body             string    `json:"body"`
-	Answer           string    `json:"answer"`
-	Explanation      string    `json:"explanation"`
-	Memo             string    `json:"memo"`
-	Tags             []string  `json:"tags"`
-	Status           string    `json:"status"`
-	VisibilityScope  string    `json:"visibility_scope"`
-	PublishedTeamIDs []string  `json:"published_team_ids"`
-	CreatedBy        string    `json:"created_by"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
+	ID          string    `json:"id"`
+	TeamID      string    `json:"team_id"`
+	Title       string    `json:"title"`
+	Body        string    `json:"body"`
+	Answer      string    `json:"answer"`
+	Explanation string    `json:"explanation"`
+	Memo        string    `json:"memo"`
+	Tags        []string  `json:"tags"`
+	Status      string    `json:"status"`
+	CreatedBy   string    `json:"created_by"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // toQuestionRecord はドメインエンティティをJSONレコードに変換します。
@@ -43,64 +42,50 @@ func toQuestionRecord(q *domain.Question) questionRecord {
 	if tags == nil {
 		tags = []string{}
 	}
-	publishedTeamIDs := q.PublishedTeamIDs
-	if publishedTeamIDs == nil {
-		publishedTeamIDs = []string{}
-	}
 	return questionRecord{
-		ID:               q.ID,
-		Title:            q.Title,
-		Body:             q.Body,
-		Answer:           q.Answer,
-		Explanation:      q.Explanation,
-		Memo:             q.Memo,
-		Tags:             tags,
-		Status:           string(q.Status),
-		VisibilityScope:  string(q.VisibilityScope),
-		PublishedTeamIDs: publishedTeamIDs,
-		CreatedBy:        q.CreatedBy,
-		CreatedAt:        q.CreatedAt,
-		UpdatedAt:        q.UpdatedAt,
+		ID:          q.ID,
+		TeamID:      q.TeamID,
+		Title:       q.Title,
+		Body:        q.Body,
+		Answer:      q.Answer,
+		Explanation: q.Explanation,
+		Memo:        q.Memo,
+		Tags:        tags,
+		Status:      string(q.Status),
+		CreatedBy:   q.CreatedBy,
+		CreatedAt:   q.CreatedAt,
+		UpdatedAt:   q.UpdatedAt,
 	}
 }
 
 // toQuestion はJSONレコードをドメインエンティティに変換します。
-// 後方互換性のため、status / visibility_scope が空の場合はデフォルト値を設定します。
+// 後方互換性のため、status が空の場合はデフォルト値を設定します。
 // （既存の questions.json にフィールドがない場合でも安全に動作します）
 func toQuestion(r questionRecord) *domain.Question {
 	tags := r.Tags
 	if tags == nil {
 		tags = []string{}
 	}
-	publishedTeamIDs := r.PublishedTeamIDs
-	if publishedTeamIDs == nil {
-		publishedTeamIDs = []string{}
-	}
 
-	// 後方互換: フィールドが空の場合はデフォルト値を設定
+	// 後方互換: status フィールドが空の場合はデフォルト値を設定
 	status := domain.QuestionStatus(r.Status)
 	if status == "" {
 		status = domain.QuestionStatusDraft
 	}
-	visibilityScope := domain.VisibilityScope(r.VisibilityScope)
-	if visibilityScope == "" {
-		visibilityScope = domain.VisibilityScopeAll
-	}
 
 	return &domain.Question{
-		ID:               r.ID,
-		Title:            r.Title,
-		Body:             r.Body,
-		Answer:           r.Answer,
-		Explanation:      r.Explanation,
-		Memo:             r.Memo,
-		Tags:             tags,
-		Status:           status,
-		VisibilityScope:  visibilityScope,
-		PublishedTeamIDs: publishedTeamIDs,
-		CreatedBy:        r.CreatedBy,
-		CreatedAt:        r.CreatedAt,
-		UpdatedAt:        r.UpdatedAt,
+		ID:          r.ID,
+		TeamID:      r.TeamID, // 既存データでは空文字のまま（後方互換）
+		Title:       r.Title,
+		Body:        r.Body,
+		Answer:      r.Answer,
+		Explanation: r.Explanation,
+		Memo:        r.Memo,
+		Tags:        tags,
+		Status:      status,
+		CreatedBy:   r.CreatedBy,
+		CreatedAt:   r.CreatedAt,
+		UpdatedAt:   r.UpdatedAt,
 	}
 }
 
@@ -189,8 +174,8 @@ func (r *GCSQuestionRepository) FindByID(ctx context.Context, id string) (*domai
 	return nil, domain.ErrQuestionNotFound
 }
 
-// List は全問題を返します。
-func (r *GCSQuestionRepository) List(ctx context.Context) ([]*domain.Question, error) {
+// ListByTeam は指定チームの問題一覧を返します。
+func (r *GCSQuestionRepository) ListByTeam(ctx context.Context, teamID string) ([]*domain.Question, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -199,17 +184,19 @@ func (r *GCSQuestionRepository) List(ctx context.Context) ([]*domain.Question, e
 		return nil, fmt.Errorf("問題データ読み込みに失敗しました: %w", err)
 	}
 
-	questions := make([]*domain.Question, 0, len(records))
+	questions := make([]*domain.Question, 0)
 	for _, rec := range records {
-		questions = append(questions, toQuestion(rec))
+		if rec.TeamID == teamID {
+			questions = append(questions, toQuestion(rec))
+		}
 	}
 
 	return questions, nil
 }
 
-// Search は指定したフィルタ条件に合致する問題の一覧を返します。
-// GCSから全件読み込み後、アプリ側でタグ・キーワードフィルタリングを行います。
-func (r *GCSQuestionRepository) Search(ctx context.Context, filter domain.QuestionSearchFilter) ([]*domain.Question, error) {
+// SearchByTeam は指定チームの問題を検索・フィルタリングして返します。
+// GCSから全件読み込み後、teamID フィルタ → タグ・キーワードフィルタリングを行います。
+func (r *GCSQuestionRepository) SearchByTeam(ctx context.Context, teamID string, filter domain.QuestionSearchFilter) ([]*domain.Question, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -218,8 +205,13 @@ func (r *GCSQuestionRepository) Search(ctx context.Context, filter domain.Questi
 		return nil, fmt.Errorf("問題データ読み込みに失敗しました: %w", err)
 	}
 
-	questions := make([]*domain.Question, 0, len(records))
+	questions := make([]*domain.Question, 0)
 	for _, rec := range records {
+		// チームIDフィルタ
+		if rec.TeamID != teamID {
+			continue
+		}
+
 		q := toQuestion(rec)
 
 		// タグANDフィルタリング: 指定されたタグIDをすべて持つ問題のみ返す

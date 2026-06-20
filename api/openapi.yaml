@@ -268,15 +268,17 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /api/v1/questions:
+  /api/v1/teams/{team_id}/questions:
     post:
-      summary: 問題作成（認証済みユーザー）
-      description: Markdown形式の問題・解答・解説・議論点メモを作成します。デフォルトは status=draft、visibility_scope=all です。
+      summary: 問題作成（チームメンバーのみ）
+      description: 指定チームにMarkdown形式の問題・解答・解説・議論点メモを作成します。デフォルトは status=draft です。チームメンバーのみ作成可能です。
       operationId: createQuestion
       tags:
         - questions
       security:
         - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
       requestBody:
         required: true
         content:
@@ -300,13 +302,17 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
     get:
-      summary: 問題一覧取得（認証済みユーザー）
+      summary: 問題一覧取得（チームメンバーのみ）
       description: |
-        登録されている問題の一覧を返します。
+        指定チームに属する問題の一覧を返します。チームメンバーのみ取得可能です。
         クエリパラメータによるタグフィルタリング・キーワード検索・ページネーションに対応しています。
         - `tag_ids`: カンマ区切りのタグID一覧。複数指定時はAND絞り込みです。
         - `keyword`: タイトル・問題文・解説・メモを対象とするキーワード検索（部分一致）。
@@ -317,6 +323,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - $ref: "#/components/parameters/TeamID"
         - name: tag_ids
           in: query
           required: false
@@ -367,19 +374,24 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /api/v1/questions/{id}:
+  /api/v1/teams/{team_id}/questions/{id}:
     get:
-      summary: 問題詳細取得（認証済みユーザー）
-      description: 指定IDの問題を取得します。Markdownテキスト（body / answer / explanation / memo）を含みます。
+      summary: 問題詳細取得（チームメンバーのみ）
+      description: 指定チームの問題を取得します。チームメンバーのみ取得可能です。Markdownテキスト（body / answer / explanation / memo）を含みます。
       operationId: getQuestion
       tags:
         - questions
       security:
         - bearerAuth: []
       parameters:
+        - $ref: "#/components/parameters/TeamID"
         - $ref: "#/components/parameters/QuestionID"
       responses:
         "200":
@@ -396,20 +408,23 @@ paths:
                     nullable: true
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
     put:
-      summary: 問題更新（作成者本人または admin のみ）
-      description: 指定IDの問題を更新します。作成者本人または admin ロールのみ操作可能です。
+      summary: 問題更新（作成者本人または per-team owner のみ）
+      description: 指定チームの問題を更新します。作成者本人または per-team owner のみ操作可能です。
       operationId: updateQuestion
       tags:
         - questions
       security:
         - bearerAuth: []
       parameters:
+        - $ref: "#/components/parameters/TeamID"
         - $ref: "#/components/parameters/QuestionID"
       requestBody:
         required: true
@@ -442,14 +457,15 @@ paths:
           $ref: "#/components/responses/InternalServerError"
 
     delete:
-      summary: 問題削除（作成者本人または admin のみ）
-      description: 指定IDの問題を削除します。作成者本人または admin ロールのみ操作可能です。
+      summary: 問題削除（作成者本人または per-team owner のみ）
+      description: 指定チームの問題を削除します。作成者本人または per-team owner のみ操作可能です。
       operationId: deleteQuestion
       tags:
         - questions
       security:
         - bearerAuth: []
       parameters:
+        - $ref: "#/components/parameters/TeamID"
         - $ref: "#/components/parameters/QuestionID"
       responses:
         "200":
@@ -477,21 +493,21 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /api/v1/questions/{id}/visibility:
+  /api/v1/teams/{team_id}/questions/{id}/visibility:
     patch:
-      summary: 問題の公開設定変更（作成者本人または admin のみ）
+      summary: 問題の公開設定変更（作成者本人または per-team owner のみ）
       description: |
-        指定IDの問題の公開ステータス・公開範囲・公開対象チームIDを変更します。
-        作成者本人または admin ロールのみ操作可能です。
+        指定チームの問題の公開ステータスを変更します。
+        作成者本人または per-team owner のみ操作可能です。
         - status=draft / private の場合、作成者のみが閲覧できます。
-        - status=published かつ visibility_scope=all の場合、全ログインユーザーが閲覧できます。
-        - status=published かつ visibility_scope=team の場合、published_team_ids に指定したチームのメンバーのみ閲覧できます。
+        - status=published の場合、チームメンバー全員が閲覧できます。
       operationId: updateQuestionVisibility
       tags:
         - questions
       security:
         - bearerAuth: []
       parameters:
+        - $ref: "#/components/parameters/TeamID"
         - $ref: "#/components/parameters/QuestionID"
       requestBody:
         required: true
@@ -523,21 +539,19 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /api/v1/questions/{id}/comments:
+  /api/v1/teams/{team_id}/questions/{id}/comments:
     post:
-      summary: コメント投稿（閲覧権限を持つ認証済みユーザー）
+      summary: コメント投稿（チームメンバーのみ）
       description: |
-        指定IDの問題にコメントを投稿します。
-        その問題の閲覧権限を持つユーザーのみ投稿可能です。
-        - status=published かつ visibility_scope=all → 全ログインユーザー
-        - status=published かつ visibility_scope=team → 指定チームのメンバーのみ
-        - status=draft / private → 作成者本人のみ（実質コメント不可）
+        指定チームの問題にコメントを投稿します。
+        チームメンバーのみ投稿可能です。
       operationId: createComment
       tags:
         - comments
       security:
         - bearerAuth: []
       parameters:
+        - $ref: "#/components/parameters/TeamID"
         - $ref: "#/components/parameters/QuestionID"
       requestBody:
         required: true
@@ -570,17 +584,18 @@ paths:
           $ref: "#/components/responses/InternalServerError"
 
     get:
-      summary: コメント一覧取得（閲覧権限を持つ認証済みユーザー）
+      summary: コメント一覧取得（チームメンバーのみ）
       description: |
-        指定IDの問題のコメント一覧を投稿日時の昇順で返します。
+        指定チームの問題のコメント一覧を投稿日時の昇順で返します。
         レスポンスには投稿者の display_name を含みます。
-        その問題の閲覧権限を持つユーザーのみ取得可能です。
+        チームメンバーのみ取得可能です。
       operationId: listComments
       tags:
         - comments
       security:
         - bearerAuth: []
       parameters:
+        - $ref: "#/components/parameters/TeamID"
         - $ref: "#/components/parameters/QuestionID"
       responses:
         "200":
@@ -606,18 +621,19 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /api/v1/questions/{id}/comments/{comment_id}:
+  /api/v1/teams/{team_id}/questions/{id}/comments/{comment_id}:
     put:
       summary: コメント編集（投稿者本人のみ）
       description: |
         指定コメントを編集します。
-        投稿者本人のみ編集可能です。その問題の閲覧権限も必要です。
+        投稿者本人のみ編集可能です。チームメンバーであることも必要です。
       operationId: updateComment
       tags:
         - comments
       security:
         - bearerAuth: []
       parameters:
+        - $ref: "#/components/parameters/TeamID"
         - $ref: "#/components/parameters/QuestionID"
         - $ref: "#/components/parameters/CommentID"
       requestBody:
@@ -651,16 +667,17 @@ paths:
           $ref: "#/components/responses/InternalServerError"
 
     delete:
-      summary: コメント削除（投稿者本人または admin）
+      summary: コメント削除（投稿者本人または per-team owner）
       description: |
         指定コメントを削除します。
-        投稿者本人または admin ロールのみ削除可能です。その問題の閲覧権限も必要です。
+        投稿者本人または per-team owner のみ削除可能です。チームメンバーであることも必要です。
       operationId: deleteComment
       tags:
         - comments
       security:
         - bearerAuth: []
       parameters:
+        - $ref: "#/components/parameters/TeamID"
         - $ref: "#/components/parameters/QuestionID"
         - $ref: "#/components/parameters/CommentID"
       responses:
@@ -763,7 +780,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/TeamPathID"
       responses:
         "200":
           description: チーム詳細（メンバー一覧を含む）
@@ -794,7 +811,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/TeamPathID"
       requestBody:
         required: true
         content:
@@ -835,7 +852,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/TeamPathID"
       responses:
         "200":
           description: チーム削除成功
@@ -871,7 +888,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/TeamPathID"
       requestBody:
         required: true
         content:
@@ -913,7 +930,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/TeamPathID"
         - name: user_id
           in: path
           required: true
@@ -962,7 +979,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/TeamPathID"
       responses:
         "200":
           description: 脱退成功
@@ -1001,7 +1018,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/TeamPathID"
       requestBody:
         required: true
         content:
@@ -1446,7 +1463,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/TeamPathID"
         - name: user_id
           in: path
           required: true
@@ -1496,6 +1513,16 @@ components:
 
   parameters:
     TeamID:
+      name: team_id
+      in: path
+      required: true
+      description: チームID（UUID形式）
+      schema:
+        type: string
+        format: uuid
+        example: "660e8400-e29b-41d4-a716-446655440000"
+
+    TeamPathID:
       name: id
       in: path
       required: true
@@ -1735,6 +1762,7 @@ components:
       description: 問題エンティティ
       required:
         - id
+        - team_id
         - title
         - body
         - answer
@@ -1742,8 +1770,6 @@ components:
         - memo
         - tags
         - status
-        - visibility_scope
-        - published_team_ids
         - created_by
         - created_at
         - updated_at
@@ -1753,6 +1779,11 @@ components:
           format: uuid
           description: 問題ID
           example: "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+        team_id:
+          type: string
+          format: uuid
+          description: 所属チームID
+          example: "660e8400-e29b-41d4-a716-446655440000"
         title:
           type: string
           description: 問題タイトル
@@ -1787,19 +1818,6 @@ components:
             - published
           description: 公開ステータス
           example: "draft"
-        visibility_scope:
-          type: string
-          enum:
-            - all
-            - team
-          description: 公開範囲
-          example: "all"
-        published_team_ids:
-          type: array
-          items:
-            type: string
-          description: 公開対象チームIDの一覧（visibility_scope=team の場合に使用）
-          example: []
         created_by:
           type: string
           description: 作成者のユーザーID
@@ -1887,19 +1905,6 @@ components:
             - published
           description: 公開ステータス（省略時は draft）
           example: "draft"
-        visibility_scope:
-          type: string
-          enum:
-            - all
-            - team
-          description: 公開範囲（省略時は all）
-          example: "all"
-        published_team_ids:
-          type: array
-          items:
-            type: string
-          description: 公開対象チームIDの一覧（visibility_scope=team の場合に使用）
-          example: []
 
     UpdateQuestionVisibilityRequest:
       type: object
@@ -1914,19 +1919,6 @@ components:
             - published
           description: 公開ステータス
           example: "published"
-        visibility_scope:
-          type: string
-          enum:
-            - all
-            - team
-          description: 公開範囲（status=published のときのみ有効）
-          example: "team"
-        published_team_ids:
-          type: array
-          items:
-            type: string
-          description: 公開対象チームIDの一覧（visibility_scope=team の場合に使用）
-          example: ["660e8400-e29b-41d4-a716-446655440000"]
 
     UpdateQuestionRequest:
       type: object
@@ -1965,19 +1957,6 @@ components:
             - published
           description: 公開ステータス
           example: "published"
-        visibility_scope:
-          type: string
-          enum:
-            - all
-            - team
-          description: 公開範囲
-          example: "team"
-        published_team_ids:
-          type: array
-          items:
-            type: string
-          description: 公開対象チームIDの一覧
-          example: ["team-id-1"]
 
     Tag:
       type: object
