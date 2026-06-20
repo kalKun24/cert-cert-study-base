@@ -11,8 +11,10 @@ import (
 
 // TeamUseCase はチーム管理に関するユースケースを実装します。
 type TeamUseCase struct {
-	teamRepo domain.TeamRepository
-	userRepo domain.UserRepository
+	teamRepo     domain.TeamRepository
+	userRepo     domain.UserRepository
+	questionRepo domain.QuestionRepository
+	commentRepo  domain.CommentRepository
 }
 
 // NewTeamUseCase は TeamUseCase を生成します（コンストラクタインジェクション）。
@@ -20,6 +22,22 @@ func NewTeamUseCase(teamRepo domain.TeamRepository, userRepo domain.UserReposito
 	return &TeamUseCase{
 		teamRepo: teamRepo,
 		userRepo: userRepo,
+	}
+}
+
+// NewTeamUseCaseWithStats は問題・コメントリポジトリを含む TeamUseCase を生成します。
+// チームメンバー統計機能を使用する場合はこちらを使用してください。
+func NewTeamUseCaseWithStats(
+	teamRepo domain.TeamRepository,
+	userRepo domain.UserRepository,
+	questionRepo domain.QuestionRepository,
+	commentRepo domain.CommentRepository,
+) *TeamUseCase {
+	return &TeamUseCase{
+		teamRepo:     teamRepo,
+		userRepo:     userRepo,
+		questionRepo: questionRepo,
+		commentRepo:  commentRepo,
 	}
 }
 
@@ -440,4 +458,102 @@ func (uc *TeamUseCase) RemoveMember(ctx context.Context, callerID string, caller
 	}
 
 	return nil
+}
+
+// MemberStats はチームメンバー1人分の統計情報です。
+type MemberStats struct {
+	// UserID はメンバーのユーザーID
+	UserID string
+	// DisplayName は表示名
+	DisplayName string
+	// Role はチーム内ロール（owner / member）
+	Role domain.MemberRole
+	// IsTeamOwner はグローバルチームオーナー権限を持つか
+	IsTeamOwner bool
+	// QuestionCount はこのチーム内で作成した問題数
+	QuestionCount int
+	// CommentCount はこのチーム内の問題に投稿したコメント数
+	CommentCount int
+	// LastLoginAt は最終ログイン日時（一度もログインしていない場合は nil）
+	LastLoginAt *time.Time
+}
+
+// ListMemberStats はチームメンバーごとの統計情報（問題数・コメント数・最終ログイン日時）を返します。
+// - admin またはチームメンバーのみアクセス可能です。
+// - questionRepo / commentRepo が設定されていない場合は問題数・コメント数は 0 を返します。
+func (uc *TeamUseCase) ListMemberStats(ctx context.Context, callerID string, callerRole domain.Role, teamID string) ([]*MemberStats, error) {
+	// チームの存在確認
+	if _, err := uc.teamRepo.FindByID(ctx, teamID); err != nil {
+		return nil, fmt.Errorf("チーム取得に失敗しました: %w", err)
+	}
+
+	// 権限確認: admin またはチームメンバーのみアクセス可能
+	if callerRole != domain.RoleAdmin {
+		isMember, err := uc.teamRepo.IsMember(ctx, teamID, callerID)
+		if err != nil {
+			return nil, fmt.Errorf("メンバー確認に失敗しました: %w", err)
+		}
+		if !isMember {
+			return nil, domain.ErrPermissionDenied
+		}
+	}
+
+	// メンバー一覧を取得
+	members, err := uc.teamRepo.ListMembers(ctx, teamID)
+	if err != nil {
+		return nil, fmt.Errorf("メンバー一覧取得に失敗しました: %w", err)
+	}
+
+	// 問題数をユーザーID別に集計（questionRepo が設定されている場合のみ）
+	questionCountByUser := make(map[string]int)
+	if uc.questionRepo != nil {
+		questions, err := uc.questionRepo.ListByTeam(ctx, teamID)
+		if err != nil {
+			return nil, fmt.Errorf("問題一覧取得に失敗しました: %w", err)
+		}
+		for _, q := range questions {
+			questionCountByUser[q.CreatedBy]++
+		}
+	}
+
+	// コメント数をユーザーID別に集計（commentRepo が設定されている場合のみ）
+	// チーム内の全問題のコメントを集計するため、まず問題一覧を取得する
+	commentCountByUser := make(map[string]int)
+	if uc.commentRepo != nil {
+		// questionRepo が未設定の場合は問題一覧を別途取得
+		questions, err := uc.questionRepo.ListByTeam(ctx, teamID)
+		if err != nil {
+			return nil, fmt.Errorf("問題一覧取得に失敗しました（コメント集計用）: %w", err)
+		}
+		for _, q := range questions {
+			comments, err := uc.commentRepo.ListByQuestionID(ctx, q.ID)
+			if err != nil {
+				return nil, fmt.Errorf("コメント一覧取得に失敗しました（question_id=%s）: %w", q.ID, err)
+			}
+			for _, c := range comments {
+				commentCountByUser[c.CreatedBy]++
+			}
+		}
+	}
+
+	// メンバーごとにユーザー情報を取得して統計を組み立て
+	stats := make([]*MemberStats, 0, len(members))
+	for _, m := range members {
+		user, err := uc.userRepo.FindByID(ctx, m.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("ユーザー取得に失敗しました（user_id=%s）: %w", m.UserID, err)
+		}
+
+		stats = append(stats, &MemberStats{
+			UserID:        m.UserID,
+			DisplayName:   user.DisplayName,
+			Role:          m.Role,
+			IsTeamOwner:   user.IsTeamOwner,
+			QuestionCount: questionCountByUser[m.UserID],
+			CommentCount:  commentCountByUser[m.UserID],
+			LastLoginAt:   user.LastLoginAt,
+		})
+	}
+
+	return stats, nil
 }
