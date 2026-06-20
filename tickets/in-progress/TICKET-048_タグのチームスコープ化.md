@@ -10,8 +10,8 @@
 | 着手日 | 2026-06-20 |
 | 完了日 | - |
 | ブランチ名 | `feature/team-scoped-tags` |
-| PR番号 | - |
-| PRリンク | - |
+| PR番号 | #29 |
+| PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/29 |
 
 ---
 
@@ -39,7 +39,8 @@
 ## サブチケット（コミット単位）
 
 - [x] `feat(tag): タグをチームスコープ化（TICKET-048）`
-- [ ] `test(e2e): タグのチームスコープ化E2Eテスト（8-A〜8-F）`
+- [x] `test(e2e): タグのチームスコープ化E2Eテスト（8-A〜8-F）`
+- [x] `fix(auth): ページリロード時の認証ローディング状態を追加してPrivateRouteの早期リダイレクトを修正`
 
 ---
 
