@@ -32,6 +32,10 @@ func (h *QuestionHandler) HandleCreateQuestion(w http.ResponseWriter, r *http.Re
 		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
 		return
 	}
+	if !validateUUID(teamID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDの形式が不正です"})
+		return
+	}
 
 	callerID, callerRole := callerInfo(r)
 	if callerID == "" {
@@ -94,6 +98,10 @@ func (h *QuestionHandler) HandleListQuestions(w http.ResponseWriter, r *http.Req
 	teamID := r.PathValue("team_id")
 	if teamID == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+		return
+	}
+	if !validateUUID(teamID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDの形式が不正です"})
 		return
 	}
 
@@ -176,6 +184,10 @@ func (h *QuestionHandler) HandleGetQuestion(w http.ResponseWriter, r *http.Reque
 		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
 		return
 	}
+	if !validateUUID(teamID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDの形式が不正です"})
+		return
+	}
 
 	id := r.PathValue("id")
 	if id == "" {
@@ -210,6 +222,10 @@ func (h *QuestionHandler) HandleUpdateQuestion(w http.ResponseWriter, r *http.Re
 	teamID := r.PathValue("team_id")
 	if teamID == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+		return
+	}
+	if !validateUUID(teamID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDの形式が不正です"})
 		return
 	}
 
@@ -276,6 +292,10 @@ func (h *QuestionHandler) HandleUpdateQuestionVisibility(w http.ResponseWriter, 
 		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
 		return
 	}
+	if !validateUUID(teamID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDの形式が不正です"})
+		return
+	}
 
 	id := r.PathValue("id")
 	if id == "" {
@@ -332,6 +352,10 @@ func (h *QuestionHandler) HandleDeleteQuestion(w http.ResponseWriter, r *http.Re
 	teamID := r.PathValue("team_id")
 	if teamID == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+		return
+	}
+	if !validateUUID(teamID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDの形式が不正です"})
 		return
 	}
 

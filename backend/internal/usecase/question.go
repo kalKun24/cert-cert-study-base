@@ -279,14 +279,9 @@ func (uc *QuestionUseCase) GetQuestion(ctx context.Context, id string, teamID st
 		return nil, err
 	}
 
-	question, err := uc.questionRepo.FindByID(ctx, id)
+	question, err := uc.questionRepo.FindByID(ctx, teamID, id)
 	if err != nil {
 		return nil, fmt.Errorf("問題の取得に失敗しました: %w", err)
-	}
-
-	// 問題が指定チームに属することを確認（情報漏洩防止のため404を返す）
-	if question.TeamID != teamID {
-		return nil, fmt.Errorf("問題の取得に失敗しました: %w", domain.ErrQuestionNotFound)
 	}
 
 	// admin はすべての問題（draft 含む）を閲覧可能
@@ -314,14 +309,9 @@ func (uc *QuestionUseCase) UpdateQuestionVisibility(ctx context.Context, id stri
 		return nil, err
 	}
 
-	question, err := uc.questionRepo.FindByID(ctx, id)
+	question, err := uc.questionRepo.FindByID(ctx, teamID, id)
 	if err != nil {
 		return nil, fmt.Errorf("問題の取得に失敗しました: %w", err)
-	}
-
-	// 問題が指定チームに属することを確認
-	if question.TeamID != teamID {
-		return nil, fmt.Errorf("問題の取得に失敗しました: %w", domain.ErrQuestionNotFound)
 	}
 
 	// 認可チェック: 作成者本人または admin のみ変更可能
@@ -376,14 +366,9 @@ func (uc *QuestionUseCase) UpdateQuestion(ctx context.Context, id string, teamID
 		return nil, err
 	}
 
-	question, err := uc.questionRepo.FindByID(ctx, id)
+	question, err := uc.questionRepo.FindByID(ctx, teamID, id)
 	if err != nil {
 		return nil, fmt.Errorf("問題の取得に失敗しました: %w", err)
-	}
-
-	// 問題が指定チームに属することを確認
-	if question.TeamID != teamID {
-		return nil, fmt.Errorf("問題の取得に失敗しました: %w", domain.ErrQuestionNotFound)
 	}
 
 	// 認可チェック: 作成者本人または admin のみ更新可能
@@ -439,14 +424,9 @@ func (uc *QuestionUseCase) DeleteQuestion(ctx context.Context, id string, teamID
 		return err
 	}
 
-	question, err := uc.questionRepo.FindByID(ctx, id)
+	question, err := uc.questionRepo.FindByID(ctx, teamID, id)
 	if err != nil {
 		return fmt.Errorf("問題の取得に失敗しました: %w", err)
-	}
-
-	// 問題が指定チームに属することを確認
-	if question.TeamID != teamID {
-		return fmt.Errorf("問題の取得に失敗しました: %w", domain.ErrQuestionNotFound)
 	}
 
 	// 認可チェック: 作成者本人または admin のみ削除可能
@@ -454,7 +434,7 @@ func (uc *QuestionUseCase) DeleteQuestion(ctx context.Context, id string, teamID
 		return domain.ErrPermissionDenied
 	}
 
-	if err := uc.questionRepo.Delete(ctx, id); err != nil {
+	if err := uc.questionRepo.Delete(ctx, teamID, id); err != nil {
 		return fmt.Errorf("問題の削除に失敗しました: %w", err)
 	}
 

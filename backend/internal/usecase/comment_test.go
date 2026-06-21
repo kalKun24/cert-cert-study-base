@@ -33,14 +33,16 @@ func (m *mockCommentRepository) addComment(c *domain.Comment) {
 	m.comments[commentKey(c.QuestionID, c.ID)] = c
 }
 
-func (m *mockCommentRepository) FindByID(_ context.Context, questionID, commentID string) (*domain.Comment, error) {
+func (m *mockCommentRepository) FindByID(_ context.Context, teamID, questionID, commentID string) (*domain.Comment, error) {
+	_ = teamID // テストではチームIDを区別しない（キーは questionID/commentID のみ）
 	if c, ok := m.comments[commentKey(questionID, commentID)]; ok {
 		return c, nil
 	}
 	return nil, domain.ErrCommentNotFound
 }
 
-func (m *mockCommentRepository) ListByQuestionID(_ context.Context, questionID string) ([]*domain.Comment, error) {
+func (m *mockCommentRepository) ListByQuestionID(_ context.Context, teamID, questionID string) ([]*domain.Comment, error) {
+	_ = teamID // テストではチームIDを区別しない
 	var result []*domain.Comment
 	for _, c := range m.comments {
 		if c.QuestionID == questionID {
@@ -50,7 +52,8 @@ func (m *mockCommentRepository) ListByQuestionID(_ context.Context, questionID s
 	return result, nil
 }
 
-func (m *mockCommentRepository) Save(_ context.Context, comment *domain.Comment) error {
+func (m *mockCommentRepository) Save(_ context.Context, teamID string, comment *domain.Comment) error {
+	_ = teamID // テストではチームIDを区別しない
 	if m.saveErr != nil {
 		return m.saveErr
 	}
@@ -58,7 +61,8 @@ func (m *mockCommentRepository) Save(_ context.Context, comment *domain.Comment)
 	return nil
 }
 
-func (m *mockCommentRepository) Delete(_ context.Context, questionID, commentID string) error {
+func (m *mockCommentRepository) Delete(_ context.Context, teamID, questionID, commentID string) error {
+	_ = teamID // テストではチームIDを区別しない
 	if m.deleteErr != nil {
 		return m.deleteErr
 	}

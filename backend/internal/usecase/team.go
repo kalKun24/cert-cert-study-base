@@ -513,7 +513,7 @@ func (uc *TeamUseCase) ListMemberStats(ctx context.Context, callerID string, cal
 		// 既に取得した questions スライスを再利用することで二重取得を防ぐ
 		if uc.commentRepo != nil {
 			for _, q := range questions {
-				comments, err := uc.commentRepo.ListByQuestionID(ctx, q.ID)
+				comments, err := uc.commentRepo.ListByQuestionID(ctx, q.TeamID, q.ID)
 				if err != nil {
 					return nil, fmt.Errorf("コメント一覧取得に失敗しました（question_id=%s）: %w", q.ID, err)
 				}

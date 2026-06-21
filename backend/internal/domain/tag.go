@@ -31,6 +31,9 @@ var (
 	ErrTagInUse = errors.New("このタグは使用中のため削除できません")
 	// ErrTagTeamMismatch はタグが指定チームに属さない場合のエラーです。
 	ErrTagTeamMismatch = errors.New("このタグは指定チームに属しません")
+	// ErrTagDataInconsistent はタグレコードのデータ整合性が破損している場合のエラーです。
+	// teamID が空など、ストレージ上のデータが不正な状態を示します。
+	ErrTagDataInconsistent = errors.New("タグデータに不整合が検出されました")
 )
 
 // TagRepository はタグの永続化操作を抽象化するインターフェースです。

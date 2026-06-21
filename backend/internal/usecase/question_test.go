@@ -43,9 +43,12 @@ func (m *mockQuestionRepository) addQuestion(q *domain.Question) {
 	m.questions[q.ID] = q
 }
 
-func (m *mockQuestionRepository) FindByID(_ context.Context, id string) (*domain.Question, error) {
+func (m *mockQuestionRepository) FindByID(_ context.Context, teamID, id string) (*domain.Question, error) {
 	if q, ok := m.questions[id]; ok {
-		return q, nil
+		// チームIDが一致する場合のみ返す
+		if q.TeamID == teamID {
+			return q, nil
+		}
 	}
 	return nil, domain.ErrQuestionNotFound
 }
@@ -68,9 +71,12 @@ func (m *mockQuestionRepository) Save(_ context.Context, question *domain.Questi
 	return nil
 }
 
-func (m *mockQuestionRepository) FindByTagID(_ context.Context, tagID string) ([]*domain.Question, error) {
+func (m *mockQuestionRepository) FindByTagID(_ context.Context, teamID, tagID string) ([]*domain.Question, error) {
 	var result []*domain.Question
 	for _, q := range m.questions {
+		if q.TeamID != teamID {
+			continue
+		}
 		for _, tid := range q.Tags {
 			if tid == tagID {
 				result = append(result, q)
@@ -129,11 +135,12 @@ func contains(s, substr string) bool {
 	}())
 }
 
-func (m *mockQuestionRepository) Delete(_ context.Context, id string) error {
+func (m *mockQuestionRepository) Delete(_ context.Context, teamID, id string) error {
 	if m.deleteErr != nil {
 		return m.deleteErr
 	}
-	if _, ok := m.questions[id]; !ok {
+	q, ok := m.questions[id]
+	if !ok || q.TeamID != teamID {
 		return domain.ErrQuestionNotFound
 	}
 	delete(m.questions, id)
@@ -592,7 +599,7 @@ func TestQuestionUseCase_DeleteQuestion_ByOwner(t *testing.T) {
 	}
 
 	// 削除後に取得しようとすると NotFound になること
-	_, err = repo.FindByID(context.Background(), "q-1")
+	_, err = repo.FindByID(context.Background(), testTeamID, "q-1")
 	if !errors.Is(err, domain.ErrQuestionNotFound) {
 		t.Error("削除後も問題が存在しています")
 	}
