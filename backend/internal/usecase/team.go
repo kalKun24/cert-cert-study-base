@@ -540,7 +540,7 @@ func (uc *TeamUseCase) ListMemberStats(ctx context.Context, callerID string, cal
 	for _, m := range members {
 		user, ok := userByID[m.UserID]
 		if !ok {
-			return nil, fmt.Errorf("ユーザーが見つかりません（user_id=%s）: %w", m.UserID, domain.ErrUserNotFound)
+			return nil, fmt.Errorf("データ整合性エラー: チームメンバーに対応するユーザーが存在しません（user_id=%s）", m.UserID)
 		}
 
 		stats = append(stats, &MemberStats{
