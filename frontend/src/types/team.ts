@@ -70,7 +70,7 @@ export interface AddMemberRequest {
 export interface TeamMemberStats {
   user_id: string;
   display_name: string;
-  role: string;
+  role: 'owner' | 'member';
   is_team_owner: boolean;
   question_count: number;
   comment_count: number;

@@ -95,7 +95,7 @@ export default function TeamDetailPage() {
 
   const isOwnerOrAdmin =
     user?.role === 'admin' ||
-    memberStats.some((m) => m.user_id === user?.id && m.role === 'owner');
+    (!isMembersLoading && memberStats.some((m) => m.user_id === user?.id && m.role === 'owner'));
 
   const ownerCount = memberStats.filter((m) => m.role === 'owner').length;
 
@@ -154,7 +154,7 @@ export default function TeamDetailPage() {
     try {
       await sendInvitation(team.id, inviteeIdentifier.trim());
       setInviteeIdentifier('');
-      loadTeam();
+      loadMemberStats();
     } catch {
       setInviteError(t('team.error.inviteFailed'));
     } finally {
