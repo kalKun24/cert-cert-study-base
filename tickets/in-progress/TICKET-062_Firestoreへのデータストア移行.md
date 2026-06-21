@@ -99,14 +99,14 @@ invitations/{invitationID}
 
 ## サブチケット（コミット単位）
 
-- [ ] `chore(deps): cloud.google.com/go/firestoreを追加・fake-gcs-serverを削除`
-- [ ] `feat(infra): Firestoreリポジトリ実装を追加（user・team・invitation）`
-- [ ] `feat(infra): Firestoreリポジトリ実装を追加（question・comment・tag）`
-- [ ] `feat(infra): Firestoreリポジトリ実装を追加（note・note_comment）`
-- [ ] `refactor(main): DIをFirestoreリポジトリに差し替え・GCS依存を除去`
-- [ ] `chore(infra): docker-compose・MakefileをFirestore Emulatorに更新`
-- [ ] `ci: GitHub ActionsにFirestore Emulatorの起動ステップを追加`
-- [ ] `test(infra): ユーザーリポジトリ統合テストをFirestoreに移行`
+- [x] `chore(deps): cloud.google.com/go/firestoreを追加・fake-gcs-serverを削除`
+- [x] `feat(infra): Firestoreリポジトリ実装を追加（user・team・invitation）`
+- [x] `feat(infra): Firestoreリポジトリ実装を追加（question・comment・tag）`
+- [x] `feat(infra): Firestoreリポジトリ実装を追加（note・note_comment）`
+- [x] `refactor(main): DIをFirestoreリポジトリに差し替え・GCS依存を除去`
+- [x] `chore(infra): docker-composeをFirestore Emulatorに更新`
+- [x] `ci: GitHub ActionsにFirestore Emulatorの起動ステップを追加`
+- [x] `test(infra): ユーザーリポジトリ統合テストをFirestoreに移行`
 
 ---
 
