@@ -28,6 +28,12 @@ jobs:
         with:
           install_components: 'cloud-firestore-emulator'
 
+      - name: Java 21 をセットアップ（Firestoreエミュレータの実行に必要）
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
       - name: Firestore エミュレータを起動
         run: |
           gcloud emulators firestore start --host-port=127.0.0.1:8080 &
