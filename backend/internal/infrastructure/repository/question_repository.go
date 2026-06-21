@@ -16,8 +16,11 @@ import (
 	"github.com/kalKun24/cert-study-base/backend/internal/infrastructure/storage"
 )
 
-// questionsObjectName はGCSバケット内で問題データを保存するオブジェクト名です。
-const questionsObjectName = "questions.json"
+// questionsObjectName はチームIDをもとにGCSオブジェクト名を返します。
+// パス: teams/{teamID}/questions.json
+func questionsObjectName(teamID string) string {
+	return fmt.Sprintf("teams/%s/questions.json", teamID)
+}
 
 // questionRecord はGCS上のJSONファイルに保存する問題レコードです。
 // domain.Question と対応しており、JSON直列化のための構造体です。
@@ -60,7 +63,6 @@ func toQuestionRecord(q *domain.Question) questionRecord {
 
 // toQuestion はJSONレコードをドメインエンティティに変換します。
 // 後方互換性のため、status が空の場合はデフォルト値を設定します。
-// （既存の questions.json にフィールドがない場合でも安全に動作します）
 func toQuestion(r questionRecord) *domain.Question {
 	tags := r.Tags
 	if tags == nil {
@@ -75,7 +77,7 @@ func toQuestion(r questionRecord) *domain.Question {
 
 	return &domain.Question{
 		ID:          r.ID,
-		TeamID:      r.TeamID, // 既存データでは空文字のまま（後方互換）
+		TeamID:      r.TeamID,
 		Title:       r.Title,
 		Body:        r.Body,
 		Answer:      r.Answer,
@@ -91,7 +93,7 @@ func toQuestion(r questionRecord) *domain.Question {
 
 // GCSQuestionRepository はGCS上のJSONファイルに問題データを永続化するリポジトリです。
 // domain.QuestionRepository インターフェースを実装します。
-// 問題データは GCS バケット内の questions.json に保存します。
+// 問題データはチームごとに GCS バケット内の teams/{teamID}/questions.json に保存します。
 type GCSQuestionRepository struct {
 	mu      sync.RWMutex
 	storage storage.StorageClient
@@ -106,10 +108,12 @@ func NewGCSQuestionRepository(sc storage.StorageClient, bucket string) *GCSQuest
 	}
 }
 
-// loadQuestions はGCSから問題データを読み込みます。
+// loadQuestions はGCSから指定チームの問題データを読み込みます。
 // オブジェクトが存在しない場合は空のスライスを返します。
-func (r *GCSQuestionRepository) loadQuestions(ctx context.Context) ([]questionRecord, error) {
-	exists, err := r.storage.Exists(ctx, r.bucket, questionsObjectName)
+func (r *GCSQuestionRepository) loadQuestions(ctx context.Context, teamID string) ([]questionRecord, error) {
+	objectName := questionsObjectName(teamID)
+
+	exists, err := r.storage.Exists(ctx, r.bucket, objectName)
 	if err != nil {
 		return nil, fmt.Errorf("GCS オブジェクト存在確認に失敗しました: %w", err)
 	}
@@ -118,7 +122,7 @@ func (r *GCSQuestionRepository) loadQuestions(ctx context.Context) ([]questionRe
 		return []questionRecord{}, nil
 	}
 
-	rc, err := r.storage.Read(ctx, r.bucket, questionsObjectName)
+	rc, err := r.storage.Read(ctx, r.bucket, objectName)
 	if err != nil {
 		return nil, fmt.Errorf("GCS からの読み込みに失敗しました: %w", err)
 	}
@@ -141,26 +145,26 @@ func (r *GCSQuestionRepository) loadQuestions(ctx context.Context) ([]questionRe
 	return records, nil
 }
 
-// saveQuestions は問題データをGCSに書き込みます。
-func (r *GCSQuestionRepository) saveQuestions(ctx context.Context, records []questionRecord) error {
+// saveQuestions は指定チームの問題データをGCSに書き込みます。
+func (r *GCSQuestionRepository) saveQuestions(ctx context.Context, teamID string, records []questionRecord) error {
 	data, err := json.Marshal(records)
 	if err != nil {
 		return fmt.Errorf("問題データのJSONエンコードに失敗しました: %w", err)
 	}
 
-	if err := r.storage.Write(ctx, r.bucket, questionsObjectName, bytes.NewReader(data)); err != nil {
+	if err := r.storage.Write(ctx, r.bucket, questionsObjectName(teamID), bytes.NewReader(data)); err != nil {
 		return fmt.Errorf("GCS への書き込みに失敗しました: %w", err)
 	}
 
 	return nil
 }
 
-// FindByID はIDで問題を検索します。
-func (r *GCSQuestionRepository) FindByID(ctx context.Context, id string) (*domain.Question, error) {
+// FindByID はチームIDとIDで問題を検索します。
+func (r *GCSQuestionRepository) FindByID(ctx context.Context, teamID, id string) (*domain.Question, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	records, err := r.loadQuestions(ctx)
+	records, err := r.loadQuestions(ctx, teamID)
 	if err != nil {
 		return nil, fmt.Errorf("問題データ読み込みに失敗しました: %w", err)
 	}
@@ -175,43 +179,37 @@ func (r *GCSQuestionRepository) FindByID(ctx context.Context, id string) (*domai
 }
 
 // ListByTeam は指定チームの問題一覧を返します。
+// チーム別ファイルを直接読み込むため、アプリ側フィルタリングは不要です。
 func (r *GCSQuestionRepository) ListByTeam(ctx context.Context, teamID string) ([]*domain.Question, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	records, err := r.loadQuestions(ctx)
+	records, err := r.loadQuestions(ctx, teamID)
 	if err != nil {
 		return nil, fmt.Errorf("問題データ読み込みに失敗しました: %w", err)
 	}
 
-	questions := make([]*domain.Question, 0)
+	questions := make([]*domain.Question, 0, len(records))
 	for _, rec := range records {
-		if rec.TeamID == teamID {
-			questions = append(questions, toQuestion(rec))
-		}
+		questions = append(questions, toQuestion(rec))
 	}
 
 	return questions, nil
 }
 
 // SearchByTeam は指定チームの問題を検索・フィルタリングして返します。
-// GCSから全件読み込み後、teamID フィルタ → タグ・キーワードフィルタリングを行います。
+// チーム別ファイルを直接読み込むため、teamID フィルタは不要です。
 func (r *GCSQuestionRepository) SearchByTeam(ctx context.Context, teamID string, filter domain.QuestionSearchFilter) ([]*domain.Question, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	records, err := r.loadQuestions(ctx)
+	records, err := r.loadQuestions(ctx, teamID)
 	if err != nil {
 		return nil, fmt.Errorf("問題データ読み込みに失敗しました: %w", err)
 	}
 
 	questions := make([]*domain.Question, 0)
 	for _, rec := range records {
-		// チームIDフィルタ
-		if rec.TeamID != teamID {
-			continue
-		}
-
 		q := toQuestion(rec)
 
 		// タグANDフィルタリング: 指定されたタグIDをすべて持つ問題のみ返す
@@ -249,12 +247,12 @@ func (r *GCSQuestionRepository) SearchByTeam(ctx context.Context, teamID string,
 	return questions, nil
 }
 
-// FindByTagID は指定されたタグIDを持つ問題の一覧を返します。
-func (r *GCSQuestionRepository) FindByTagID(ctx context.Context, tagID string) ([]*domain.Question, error) {
+// FindByTagID は指定チームの指定タグIDを持つ問題の一覧を返します。
+func (r *GCSQuestionRepository) FindByTagID(ctx context.Context, teamID, tagID string) ([]*domain.Question, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	records, err := r.loadQuestions(ctx)
+	records, err := r.loadQuestions(ctx, teamID)
 	if err != nil {
 		return nil, fmt.Errorf("問題データ読み込みに失敗しました: %w", err)
 	}
@@ -278,7 +276,7 @@ func (r *GCSQuestionRepository) Save(ctx context.Context, question *domain.Quest
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	records, err := r.loadQuestions(ctx)
+	records, err := r.loadQuestions(ctx, question.TeamID)
 	if err != nil {
 		return fmt.Errorf("問題データ読み込みに失敗しました: %w", err)
 	}
@@ -297,19 +295,20 @@ func (r *GCSQuestionRepository) Save(ctx context.Context, question *domain.Quest
 		records = append(records, rec)
 	}
 
-	if err := r.saveQuestions(ctx, records); err != nil {
+	if err := r.saveQuestions(ctx, question.TeamID, records); err != nil {
 		return fmt.Errorf("問題データ保存に失敗しました: %w", err)
 	}
 
 	return nil
 }
 
-// Delete はIDで指定した問題を削除します。
-func (r *GCSQuestionRepository) Delete(ctx context.Context, id string) error {
+// Delete はチームIDとIDで指定した問題を削除します。
+// 問題が存在しない場合は ErrQuestionNotFound を返します。
+func (r *GCSQuestionRepository) Delete(ctx context.Context, teamID, id string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	records, err := r.loadQuestions(ctx)
+	records, err := r.loadQuestions(ctx, teamID)
 	if err != nil {
 		return fmt.Errorf("問題データ読み込みに失敗しました: %w", err)
 	}
@@ -328,7 +327,7 @@ func (r *GCSQuestionRepository) Delete(ctx context.Context, id string) error {
 		return domain.ErrQuestionNotFound
 	}
 
-	if err := r.saveQuestions(ctx, newRecords); err != nil {
+	if err := r.saveQuestions(ctx, teamID, newRecords); err != nil {
 		return fmt.Errorf("問題データ保存に失敗しました: %w", err)
 	}
 

@@ -223,9 +223,11 @@ func (r *GCSTagRepository) Delete(ctx context.Context, id string) error {
 
 	newRecords := make([]tagRecord, 0, len(records))
 	found := false
+	var teamID string
 	for _, rec := range records {
 		if rec.ID == id {
 			found = true
+			teamID = rec.TeamID
 			continue
 		}
 		newRecords = append(newRecords, rec)
@@ -235,10 +237,10 @@ func (r *GCSTagRepository) Delete(ctx context.Context, id string) error {
 		return domain.ErrTagNotFound
 	}
 
-	// 使用中チェック: 指定タグIDを含む問題が存在するか確認。
+	// 使用中チェック: 指定チームの指定タグIDを含む問題が存在するか確認。
 	// questionRepo.FindByTagID は内部でロックを取得するため、GCSTagRepository の mu とは
 	// 独立しており、デッドロックは発生しません。
-	questions, err := r.questionRepo.FindByTagID(ctx, id)
+	questions, err := r.questionRepo.FindByTagID(ctx, teamID, id)
 	if err != nil {
 		return fmt.Errorf("使用中チェックに失敗しました: %w", err)
 	}
