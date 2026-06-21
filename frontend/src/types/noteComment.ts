@@ -3,6 +3,7 @@ export interface NoteComment {
   note_id: string;
   body: string;
   created_by: string;
+  display_name: string;
   created_at: string;
   updated_at: string;
 }

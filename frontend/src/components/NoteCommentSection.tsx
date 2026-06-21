@@ -175,7 +175,7 @@ export default function NoteCommentSection({ teamId, noteId }: Props) {
               >
                 <div className="comment-header">
                   <span className="comment-author">
-                    {comment.created_by}
+                    {comment.display_name}
                     {isOwner && (
                       <span className="comment-own-badge">{t('comment.badge.own')}</span>
                     )}
@@ -192,7 +192,7 @@ export default function NoteCommentSection({ teamId, noteId }: Props) {
                           type="button"
                           className="btn btn-secondary btn-sm"
                           onClick={() => handleEditStart(comment)}
-                          aria-label={`${t('common.edit')} - ${comment.created_by}`}
+                          aria-label={`${t('common.edit')} - ${comment.display_name}のコメント`}
                         >
                           {t('common.edit')}
                         </button>
@@ -202,7 +202,7 @@ export default function NoteCommentSection({ teamId, noteId }: Props) {
                           type="button"
                           className="btn btn-danger btn-sm"
                           onClick={() => handleDelete(comment.id)}
-                          aria-label={`${t('common.delete')} - ${comment.created_by}`}
+                          aria-label={`${t('common.delete')} - ${comment.display_name}のコメント`}
                         >
                           {t('common.delete')}
                         </button>
