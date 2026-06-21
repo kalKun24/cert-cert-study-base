@@ -40,8 +40,8 @@
 
 ## サブチケット（コミット単位）
 
-- [ ] `feat(nav): NavBarに「ノート」リンクを追加`
-- [ ] `feat(i18n): nav.notesキーを翻訳ファイルに追加`
+- [x] `feat(nav): NavBarに「ノート」リンクを追加`
+- [x] `feat(i18n): nav.notesキーを翻訳ファイルに追加`
 
 ---
 

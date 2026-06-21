@@ -55,12 +55,12 @@
 
 ## サブチケット（コミット単位）
 
-- [ ] `feat(types): Note型定義とnoteApiユーティリティを追加`
-- [ ] `feat(page): NoteListPageを実装（一覧・検索・ページネーション）`
-- [ ] `feat(page): NoteDetailPageを実装（Markdown表示・コメント・権限制御）`
-- [ ] `feat(page): NoteCreatePage・NoteEditPageを実装`
-- [ ] `feat(router): ノート系ルートを追加`
-- [ ] `feat(i18n): ノート機能の翻訳キーを追加`
+- [x] `feat(types): Note型定義とnoteApiユーティリティを追加`
+- [x] `feat(page): NoteListPageを実装（一覧・検索・ページネーション）`
+- [x] `feat(page): NoteDetailPageを実装（Markdown表示・コメント・権限制御）`
+- [x] `feat(page): NoteCreatePage・NoteEditPageを実装`
+- [x] `feat(router): ノート系ルートを追加`
+- [x] `feat(i18n): ノート機能の翻訳キーを追加`
 
 ---
 
