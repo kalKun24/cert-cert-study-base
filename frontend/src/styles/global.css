@@ -359,6 +359,23 @@ img {
   border-color: rgba(25, 118, 210, 0.30);
 }
 
+/* ナビゲーションバッジ（招待件数など） */
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 var(--space-1);
+  margin-left: var(--space-2);
+  border-radius: 9999px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
 /* チーム切り替えエリア（ナビとユーザーメニューの間） */
 .topbar-team-area {
   display: flex;

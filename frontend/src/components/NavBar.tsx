@@ -22,9 +22,11 @@ interface NavBarProps {
   /** モバイル用ドロワーの開閉制御 */
   isMobileMenuOpen: boolean;
   onMobileMenuToggle: () => void;
+  /** pending 招待件数（0 のときはリンクを非表示） */
+  invitationCount: number;
 }
 
-export default function NavBar({ isMobileMenuOpen, onMobileMenuToggle }: NavBarProps) {
+export default function NavBar({ isMobileMenuOpen, onMobileMenuToggle, invitationCount }: NavBarProps) {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
   const { teams, activeTeam, setActiveTeam } = useTeam();
@@ -87,6 +89,22 @@ export default function NavBar({ isMobileMenuOpen, onMobileMenuToggle }: NavBarP
             <li>
               <NavLink to="/admin/users" className={({ isActive }) => isActive ? 'topbar-nav-link topbar-nav-link--active' : 'topbar-nav-link'}>
                 {t('nav.users')}
+              </NavLink>
+            </li>
+          )}
+          {/* 招待一覧リンク（pending 件数バッジ付き） */}
+          {invitationCount > 0 && (
+            <li>
+              <NavLink
+                to="/invitations"
+                className={({ isActive }) =>
+                  isActive ? 'topbar-nav-link topbar-nav-link--active' : 'topbar-nav-link'
+                }
+              >
+                {t('nav.invitations')}
+                <span className="nav-badge" aria-label={t('nav.invitationsBadgeLabel', { count: invitationCount })}>
+                  {invitationCount}
+                </span>
               </NavLink>
             </li>
           )}

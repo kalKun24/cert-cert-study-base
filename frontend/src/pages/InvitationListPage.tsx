@@ -22,17 +22,13 @@ export default function InvitationListPage() {
     try {
       const all = await fetchMyInvitations();
       const pending = all.filter((inv) => inv.status === 'pending');
-      if (pending.length === 0) {
-        navigate('/no-team', { replace: true });
-        return;
-      }
       setInvitations(pending);
     } catch {
       setStatusMessage({ text: t('team.error.fetchFailed'), isError: true });
     } finally {
       setIsLoading(false);
     }
-  }, [navigate, t]);
+  }, [t]);
 
   useEffect(() => {
     void loadInvitations();
@@ -44,16 +40,9 @@ export default function InvitationListPage() {
     try {
       await respondInvitation(invitation.id, status);
       if (status === 'accepted') {
-        setStatusMessage({ text: t('team.invitation.acceptSuccess'), isError: false });
         await refreshTeams();
-        navigate('/', { replace: true });
-      } else {
-        setStatusMessage({ text: t('team.invitation.rejectSuccess'), isError: false });
-        setInvitations((prev) => prev.filter((inv) => inv.id !== invitation.id));
-        if (invitations.length <= 1) {
-          navigate('/no-team', { replace: true });
-        }
       }
+      navigate('/', { replace: true });
     } catch {
       const message =
         status === 'accepted'
