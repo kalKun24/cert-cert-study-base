@@ -317,6 +317,39 @@ type UpdateCommentRequestDTO struct {
 	Body string `json:"body"`
 }
 
+// NoteCommentDTO はAPIレスポンス用のノートコメントDTOです。
+// NoteComment はユーザー表示名を持たないため DisplayName フィールドは含みません。
+type NoteCommentDTO struct {
+	ID        string    `json:"id"`
+	NoteID    string    `json:"note_id"`
+	Body      string    `json:"body"`
+	CreatedBy string    `json:"created_by"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// toNoteCommentDTO はドメインエンティティをAPIレスポンス用DTOに変換します。
+func toNoteCommentDTO(c *domain.NoteComment) NoteCommentDTO {
+	return NoteCommentDTO{
+		ID:        c.ID,
+		NoteID:    c.NoteID,
+		Body:      c.Body,
+		CreatedBy: c.CreatedBy,
+		CreatedAt: c.CreatedAt,
+		UpdatedAt: c.UpdatedAt,
+	}
+}
+
+// CreateNoteCommentRequestDTO はノートコメント投稿リクエストのDTOです。
+type CreateNoteCommentRequestDTO struct {
+	Body string `json:"body"`
+}
+
+// UpdateNoteCommentRequestDTO はノートコメント編集リクエストのDTOです。
+type UpdateNoteCommentRequestDTO struct {
+	Body string `json:"body"`
+}
+
 // NoteDTO はAPIレスポンス用のノートDTOです。
 type NoteDTO struct {
 	ID               string    `json:"id"`
