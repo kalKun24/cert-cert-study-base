@@ -23,8 +23,8 @@ func NewTagHandler(tagUC *usecase.TagUseCase) *TagHandler {
 // HandleListTags は GET /api/v1/teams/{team_id}/tags を処理します（チームメンバー or admin）。
 func (h *TagHandler) HandleListTags(w http.ResponseWriter, r *http.Request) {
 	teamID := r.PathValue("team_id")
-	if teamID == "" {
-		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+	if teamID == "" || !validateUUID(teamID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDの形式が不正です"})
 		return
 	}
 
@@ -52,8 +52,8 @@ func (h *TagHandler) HandleListTags(w http.ResponseWriter, r *http.Request) {
 // HandleCreateTag は POST /api/v1/teams/{team_id}/tags を処理します（チームメンバー or admin）。
 func (h *TagHandler) HandleCreateTag(w http.ResponseWriter, r *http.Request) {
 	teamID := r.PathValue("team_id")
-	if teamID == "" {
-		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+	if teamID == "" || !validateUUID(teamID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDの形式が不正です"})
 		return
 	}
 
@@ -89,8 +89,8 @@ func (h *TagHandler) HandleCreateTag(w http.ResponseWriter, r *http.Request) {
 // HandleUpdateTag は PUT /api/v1/teams/{team_id}/tags/{id} を処理します（admin のみ）。
 func (h *TagHandler) HandleUpdateTag(w http.ResponseWriter, r *http.Request) {
 	teamID := r.PathValue("team_id")
-	if teamID == "" {
-		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+	if teamID == "" || !validateUUID(teamID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDの形式が不正です"})
 		return
 	}
 
@@ -131,8 +131,8 @@ func (h *TagHandler) HandleUpdateTag(w http.ResponseWriter, r *http.Request) {
 // HandleDeleteTag は DELETE /api/v1/teams/{team_id}/tags/{id} を処理します（チームメンバー or admin）。
 func (h *TagHandler) HandleDeleteTag(w http.ResponseWriter, r *http.Request) {
 	teamID := r.PathValue("team_id")
-	if teamID == "" {
-		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+	if teamID == "" || !validateUUID(teamID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDの形式が不正です"})
 		return
 	}
 
