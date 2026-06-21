@@ -186,6 +186,17 @@ export default function Layout() {
             </li>
             <li>
               <NavLink
+                to="/notes"
+                className={({ isActive }) =>
+                  isActive ? 'mobile-nav-link mobile-nav-link--active' : 'mobile-nav-link'
+                }
+                onClick={closeMobileMenu}
+              >
+                {t('nav.notes')}
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
                 to="/tags"
                 className={({ isActive }) =>
                   isActive ? 'mobile-nav-link mobile-nav-link--active' : 'mobile-nav-link'
