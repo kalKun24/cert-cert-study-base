@@ -1164,6 +1164,285 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /api/v1/teams/{team_id}/notes:
+    post:
+      summary: ノート作成（チームメンバーのみ）
+      description: |
+        指定チームにノートを作成します。
+        チームメンバーのみ作成可能です。
+        status を省略した場合は draft として作成されます。
+      operationId: createNote
+      tags:
+        - notes
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateNoteRequest"
+      responses:
+        "201":
+          description: ノート作成成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Note"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    get:
+      summary: ノート一覧取得（チームメンバーのみ）
+      description: |
+        指定チームのノート一覧を返します。
+        チームメンバーのみ取得可能です。
+        - キーワード検索: title / body / discussion_points / memo を対象に部分一致検索
+        - タグ絞り込み: tag_ids をカンマ区切りで指定（AND絞り込み）
+        - 可視性ルール: draft は作成者本人または admin のみ返す
+      operationId: listNotes
+      tags:
+        - notes
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - name: keyword
+          in: query
+          required: false
+          description: タイトル・本文・議論点・メモを対象としたキーワード検索（部分一致）
+          schema:
+            type: string
+            example: "暗号化"
+        - name: tag_ids
+          in: query
+          required: false
+          description: カンマ区切りのタグID（AND絞り込み）
+          schema:
+            type: string
+            example: "tag-1,tag-2"
+        - name: page
+          in: query
+          required: false
+          description: 取得するページ番号（1始まり。省略時は1）
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            example: 1
+        - name: per_page
+          in: query
+          required: false
+          description: 1ページあたりの件数（省略時は20、最大100）
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+            example: 20
+      responses:
+        "200":
+          description: ノート一覧（ページネーション情報付き）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/NoteListResponse"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/teams/{team_id}/notes/{note_id}:
+    get:
+      summary: ノート詳細取得（チームメンバーのみ）
+      description: |
+        指定チームのノートを取得します。
+        チームメンバーのみ取得可能です。
+        draft ステータスのノートは作成者本人または admin のみ取得可能です。
+      operationId: getNote
+      tags:
+        - notes
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/NoteID"
+      responses:
+        "200":
+          description: ノート詳細
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Note"
+                  error:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      summary: ノート更新（チームオーナー・admin・作成者のみ）
+      description: |
+        指定チームのノートを更新します。
+        チームオーナー、admin、または作成者本人のみ操作可能です。
+      operationId: updateNote
+      tags:
+        - notes
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/NoteID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateNoteRequest"
+      responses:
+        "200":
+          description: ノート更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Note"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: ノート削除（チームオーナー・admin・作成者のみ）
+      description: |
+        指定チームのノートを削除します。
+        チームオーナー、admin、または作成者本人のみ操作可能です。
+      operationId: deleteNote
+      tags:
+        - notes
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/NoteID"
+      responses:
+        "200":
+          description: ノート削除成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                        example: ノートを削除しました
+                  error:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/teams/{team_id}/notes/{note_id}/visibility:
+    patch:
+      summary: ノートの公開設定変更（チームオーナー・admin・作成者のみ）
+      description: |
+        指定チームのノートの公開設定を変更します。
+        チームオーナー、admin、または作成者本人のみ操作可能です。
+        - draft → private / published: 公開
+        - published / private → draft: 下書きに戻す
+      operationId: updateNoteVisibility
+      tags:
+        - notes
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/NoteID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateNoteVisibilityRequest"
+      responses:
+        "200":
+          description: 公開設定変更成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Note"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/v1/teams/{team_id}/tags:
     get:
       summary: チームタグ一覧取得（チームメンバー or admin）
@@ -1605,6 +1884,16 @@ components:
         format: uuid
         example: "8ba7b810-9dad-11d1-80b4-00c04fd430c8"
 
+    NoteID:
+      name: note_id
+      in: path
+      required: true
+      description: ノートID（UUID形式）
+      schema:
+        type: string
+        format: uuid
+        example: "9ba7b810-9dad-11d1-80b4-00c04fd430c8"
+
   schemas:
     Team:
       type: object
@@ -2027,6 +2316,193 @@ components:
         memo:
           type: string
           description: 議論点メモ（Markdown形式）
+          example: "## メモ\n更新後のメモ"
+        tags:
+          type: array
+          items:
+            type: string
+          description: タグ
+          example: ["CISSP", "更新タグ"]
+        status:
+          type: string
+          enum:
+            - draft
+            - private
+            - published
+          description: 公開ステータス
+          example: "published"
+
+    Note:
+      type: object
+      description: ノートエンティティ
+      required:
+        - id
+        - team_id
+        - title
+        - body
+        - discussion_points
+        - memo
+        - tags
+        - status
+        - created_by
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ノートID
+          example: "9ba7b810-9dad-11d1-80b4-00c04fd430c8"
+        team_id:
+          type: string
+          format: uuid
+          description: 所属チームID
+          example: "660e8400-e29b-41d4-a716-446655440000"
+        title:
+          type: string
+          description: ノートタイトル
+          example: "CISSPドメイン1: 暗号化の基礎知識"
+        body:
+          type: string
+          description: 本文（Markdown形式）
+          example: "## 本文\n暗号化とは..."
+        discussion_points:
+          type: string
+          description: 議論点（Markdown形式）
+          example: "## 議論点\n- AES-256 と AES-128 の使い分け"
+        memo:
+          type: string
+          description: 自由記述メモ（Markdown形式）
+          example: "## メモ\n- 次回確認すること"
+        tags:
+          type: array
+          items:
+            type: string
+          description: タグ（フラット・複数付与可）
+          example: ["CISSP", "暗号化", "ドメイン3"]
+        status:
+          type: string
+          enum:
+            - draft
+            - private
+            - published
+          description: 公開ステータス
+          example: "draft"
+        created_by:
+          type: string
+          description: 作成者のユーザーID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        created_at:
+          type: string
+          format: date-time
+          description: 作成日時
+          example: "2024-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: 更新日時
+          example: "2024-01-01T00:00:00Z"
+
+    NoteListResponse:
+      type: object
+      description: ノート一覧レスポンス（ページネーション情報付き）
+      required:
+        - items
+        - total
+        - page
+        - per_page
+        - total_pages
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Note"
+          description: ノートの一覧
+        total:
+          type: integer
+          description: フィルタリング後の総件数
+          example: 100
+        page:
+          type: integer
+          description: 現在のページ番号（1始まり）
+          example: 2
+        per_page:
+          type: integer
+          description: 1ページあたりの件数
+          example: 20
+        total_pages:
+          type: integer
+          description: 総ページ数
+          example: 5
+
+    CreateNoteRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          description: ノートタイトル（必須）
+          example: "CISSPドメイン1: 暗号化の基礎知識"
+        body:
+          type: string
+          description: 本文（Markdown形式）
+          example: "## 本文\n暗号化とは..."
+        discussion_points:
+          type: string
+          description: 議論点（Markdown形式）
+          example: "## 議論点\n- AES-256 と AES-128 の使い分け"
+        memo:
+          type: string
+          description: 自由記述メモ（Markdown形式）
+          example: "## メモ\n- 次回確認すること"
+        tags:
+          type: array
+          items:
+            type: string
+          description: タグ（フラット・複数付与可）
+          example: ["CISSP", "暗号化"]
+        status:
+          type: string
+          enum:
+            - draft
+            - private
+            - published
+          description: 公開ステータス（省略時は draft）
+          example: "draft"
+
+    UpdateNoteVisibilityRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - draft
+            - private
+            - published
+          description: 公開ステータス
+          example: "published"
+
+    UpdateNoteRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          description: ノートタイトル
+          example: "更新後タイトル"
+        body:
+          type: string
+          description: 本文（Markdown形式）
+          example: "## 本文\n更新後の本文"
+        discussion_points:
+          type: string
+          description: 議論点（Markdown形式）
+          example: "## 議論点\n更新後の議論点"
+        memo:
+          type: string
+          description: 自由記述メモ（Markdown形式）
           example: "## メモ\n更新後のメモ"
         tags:
           type: array

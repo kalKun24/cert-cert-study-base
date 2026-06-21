@@ -317,6 +317,78 @@ type UpdateCommentRequestDTO struct {
 	Body string `json:"body"`
 }
 
+// NoteDTO はAPIレスポンス用のノートDTOです。
+type NoteDTO struct {
+	ID               string    `json:"id"`
+	TeamID           string    `json:"team_id"`
+	Title            string    `json:"title"`
+	Body             string    `json:"body"`
+	DiscussionPoints string    `json:"discussion_points"`
+	Memo             string    `json:"memo"`
+	Tags             []string  `json:"tags"`
+	Status           string    `json:"status"`
+	CreatedBy        string    `json:"created_by"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
+}
+
+// toNoteDTO はドメインエンティティをAPIレスポンス用DTOに変換します。
+func toNoteDTO(n *domain.Note) NoteDTO {
+	tags := n.Tags
+	if tags == nil {
+		tags = []string{}
+	}
+	return NoteDTO{
+		ID:               n.ID,
+		TeamID:           n.TeamID,
+		Title:            n.Title,
+		Body:             n.Body,
+		DiscussionPoints: n.DiscussionPoints,
+		Memo:             n.Memo,
+		Tags:             tags,
+		Status:           string(n.Status),
+		CreatedBy:        n.CreatedBy,
+		CreatedAt:        n.CreatedAt,
+		UpdatedAt:        n.UpdatedAt,
+	}
+}
+
+// NoteListResponseDTO はノート一覧APIのレスポンス用DTOです（ページネーション情報付き）。
+type NoteListResponseDTO struct {
+	Items      []NoteDTO `json:"items"`
+	Total      int       `json:"total"`
+	Page       int       `json:"page"`
+	PerPage    int       `json:"per_page"`
+	TotalPages int       `json:"total_pages"`
+}
+
+// CreateNoteRequestDTO はノート作成リクエストのDTOです。
+type CreateNoteRequestDTO struct {
+	Title            string   `json:"title"`
+	Body             string   `json:"body"`
+	DiscussionPoints string   `json:"discussion_points"`
+	Memo             string   `json:"memo"`
+	Tags             []string `json:"tags"`
+	Status           string   `json:"status"`
+}
+
+// UpdateNoteRequestDTO はノート更新リクエストのDTOです。
+// 各フィールドはポインタ型にしてゼロ値との区別を可能にします。
+type UpdateNoteRequestDTO struct {
+	Title            *string  `json:"title"`
+	Body             *string  `json:"body"`
+	DiscussionPoints *string  `json:"discussion_points"`
+	Memo             *string  `json:"memo"`
+	Tags             []string `json:"tags"`
+	Status           *string  `json:"status"`
+}
+
+// UpdateNoteVisibilityRequestDTO はノート公開設定変更リクエストのDTOです。
+type UpdateNoteVisibilityRequestDTO struct {
+	// Status は変更後の公開ステータス（必須）
+	Status string `json:"status"`
+}
+
 // InvitationDTO はAPIレスポンス用の招待DTOです。
 // invitee_identifier はメールアドレス等の個人情報を含む可能性があるためレスポンスに含めません。
 type InvitationDTO struct {
