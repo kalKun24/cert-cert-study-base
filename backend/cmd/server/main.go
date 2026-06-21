@@ -112,7 +112,7 @@ func main() {
 	noteUC := usecase.NewNoteUseCase(noteRepo, teamRepo)
 
 	noteCommentRepo := firestoreRepo.NewFirestoreNoteCommentRepository(fsClient)
-	noteCommentUC := usecase.NewNoteCommentUseCase(noteCommentRepo, noteRepo, teamRepo)
+	noteCommentUC := usecase.NewNoteCommentUseCase(noteCommentRepo, noteRepo, teamRepo, userRepo)
 
 	authHandler := handler.NewAuthHandler(authUC)
 	userHandler := handler.NewUserHandler(userUC)
