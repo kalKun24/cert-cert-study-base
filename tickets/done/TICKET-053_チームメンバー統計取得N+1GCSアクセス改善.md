@@ -5,10 +5,10 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-053 |
-| ステータス | 🟡 作業中 |
+| ステータス | ✅ 完了 |
 | 作成日 | 2026-06-20 |
 | 着手日 | 2026-06-21 |
-| 完了日 | - |
+| 完了日 | 2026-06-21 |
 | ブランチ名 | `perf/team-member-stats-n-plus-one` |
 | PR番号 | #36 |
 | PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/36 |
