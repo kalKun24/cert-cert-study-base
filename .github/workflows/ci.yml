@@ -30,14 +30,21 @@ jobs:
 
       - name: Firestore エミュレータを起動
         run: |
-          gcloud emulators firestore start --host-port=localhost:8080 --project=test-project &
-          sleep 5
+          gcloud emulators firestore start --host-port=127.0.0.1:8080 &
+          # ポートが開くまで最大30秒待機
+          for i in $(seq 1 30); do
+            if nc -z 127.0.0.1 8080 2>/dev/null; then
+              echo "Firestore エミュレータが起動しました（${i}秒）"
+              break
+            fi
+            sleep 1
+          done
 
       - name: テストを実行
         working-directory: backend
         run: go test ./... -v
         env:
-          FIRESTORE_EMULATOR_HOST: localhost:8080
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
           GCP_PROJECT_ID: test-project
 
   lint-backend:
