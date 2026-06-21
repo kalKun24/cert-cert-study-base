@@ -29,28 +29,28 @@
 
 ## 受け入れ条件
 
-- [ ] `GCSQuestionRepository` のGCSパスが `teams/{team_id}/questions.json` に変更されている
+- [x] `GCSQuestionRepository` のGCSパスが `teams/{team_id}/questions.json` に変更されている
   - `loadQuestions` がグローバルな `questions.json` ではなく `teams/{teamID}/questions.json` を読み書きする
   - `saveQuestions` も同様に `teams/{teamID}/questions.json` へ書き込む
   - `ListByTeam`・`SearchByTeam` は teamID ごとのファイルを読むため、全件ロード後フィルタリングするロジックが不要になる（ただしファイルが存在しない場合は空リストを返す）
   - `FindByID`・`FindByTagID` は全チームを横断して検索する可能性があるため、実装方針を明示すること（例: `teamID` を引数に追加、または呼び出し元でチームを特定済みとしてルーティングする）
-- [ ] `GCSCommentRepository` のGCSパスが `teams/{team_id}/questions/{questionID}/comments/{commentID}.json` に変更されている
+- [x] `GCSCommentRepository` のGCSパスが `teams/{team_id}/questions/{questionID}/comments/{commentID}.json` に変更されている
   - `commentObjectName` 関数のシグネチャを `commentObjectName(teamID, questionID, commentID string) string` に変更する
   - `commentPrefixByQuestion` 関数も `commentPrefixByQuestion(teamID, questionID string) string` に変更する
   - `domain.CommentRepository` インターフェースのメソッドシグネチャに `teamID` 引数が必要な場合は `domain/comment.go` も合わせて更新する
-- [ ] 既存のユースケース（`QuestionUseCase`・`CommentUseCase`）が新しいリポジトリシグネチャに対応している
-- [ ] 既存のハンドラがチームIDをリポジトリに渡す実装になっている
-- [ ] 既存のユニットテスト（`usecase/question_test.go` 等）が新しい実装に合わせて更新されている
-- [ ] `golangci-lint` を通過する
+- [x] 既存のユースケース（`QuestionUseCase`・`CommentUseCase`）が新しいリポジトリシグネチャに対応している
+- [x] 既存のハンドラがチームIDをリポジトリに渡す実装になっている
+- [x] 既存のユニットテスト（`usecase/question_test.go` 等）が新しい実装に合わせて更新されている
+- [x] `golangci-lint` を通過する
 
 ---
 
 ## サブチケット（コミット単位）
 
-- [ ] `refactor(infra): GCSQuestionRepositoryのパスをteams/{team_id}/questions.jsonに変更`
-- [ ] `refactor(infra): GCSCommentRepositoryのパスをteams/{team_id}/questions/{id}/comments/{id}.jsonに変更`
-- [ ] `refactor(usecase): QuestionUseCase・CommentUseCaseを新リポジトリシグネチャに対応`
-- [ ] `test(usecase): 既存ユニットテストを新しい実装に合わせて更新`
+- [x] `refactor(infra): GCSQuestionRepositoryのパスをteams/{team_id}/questions.jsonに変更`
+- [x] `refactor(infra): GCSCommentRepositoryのパスをteams/{team_id}/questions/{id}/comments/{id}.jsonに変更`
+- [x] `refactor(usecase): QuestionUseCase・CommentUseCaseを新リポジトリシグネチャに対応`
+- [x] `test(usecase): 既存ユニットテストを新しい実装に合わせて更新`
 
 ---
 
