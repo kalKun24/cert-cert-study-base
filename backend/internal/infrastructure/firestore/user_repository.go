@@ -82,7 +82,7 @@ func (r *FirestoreUserRepository) FindByID(ctx context.Context, id string) (*dom
 		if status.Code(err) == codes.NotFound {
 			return nil, domain.ErrUserNotFound
 		}
-		return nil, fmt.Errorf("Firestore からのユーザー取得に失敗しました: %w", err)
+		return nil, fmt.Errorf("ユーザーの取得に失敗しました: %w", err)
 	}
 
 	var rec userRecord
