@@ -34,6 +34,8 @@ export default function TeamDetailPage() {
   const [roleModal, setRoleModal] = useState<RoleModalState | null>(null);
   const [isRoleChanging, setIsRoleChanging] = useState(false);
 
+  const [memberRefreshKey, setMemberRefreshKey] = useState(0);
+
   // 招待フォーム
   const [inviteeIdentifier, setInviteeIdentifier] = useState('');
   const [isInviting, setIsInviting] = useState(false);
@@ -89,7 +91,7 @@ export default function TeamDetailPage() {
 
   useEffect(() => {
     return loadMemberStats();
-  }, [loadMemberStats]);
+  }, [loadMemberStats, memberRefreshKey]);
 
   if (!id) return null;
 
@@ -137,7 +139,7 @@ export default function TeamDetailPage() {
     try {
       await changeMemberRole(team.id, roleModal.member.user_id, newRole);
       setRoleModal(null);
-      loadMemberStats();
+      setMemberRefreshKey((k) => k + 1);
     } catch {
       setRoleChangeError(t('team.error.roleChangeFailed'));
       setRoleModal(null);
@@ -154,7 +156,7 @@ export default function TeamDetailPage() {
     try {
       await sendInvitation(team.id, inviteeIdentifier.trim());
       setInviteeIdentifier('');
-      loadMemberStats();
+      setMemberRefreshKey((k) => k + 1);
     } catch {
       setInviteError(t('team.error.inviteFailed'));
     } finally {
@@ -303,7 +305,7 @@ export default function TeamDetailPage() {
                                   <MemberRemoveButton
                                     teamId={team.id}
                                     userId={member.user_id}
-                                    onRemoved={loadMemberStats}
+                                    onRemoved={() => setMemberRefreshKey((k) => k + 1)}
                                   />
                                 )}
                                 {!isCurrentUser && (
