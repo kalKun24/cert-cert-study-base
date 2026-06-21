@@ -5,13 +5,13 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-059 |
-| ステータス | 🟡 作業中 |
+| ステータス | ✅ 完了 |
 | 作成日 | 2026-06-21 |
 | 着手日 | 2026-06-22 |
-| 完了日 | - |
+| 完了日 | 2026-06-22 |
 | ブランチ名 | feature/note-frontend |
 | PR番号 | #47 |
-| PRリンク | - |
+| PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/47 |
 
 ---
 
@@ -29,27 +29,27 @@
 
 ## 受け入れ条件
 
-- [ ] `NoteListPage.tsx` が実装されており、以下の機能を持つ
+- [x] `NoteListPage.tsx` が実装されており、以下の機能を持つ
   - タイトル・キーワード・タグによる検索フィルタリング（URL クエリパラメータと同期）
   - ページネーション（`Paginator` コンポーネント流用）
   - ノートカードのクリックで詳細ページへ遷移
   - タグ表示（`TagChip` コンポーネント流用）
-- [ ] `NoteDetailPage.tsx` が実装されており、以下の機能を持つ
+- [x] `NoteDetailPage.tsx` が実装されており、以下の機能を持つ
   - ノート本文・議論点・メモの Markdown レンダリング（`AccordionSection` + `ReactMarkdown` + `rehype-sanitize` 流用）
   - コメント投稿・一覧表示・編集・削除（`CommentSection` コンポーネント流用、またはノート用に拡張）
   - 編集権限を持つユーザー（チームオーナー・admin・作成ユーザー）のみ編集・削除ボタンを表示
   - 公開ステータス（下書き・非公開・公開）の表示と変更
-- [ ] `NoteCreatePage.tsx` が実装されており、以下の機能を持つ
+- [x] `NoteCreatePage.tsx` が実装されており、以下の機能を持つ
   - タイトル・本文・議論点・メモの入力フォーム（Markdown 入力）
   - タグ選択（`TagDropdown` コンポーネント流用）
   - ステータス（下書き・非公開・公開）の選択
-- [ ] `NoteEditPage.tsx` が実装されており、`NoteCreatePage` と同じフォームで既存データを初期表示できる
-- [ ] API ユーティリティ `frontend/src/utils/noteApi.ts` が追加されている
+- [x] `NoteEditPage.tsx` が実装されており、`NoteCreatePage` と同じフォームで既存データを初期表示できる
+- [x] API ユーティリティ `frontend/src/utils/noteApi.ts` が追加されている
   - `fetchNotes`・`fetchNote`・`createNote`・`updateNote`・`deleteNote`・`updateNoteVisibility`
-- [ ] `frontend/src/types/note.ts` に `Note` 型定義が追加されている
-- [ ] ルーティングが追加されている（`/notes`・`/notes/:id`・`/notes/new`・`/notes/:id/edit`）
-- [ ] 各ページに適切な i18n キーが追加されている（翻訳ファイル `ja.json` / `en.json` 更新）
-- [ ] ESLint・Prettier を通過する
+- [x] `frontend/src/types/note.ts` に `Note` 型定義が追加されている
+- [x] ルーティングが追加されている（`/notes`・`/notes/:id`・`/notes/new`・`/notes/:id/edit`）
+- [x] 各ページに適切な i18n キーが追加されている（翻訳ファイル `ja.json` / `en.json` 更新）
+- [x] ESLint・Prettier を通過する
 
 ---
 

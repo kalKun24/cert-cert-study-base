@@ -5,10 +5,10 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-057 |
-| ステータス | 🟡 作業中 |
+| ステータス | ✅ 完了 |
 | 作成日 | 2026-06-21 |
 | 着手日 | 2026-06-21 |
-| 完了日 | - |
+| 完了日 | 2026-06-22 |
 | ブランチ名 | feature/note-crud-api |
 | PR番号 | #44 |
 | PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/44 |

@@ -5,10 +5,10 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-062 |
-| ステータス | 🟡 進行中 |
+| ステータス | ✅ 完了 |
 | 作成日 | 2026-06-22 |
 | 着手日 | 2026-06-22 |
-| 完了日 | - |
+| 完了日 | 2026-06-22 |
 | ブランチ名 | feature/firestore-migration |
 | PR番号 | #48 |
 | PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/48 |
