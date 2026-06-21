@@ -2,15 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { fetchTeam, deleteTeam, changeMemberRole } from '../utils/teamApi';
+import { fetchTeam, deleteTeam, changeMemberRole, fetchTeamMemberStats } from '../utils/teamApi';
 import { leaveTeam, sendInvitation } from '../utils/invitationApi';
 import { useTeam } from '../context/TeamContext';
-import { TeamDetail, TeamMember } from '../types/team';
+import { TeamDetail, TeamMemberStats } from '../types/team';
 import MemberRemoveButton from '../components/MemberRemoveButton';
 import TeamOwnerRoleModal from '../components/TeamOwnerRoleModal';
 
 interface RoleModalState {
-  member: TeamMember;
+  member: TeamMemberStats;
   action: 'grant' | 'revoke';
 }
 
@@ -23,6 +23,9 @@ export default function TeamDetailPage() {
   const { refreshTeams } = useTeam();
 
   const [team, setTeam] = useState<TeamDetail | null>(null);
+  const [memberStats, setMemberStats] = useState<TeamMemberStats[]>([]);
+  const [isMembersLoading, setIsMembersLoading] = useState(true);
+  const [membersError, setMembersError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [deleteError, setDeleteError] = useState('');
@@ -30,6 +33,8 @@ export default function TeamDetailPage() {
   const [roleChangeError, setRoleChangeError] = useState('');
   const [roleModal, setRoleModal] = useState<RoleModalState | null>(null);
   const [isRoleChanging, setIsRoleChanging] = useState(false);
+
+  const [memberRefreshKey, setMemberRefreshKey] = useState(0);
 
   // 招待フォーム
   const [inviteeIdentifier, setInviteeIdentifier] = useState('');
@@ -58,18 +63,43 @@ export default function TeamDetailPage() {
     };
   }, [id, t]);
 
+  const loadMemberStats = useCallback(() => {
+    if (!id) return;
+    let isMounted = true;
+    setIsMembersLoading(true);
+    setMembersError('');
+
+    fetchTeamMemberStats(id)
+      .then((data) => {
+        if (isMounted) setMemberStats(data);
+      })
+      .catch(() => {
+        if (isMounted) setMembersError(t('team.members.error.fetchFailed'));
+      })
+      .finally(() => {
+        if (isMounted) setIsMembersLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id, t]);
+
   useEffect(() => {
     return loadTeam();
   }, [loadTeam]);
+
+  useEffect(() => {
+    return loadMemberStats();
+  }, [loadMemberStats, memberRefreshKey]);
 
   if (!id) return null;
 
   const isOwnerOrAdmin =
     user?.role === 'admin' ||
-    (team !== null &&
-      team.members.some((m) => m.user_id === user?.id && m.role === 'owner'));
+    (!isMembersLoading && memberStats.some((m) => m.user_id === user?.id && m.role === 'owner'));
 
-  const ownerCount = team ? team.members.filter((m) => m.role === 'owner').length : 0;
+  const ownerCount = memberStats.filter((m) => m.role === 'owner').length;
 
   const handleDelete = async () => {
     if (!team) return;
@@ -85,7 +115,7 @@ export default function TeamDetailPage() {
   };
 
   const isMember =
-    team !== null && user !== null && team.members.some((m) => m.user_id === user.id);
+    team !== null && user !== null && memberStats.some((m) => m.user_id === user.id);
 
   const handleLeave = async () => {
     if (!team) return;
@@ -109,7 +139,7 @@ export default function TeamDetailPage() {
     try {
       await changeMemberRole(team.id, roleModal.member.user_id, newRole);
       setRoleModal(null);
-      loadTeam();
+      setMemberRefreshKey((k) => k + 1);
     } catch {
       setRoleChangeError(t('team.error.roleChangeFailed'));
       setRoleModal(null);
@@ -126,7 +156,7 @@ export default function TeamDetailPage() {
     try {
       await sendInvitation(team.id, inviteeIdentifier.trim());
       setInviteeIdentifier('');
-      loadTeam();
+      setMemberRefreshKey((k) => k + 1);
     } catch {
       setInviteError(t('team.error.inviteFailed'));
     } finally {
@@ -213,107 +243,131 @@ export default function TeamDetailPage() {
               </Link>
             </div>
 
-            {team.members.length === 0 ? (
+            {isMembersLoading ? (
+              <p role="status" className="page-loading">
+                {t('common.loading')}
+              </p>
+            ) : membersError ? (
+              <p role="alert" className="alert alert-error">
+                {membersError}
+              </p>
+            ) : memberStats.length === 0 ? (
               <p className="team-members-empty">{t('team.detail.membersEmpty')}</p>
             ) : (
-              <table className="team-members-table">
-                <thead>
-                  <tr>
-                    <th scope="col">{t('team.detail.userId')}</th>
-                    <th scope="col">{t('team.detail.joinedAt')}</th>
-                    <th scope="col">{t('user.table.role')}</th>
-                    {isOwnerOrAdmin && <th scope="col">{t('user.table.actions')}</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {team.members.map((member) => {
-                    const isCurrentUser = user?.id === member.user_id;
-                    const isMemberOwner = member.role === 'owner';
-                    const canRevokeOwner = isMemberOwner && ownerCount > 1;
-                    const isSoleOwner = isMemberOwner && ownerCount === 1;
+              <div className="table-wrapper">
+                <table className="user-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">{t('team.members.columns.displayName')}</th>
+                      <th scope="col">{t('team.members.columns.role')}</th>
+                      <th scope="col">{t('team.members.columns.questionCount')}</th>
+                      <th scope="col">{t('team.members.columns.commentCount')}</th>
+                      <th scope="col">{t('team.members.columns.lastLoginAt')}</th>
+                      {isOwnerOrAdmin && <th scope="col">{t('user.table.actions')}</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {memberStats.map((member) => {
+                      const isCurrentUser = user?.id === member.user_id;
+                      const isMemberOwner = member.role === 'owner';
+                      const canRevokeOwner = isMemberOwner && ownerCount > 1;
+                      const isSoleOwner = isMemberOwner && ownerCount === 1;
+                      const lastLoginDisplay =
+                        member.last_login_at === null
+                          ? t('team.members.noLastLogin')
+                          : new Date(member.last_login_at).toLocaleString('ja-JP');
 
-                    return (
-                      <tr key={member.user_id}>
-                        <td data-label={t('team.detail.userId')}>{member.user_id}</td>
-                        <td data-label={t('team.detail.joinedAt')}>
-                          {new Date(member.joined_at).toLocaleDateString('ja-JP')}
-                        </td>
-                        <td data-label={t('user.table.role')}>
-                          <span
-                            className={`member-role-badge member-role-badge--${member.role}`}
-                          >
-                            {member.role === 'owner'
-                              ? t('team.member.role.owner')
-                              : t('team.member.role.member')}
-                          </span>
-                        </td>
-                        {isOwnerOrAdmin && (
-                          <td>
-                            <div className="table-actions">
-                              <MemberRemoveButton
-                                teamId={team.id}
-                                userId={member.user_id}
-                                onRemoved={loadTeam}
-                              />
-                              {!isCurrentUser && (
-                                <>
-                                  {!isMemberOwner && (
-                                    <button
-                                      type="button"
-                                      className="btn btn-sm btn-secondary"
-                                      onClick={() =>
-                                        setRoleModal({ member, action: 'grant' })
-                                      }
-                                      disabled={isRoleChanging}
-                                    >
-                                      {t('team.member.grantOwner')}
-                                    </button>
-                                  )}
-                                  {isMemberOwner && (
-                                    <div className="tooltip-wrapper">
+                      return (
+                        <tr key={member.user_id}>
+                          <td data-label={t('team.members.columns.displayName')}>
+                            {member.display_name}
+                          </td>
+                          <td data-label={t('team.members.columns.role')}>
+                            <span className="role-badge" data-role={member.role}>
+                              {member.role === 'owner'
+                                ? t('team.members.roles.owner')
+                                : t('team.members.roles.member')}
+                            </span>
+                          </td>
+                          <td data-label={t('team.members.columns.questionCount')}>
+                            {member.question_count}
+                          </td>
+                          <td data-label={t('team.members.columns.commentCount')}>
+                            {member.comment_count}
+                          </td>
+                          <td data-label={t('team.members.columns.lastLoginAt')}>
+                            {lastLoginDisplay}
+                          </td>
+                          {isOwnerOrAdmin && (
+                            <td>
+                              <div className="table-actions">
+                                {!isCurrentUser && (
+                                  <MemberRemoveButton
+                                    teamId={team.id}
+                                    userId={member.user_id}
+                                    onRemoved={() => setMemberRefreshKey((k) => k + 1)}
+                                  />
+                                )}
+                                {!isCurrentUser && (
+                                  <>
+                                    {!isMemberOwner && (
                                       <button
                                         type="button"
                                         className="btn btn-sm btn-secondary"
                                         onClick={() =>
-                                          canRevokeOwner
-                                            ? setRoleModal({ member, action: 'revoke' })
-                                            : undefined
+                                          setRoleModal({ member, action: 'grant' })
                                         }
-                                        disabled={isRoleChanging || isSoleOwner}
-                                        title={
-                                          isSoleOwner
-                                            ? t('team.member.grantOwnerDisabledTooltip')
-                                            : undefined
-                                        }
-                                        aria-describedby={
-                                          isSoleOwner
-                                            ? `tooltip-sole-owner-${member.user_id}`
-                                            : undefined
-                                        }
+                                        disabled={isRoleChanging}
                                       >
-                                        {t('team.member.revokeOwner')}
+                                        {t('team.member.grantOwner')}
                                       </button>
-                                      {isSoleOwner && (
-                                        <span
-                                          role="tooltip"
-                                          id={`tooltip-sole-owner-${member.user_id}`}
-                                          className="tooltip"
+                                    )}
+                                    {isMemberOwner && (
+                                      <div className="tooltip-wrapper">
+                                        <button
+                                          type="button"
+                                          className="btn btn-sm btn-secondary"
+                                          onClick={() =>
+                                            canRevokeOwner
+                                              ? setRoleModal({ member, action: 'revoke' })
+                                              : undefined
+                                          }
+                                          disabled={isRoleChanging || isSoleOwner}
+                                          title={
+                                            isSoleOwner
+                                              ? t('team.member.grantOwnerDisabledTooltip')
+                                              : undefined
+                                          }
+                                          aria-describedby={
+                                            isSoleOwner
+                                              ? `tooltip-sole-owner-${member.user_id}`
+                                              : undefined
+                                          }
                                         >
-                                          {t('team.member.grantOwnerDisabledTooltip')}
-                                        </span>
-                                      )}
-                                    </div>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                                          {t('team.member.revokeOwner')}
+                                        </button>
+                                        {isSoleOwner && (
+                                          <span
+                                            role="tooltip"
+                                            id={`tooltip-sole-owner-${member.user_id}`}
+                                            className="tooltip"
+                                          >
+                                            {t('team.member.grantOwnerDisabledTooltip')}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
 
             {isOwnerOrAdmin && (
@@ -357,7 +411,7 @@ export default function TeamDetailPage() {
 
       {roleModal && (
         <TeamOwnerRoleModal
-          targetUserName={roleModal.member.user_id}
+          targetUserName={roleModal.member.display_name}
           action={roleModal.action}
           onConfirm={handleRoleChangeConfirm}
           onCancel={() => setRoleModal(null)}
