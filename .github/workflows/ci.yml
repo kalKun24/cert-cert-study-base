@@ -23,9 +23,13 @@ jobs:
           go-version: "1.25"
           cache-dependency-path: backend/go.sum
 
-      - name: Firestore エミュレータをインストール・起動
+      - name: gcloud をセットアップ（Firestore エミュレータ込み）
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: 'cloud-firestore-emulator'
+
+      - name: Firestore エミュレータを起動
         run: |
-          gcloud components install cloud-firestore-emulator --quiet
           gcloud emulators firestore start --host-port=localhost:8080 --project=test-project &
           sleep 5
 
