@@ -21,6 +21,7 @@
     "activeTeam": "現在のチーム",
     "switchTeam": "チームを切り替え",
     "createTeam": "チームを作成",
+    "notes": "ノート一覧",
     "invitations": "招待",
     "invitationsBadgeLabel": "招待が{{count}}件あります",
     "group": {
@@ -402,6 +403,51 @@
     },
     "confirm": {
       "delete": "このコメントを削除しますか？"
+    }
+  },
+  "note": {
+    "backToList": "ノート一覧に戻る",
+    "tagsLabel": "タグ",
+    "section": {
+      "body": "本文",
+      "discussionPoints": "議論点",
+      "memo": "メモ"
+    },
+    "list": {
+      "empty": "ノートがまだありません"
+    },
+    "error": {
+      "fetchFailed": "ノートの読み込みに失敗しました。再試行してください",
+      "createFailed": "ノートの作成に失敗しました。再試行してください",
+      "updateFailed": "ノートの更新に失敗しました。再試行してください",
+      "deleteFailed": "ノートの削除に失敗しました",
+      "visibilityFailed": "ステータスの変更に失敗しました。再試行してください"
+    },
+    "new": "ノートを作成",
+    "edit": "ノートを編集",
+    "titleLabel": "タイトル",
+    "bodyLabel": "本文",
+    "discussionPointsLabel": "議論点",
+    "memoLabel": "メモ",
+    "statusLabel": "公開ステータス",
+    "status": {
+      "draft": "下書き",
+      "private": "非公開",
+      "published": "公開"
+    },
+    "tagSelectLabel": "タグを選択",
+    "filter": {
+      "keywordPlaceholder": "キーワードで検索",
+      "tagPlaceholder": "タグで絞り込み"
+    },
+    "confirm": {
+      "delete": "このノートを削除しますか？削除すると元に戻せません。"
+    },
+    "validation": {
+      "titleRequired": "タイトルを入力してください"
+    },
+    "visibility": {
+      "changeButton": "ステータスを変更"
     }
   }
 }
