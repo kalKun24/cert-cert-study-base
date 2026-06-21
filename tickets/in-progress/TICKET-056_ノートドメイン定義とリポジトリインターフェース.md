@@ -29,25 +29,25 @@
 
 ## 受け入れ条件
 
-- [ ] `backend/internal/domain/note.go` が追加されている
-- [ ] `NoteStatus` 型（`draft` / `private` / `published`）と `IsValid()` メソッドが定義されている
-- [ ] `Note` エンティティが以下のフィールドを持つ: `ID`・`TeamID`・`Title`・`Body`（Markdown）・`DiscussionPoints`（Markdown）・`Memo`（Markdown）・`Tags`（`[]string`）・`Status`・`CreatedBy`・`CreatedAt`・`UpdatedAt`
-- [ ] `ErrNoteNotFound`・`ErrInvalidNoteStatus` のドメインエラーが定義されている
-- [ ] `NoteRepository` インターフェースが定義されており、以下のメソッドを持つ: `FindByID`・`ListByTeam`・`SearchByTeam`・`Save`・`Delete`・`FindByTagID`
-- [ ] `NoteSearchFilter` が `TagIDs []string` と `Keyword string` を持つ
-- [ ] `NoteComment` エンティティが `backend/internal/domain/note.go`（または同パッケージの `note_comment.go`）に定義されている。フィールド: `ID`・`NoteID`・`Body`・`CreatedBy`・`CreatedAt`・`UpdatedAt`
-- [ ] `ErrNoteCommentNotFound` のドメインエラーが定義されている
-- [ ] `NoteCommentRepository` インターフェースが定義されており、以下のメソッドを持つ: `FindByID`・`ListByNoteID`・`Save`・`Delete`
-- [ ] ユニットテストが不要なことを確認した（ドメイン層は純粋な型定義のみ）
-- [ ] `golangci-lint` を通過する
+- [x] `backend/internal/domain/note.go` が追加されている
+- [x] `NoteStatus` 型（`draft` / `private` / `published`）と `IsValid()` メソッドが定義されている
+- [x] `Note` エンティティが以下のフィールドを持つ: `ID`・`TeamID`・`Title`・`Body`（Markdown）・`DiscussionPoints`（Markdown）・`Memo`（Markdown）・`Tags`（`[]string`）・`Status`・`CreatedBy`・`CreatedAt`・`UpdatedAt`
+- [x] `ErrNoteNotFound`・`ErrInvalidNoteStatus` のドメインエラーが定義されている
+- [x] `NoteRepository` インターフェースが定義されており、以下のメソッドを持つ: `FindByID`・`ListByTeam`・`SearchByTeam`・`Save`・`Delete`・`FindByTagID`
+- [x] `NoteSearchFilter` が `TagIDs []string` と `Keyword string` を持つ
+- [x] `NoteComment` エンティティが `backend/internal/domain/note.go`（または同パッケージの `note_comment.go`）に定義されている。フィールド: `ID`・`NoteID`・`Body`・`CreatedBy`・`CreatedAt`・`UpdatedAt`
+- [x] `ErrNoteCommentNotFound` のドメインエラーが定義されている
+- [x] `NoteCommentRepository` インターフェースが定義されており、以下のメソッドを持つ: `FindByID`・`ListByNoteID`・`Save`・`Delete`
+- [x] ユニットテストが不要なことを確認した（ドメイン層は純粋な型定義のみ）
+- [x] `golangci-lint` を通過する
 
 ---
 
 ## サブチケット（コミット単位）
 
-- [ ] `feat(domain): Noteエンティティ・ステータス型・ドメインエラーを定義`
-- [ ] `feat(domain): NoteRepositoryインターフェースとNoteSearchFilterを定義`
-- [ ] `feat(domain): NoteCommentエンティティ・ドメインエラー・NoteCommentRepositoryインターフェースを定義`
+- [x] `feat(domain): Noteエンティティ・ステータス型・ドメインエラーを定義`
+- [x] `feat(domain): NoteRepositoryインターフェースとNoteSearchFilterを定義`
+- [x] `feat(domain): NoteCommentエンティティ・ドメインエラー・NoteCommentRepositoryインターフェースを定義`
 
 ---
 
