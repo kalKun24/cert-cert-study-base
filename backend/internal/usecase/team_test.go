@@ -994,3 +994,83 @@ func TestTeamUseCase_ListMemberStats_LastLoginAt(t *testing.T) {
 		t.Errorf("LastLoginAt が期待値と異なります: got %v, want %v", *stats[0].LastLoginAt, loginTime)
 	}
 }
+
+// countingUserRepository は UserRepository の呼び出し回数を記録するモックです。
+// ListMemberStats が一括取得（List）のみ使用し、個別取得（FindByID）を呼ばないことを検証します。
+type countingUserRepository struct {
+	mockUserRepository
+	listCallCount     int
+	findByIDCallCount int
+}
+
+func newCountingUserRepository() *countingUserRepository {
+	return &countingUserRepository{
+		mockUserRepository: mockUserRepository{
+			users:      make(map[string]*domain.User),
+			byUsername: make(map[string]*domain.User),
+			byEmail:    make(map[string]*domain.User),
+		},
+	}
+}
+
+func (m *countingUserRepository) List(ctx context.Context) ([]*domain.User, error) {
+	m.listCallCount++
+	return m.mockUserRepository.List(ctx)
+}
+
+func (m *countingUserRepository) FindByID(ctx context.Context, id string) (*domain.User, error) {
+	m.findByIDCallCount++
+	return m.mockUserRepository.FindByID(ctx, id)
+}
+
+// TestTeamUseCase_ListMemberStats_UsesListNotFindByID は、
+// ListMemberStats が FindByID をループ呼び出し（N+1）せず、
+// List を1回だけ呼び出す一括取得パターンを使用していることを検証します。
+func TestTeamUseCase_ListMemberStats_UsesListNotFindByID(t *testing.T) {
+	teamRepo := newMockTeamRepository()
+	teamRepo.addTeam(testTeam("team-1", "チームA", "owner-1"))
+	// メンバーを複数追加して N+1 が発生しやすい状況を作る
+	_ = teamRepo.AddMember(context.Background(), &domain.TeamMember{
+		TeamID:   "team-1",
+		UserID:   "owner-1",
+		Role:     domain.MemberRoleOwner,
+		JoinedAt: time.Now(),
+	})
+	_ = teamRepo.AddMember(context.Background(), &domain.TeamMember{
+		TeamID:   "team-1",
+		UserID:   "user-2",
+		Role:     domain.MemberRoleMember,
+		JoinedAt: time.Now(),
+	})
+	_ = teamRepo.AddMember(context.Background(), &domain.TeamMember{
+		TeamID:   "team-1",
+		UserID:   "user-3",
+		Role:     domain.MemberRoleMember,
+		JoinedAt: time.Now(),
+	})
+
+	userRepo := newCountingUserRepository()
+	userRepo.addUser(testUser("owner-1", "owner", "owner@example.com", domain.RoleUser, true))
+	userRepo.addUser(testUser("user-2", "user2", "user2@example.com", domain.RoleUser, true))
+	userRepo.addUser(testUser("user-3", "user3", "user3@example.com", domain.RoleUser, true))
+
+	uc := usecase.NewTeamUseCase(teamRepo, userRepo, nil, nil)
+
+	stats, err := uc.ListMemberStats(context.Background(), "admin-id", domain.RoleAdmin, "team-1")
+	if err != nil {
+		t.Fatalf("ListMemberStats に失敗しました: %v", err)
+	}
+	if len(stats) != 3 {
+		t.Fatalf("メンバー数が期待値と異なります: got %d, want 3", len(stats))
+	}
+
+	// List が1回だけ呼ばれていること（GCS アクセスが O(1) であること）を検証
+	if userRepo.listCallCount != 1 {
+		t.Errorf("List の呼び出し回数が期待値と異なります: got %d, want 1", userRepo.listCallCount)
+	}
+
+	// FindByID がまったく呼ばれていないこと（N+1 が解消されていること）を検証
+	if userRepo.findByIDCallCount != 0 {
+		t.Errorf("FindByID が呼ばれています（N+1 が発生しています）: got %d calls, want 0", userRepo.findByIDCallCount)
+	}
+}

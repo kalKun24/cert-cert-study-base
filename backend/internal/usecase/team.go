@@ -524,12 +524,23 @@ func (uc *TeamUseCase) ListMemberStats(ctx context.Context, callerID string, cal
 		}
 	}
 
-	// メンバーごとにユーザー情報を取得して統計を組み立て
+	// 全ユーザーを一括取得し、ユーザーIDをキーにしたマップを作成する。
+	// これにより、メンバーごとの個別 GCS アクセス（N+1）を O(1) のマップ参照に置き換える。
+	allUsers, err := uc.userRepo.List(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("ユーザー一覧取得に失敗しました: %w", err)
+	}
+	userByID := make(map[string]*domain.User, len(allUsers))
+	for _, u := range allUsers {
+		userByID[u.ID] = u
+	}
+
+	// メンバーごとにユーザー情報をマップから取得して統計を組み立て
 	stats := make([]*MemberStats, 0, len(members))
 	for _, m := range members {
-		user, err := uc.userRepo.FindByID(ctx, m.UserID)
-		if err != nil {
-			return nil, fmt.Errorf("ユーザー取得に失敗しました（user_id=%s）: %w", m.UserID, err)
+		user, ok := userByID[m.UserID]
+		if !ok {
+			return nil, fmt.Errorf("データ整合性エラー: チームメンバーに対応するユーザーが存在しません（user_id=%s）", m.UserID)
 		}
 
 		stats = append(stats, &MemberStats{
