@@ -16,14 +16,14 @@ import (
 )
 
 // commentObjectName はGCS上の個別コメントオブジェクト名を返します。
-// パス: questions/{questionID}/comments/{commentID}.json
-func commentObjectName(questionID, commentID string) string {
-	return fmt.Sprintf("questions/%s/comments/%s.json", questionID, commentID)
+// パス: teams/{teamID}/questions/{questionID}/comments/{commentID}.json
+func commentObjectName(teamID, questionID, commentID string) string {
+	return fmt.Sprintf("teams/%s/questions/%s/comments/%s.json", teamID, questionID, commentID)
 }
 
-// commentPrefixByQuestion は指定した問題IDのコメント一覧取得用プレフィックスです。
-func commentPrefixByQuestion(questionID string) string {
-	return fmt.Sprintf("questions/%s/comments/", questionID)
+// commentPrefixByQuestion は指定したチームIDと問題IDのコメント一覧取得用プレフィックスです。
+func commentPrefixByQuestion(teamID, questionID string) string {
+	return fmt.Sprintf("teams/%s/questions/%s/comments/", teamID, questionID)
 }
 
 // commentRecord はGCS上のJSONファイルに保存するコメントレコードです。
@@ -64,7 +64,7 @@ func toComment(r commentRecord) *domain.Comment {
 // GCSCommentRepository はGCS上のJSONファイルにコメントデータを永続化するリポジトリです。
 // domain.CommentRepository インターフェースを実装します。
 // コメントは1件1ファイル形式で保存します。
-// パス: questions/{questionID}/comments/{commentID}.json
+// パス: teams/{teamID}/questions/{questionID}/comments/{commentID}.json
 type GCSCommentRepository struct {
 	mu      sync.RWMutex
 	storage storage.StorageClient
@@ -80,8 +80,8 @@ func NewGCSCommentRepository(sc storage.StorageClient, bucket string) *GCSCommen
 }
 
 // loadComment はGCSから指定したコメントを読み込みます。
-func (r *GCSCommentRepository) loadComment(ctx context.Context, questionID, commentID string) (commentRecord, error) {
-	objectName := commentObjectName(questionID, commentID)
+func (r *GCSCommentRepository) loadComment(ctx context.Context, teamID, questionID, commentID string) (commentRecord, error) {
+	objectName := commentObjectName(teamID, questionID, commentID)
 
 	exists, err := r.storage.Exists(ctx, r.bucket, objectName)
 	if err != nil {
@@ -115,13 +115,13 @@ func (r *GCSCommentRepository) loadComment(ctx context.Context, questionID, comm
 }
 
 // saveComment はコメントをGCSに書き込みます。
-func (r *GCSCommentRepository) saveComment(ctx context.Context, rec commentRecord) error {
+func (r *GCSCommentRepository) saveComment(ctx context.Context, teamID string, rec commentRecord) error {
 	data, err := json.Marshal(rec)
 	if err != nil {
 		return fmt.Errorf("コメントデータのJSONエンコードに失敗しました: %w", err)
 	}
 
-	objectName := commentObjectName(rec.QuestionID, rec.ID)
+	objectName := commentObjectName(teamID, rec.QuestionID, rec.ID)
 	if err := r.storage.Write(ctx, r.bucket, objectName, bytes.NewReader(data)); err != nil {
 		return fmt.Errorf("GCS への書き込みに失敗しました: %w", err)
 	}
@@ -130,11 +130,11 @@ func (r *GCSCommentRepository) saveComment(ctx context.Context, rec commentRecor
 }
 
 // FindByID はIDでコメントを検索します。
-func (r *GCSCommentRepository) FindByID(ctx context.Context, questionID, commentID string) (*domain.Comment, error) {
+func (r *GCSCommentRepository) FindByID(ctx context.Context, teamID, questionID, commentID string) (*domain.Comment, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	rec, err := r.loadComment(ctx, questionID, commentID)
+	rec, err := r.loadComment(ctx, teamID, questionID, commentID)
 	if err != nil {
 		return nil, err
 	}
@@ -142,13 +142,13 @@ func (r *GCSCommentRepository) FindByID(ctx context.Context, questionID, comment
 	return toComment(rec), nil
 }
 
-// ListByQuestionID は指定した問題IDのコメント一覧を返します。
+// ListByQuestionID は指定したチームIDと問題IDのコメント一覧を返します。
 // ソートはユースケース層で行うため、ここでは順序を保証しません。
-func (r *GCSCommentRepository) ListByQuestionID(ctx context.Context, questionID string) ([]*domain.Comment, error) {
+func (r *GCSCommentRepository) ListByQuestionID(ctx context.Context, teamID, questionID string) ([]*domain.Comment, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	prefix := commentPrefixByQuestion(questionID)
+	prefix := commentPrefixByQuestion(teamID, questionID)
 	objectNames, err := r.storage.List(ctx, r.bucket, prefix)
 	if err != nil {
 		return nil, fmt.Errorf("GCS オブジェクト一覧の取得に失敗しました: %w", err)
@@ -185,12 +185,12 @@ func (r *GCSCommentRepository) ListByQuestionID(ctx context.Context, questionID 
 }
 
 // Save はコメントを新規作成または更新します。
-func (r *GCSCommentRepository) Save(ctx context.Context, comment *domain.Comment) error {
+func (r *GCSCommentRepository) Save(ctx context.Context, teamID string, comment *domain.Comment) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	rec := toCommentRecord(comment)
-	if err := r.saveComment(ctx, rec); err != nil {
+	if err := r.saveComment(ctx, teamID, rec); err != nil {
 		return fmt.Errorf("コメントデータ保存に失敗しました: %w", err)
 	}
 
@@ -198,11 +198,11 @@ func (r *GCSCommentRepository) Save(ctx context.Context, comment *domain.Comment
 }
 
 // Delete はIDで指定したコメントを削除します。
-func (r *GCSCommentRepository) Delete(ctx context.Context, questionID, commentID string) error {
+func (r *GCSCommentRepository) Delete(ctx context.Context, teamID, questionID, commentID string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	objectName := commentObjectName(questionID, commentID)
+	objectName := commentObjectName(teamID, questionID, commentID)
 
 	exists, err := r.storage.Exists(ctx, r.bucket, objectName)
 	if err != nil {

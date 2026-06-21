@@ -45,16 +45,16 @@ var (
 type CommentRepository interface {
 	// FindByID はIDでコメントを検索します。
 	// コメントが存在しない場合は ErrCommentNotFound を返します。
-	FindByID(ctx context.Context, questionID, commentID string) (*Comment, error)
+	FindByID(ctx context.Context, teamID, questionID, commentID string) (*Comment, error)
 
-	// ListByQuestionID は指定した問題IDのコメント一覧を投稿日時の昇順で返します。
-	ListByQuestionID(ctx context.Context, questionID string) ([]*Comment, error)
+	// ListByQuestionID は指定したチームIDと問題IDのコメント一覧を投稿日時の昇順で返します。
+	ListByQuestionID(ctx context.Context, teamID, questionID string) ([]*Comment, error)
 
 	// Save はコメントを新規作成または更新します。
 	// IDが一致するレコードが存在する場合は更新、存在しない場合は追加します。
-	Save(ctx context.Context, comment *Comment) error
+	Save(ctx context.Context, teamID string, comment *Comment) error
 
 	// Delete はIDで指定したコメントを削除します。
 	// コメントが存在しない場合は ErrCommentNotFound を返します。
-	Delete(ctx context.Context, questionID, commentID string) error
+	Delete(ctx context.Context, teamID, questionID, commentID string) error
 }
