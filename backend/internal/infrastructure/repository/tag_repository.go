@@ -237,6 +237,13 @@ func (r *GCSTagRepository) Delete(ctx context.Context, id string) error {
 		return domain.ErrTagNotFound
 	}
 
+	// teamID の整合性チェック: タグレコードの team_id が空の場合、GCS パス
+	// teams//questions.json を生成してしまい使用中チェックが正しく機能しない。
+	// データ不整合として安全側に倒し、削除を拒否する。
+	if teamID == "" {
+		return fmt.Errorf("タグ (id=%s) の team_id が空のため使用中チェックを実行できません: %w", id, domain.ErrTagInUse)
+	}
+
 	// 使用中チェック: 指定チームの指定タグIDを含む問題が存在するか確認。
 	// questionRepo.FindByTagID は内部でロックを取得するため、GCSTagRepository の mu とは
 	// 独立しており、デッドロックは発生しません。
