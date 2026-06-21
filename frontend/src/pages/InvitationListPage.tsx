@@ -44,9 +44,18 @@ export default function InvitationListPage() {
     try {
       await respondInvitation(invitation.id, status);
       if (status === 'accepted') {
-        setStatusMessage({ text: t('team.invitation.acceptSuccess'), isError: false });
-        await refreshTeams();
-        navigate('/', { replace: true });
+        let remainingCount = 0;
+        setInvitations((prev) => {
+          const next = prev.filter((inv) => inv.id !== invitation.id);
+          remainingCount = next.length;
+          return next;
+        });
+        if (remainingCount === 0) {
+          await refreshTeams();
+          navigate('/', { replace: true });
+        } else {
+          setStatusMessage({ text: t('team.invitation.acceptSuccess'), isError: false });
+        }
       } else {
         setStatusMessage({ text: t('team.invitation.rejectSuccess'), isError: false });
         setInvitations((prev) => prev.filter((inv) => inv.id !== invitation.id));
