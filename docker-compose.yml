@@ -1,11 +1,12 @@
 version: "3.9"
 
 services:
-  gcs-emulator:
-    image: fsouza/fake-gcs-server:latest
-    command: ["-scheme", "http", "-port", "4443", "-backend", "memory", "-public-host", "gcs-emulator:4443"]
+  firestore-emulator:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:alpine
+    command: >
+      sh -c "gcloud emulators firestore start --host-port=0.0.0.0:8080 --project=local-project"
     ports:
-      - "4443:4443"
+      - "8808:8080"
     networks:
       - app-network
 
@@ -19,10 +20,10 @@ services:
       - .env
     environment:
       - PORT=8080
-      - GCS_EMULATOR_HOST=http://gcs-emulator:4443
-      - GCS_BUCKET=local-bucket
+      - FIRESTORE_EMULATOR_HOST=firestore-emulator:8080
+      - GCP_PROJECT_ID=local-project
     depends_on:
-      - gcs-emulator
+      - firestore-emulator
     networks:
       - app-network
     healthcheck:
