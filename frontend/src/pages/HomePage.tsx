@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchQuestions } from '../utils/questionApi';
@@ -6,6 +6,7 @@ import { fetchTags } from '../utils/tagApi';
 import { fetchTeams, fetchTeamMemberStats } from '../utils/teamApi';
 import { useTeam } from '../context/TeamContext';
 import { Question } from '../types/question';
+import { Tag } from '../types/tag';
 import { DashboardSkeleton } from '../components/Skeleton';
 
 interface DashboardStats {
@@ -21,6 +22,8 @@ export default function HomePage() {
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentQuestions, setRecentQuestions] = useState<Question[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const tagMap = useMemo(() => new Map(tags.map((t) => [t.id, t.name])), [tags]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -40,6 +43,10 @@ export default function HomePage() {
         teams: teamsResult.status === 'fulfilled' ? teamsResult.value.length : 0,
         members: membersResult.status === 'fulfilled' ? membersResult.value.length : 0,
       });
+
+      if (tagsResult.status === 'fulfilled') {
+        setTags(tagsResult.value);
+      }
 
       if (questionsResult.status === 'fulfilled' && questionsResult.value !== null) {
         setRecentQuestions(questionsResult.value.items.slice(0, 5));
@@ -118,7 +125,7 @@ export default function HomePage() {
                       <ul className="question-tags" aria-label={t('question.tagsLabel')}>
                         {q.tags.map((tag) => (
                           <li key={tag} className="tag-badge">
-                            {tag}
+                            {tagMap.get(tag) ?? tag}
                           </li>
                         ))}
                       </ul>

@@ -2,9 +2,9 @@ version: "3.9"
 
 services:
   firestore-emulator:
-    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:alpine
-    command: >
-      sh -c "gcloud emulators firestore start --host-port=0.0.0.0:8080 --project=local-project"
+    build:
+      context: ./docker/firestore-emulator
+      dockerfile: Dockerfile
     ports:
       - "8808:8080"
     networks:

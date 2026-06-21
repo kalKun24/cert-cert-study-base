@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchQuestions } from '../utils/questionApi';
@@ -25,7 +25,7 @@ export default function QuestionListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // URL クエリパラメータから初期値を復元
-  const initialTagNames = (): string[] => {
+  const initialTagIds = (): string[] => {
     const raw = searchParams.get(PARAM_TAG_IDS);
     if (!raw) return [];
     return raw.split(',').filter(Boolean);
@@ -35,19 +35,20 @@ export default function QuestionListPage() {
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
+  const tagMap = useMemo(() => new Map(tags.map((t) => [t.id, t.name])), [tags]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [keyword, setKeyword] = useState(initialKeyword);
-  const [selectedTagNames, setSelectedTagNames] = useState<string[]>(initialTagNames);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(initialTagIds);
   const [page, setPage] = useState(initialPage);
   const [totalPages, setTotalPages] = useState(1);
 
   /** URL クエリパラメータを現在の状態で同期する */
   const syncSearchParams = useCallback(
-    (currentPage: number, currentKeyword: string, currentTagNames: string[]) => {
+    (currentPage: number, currentKeyword: string, currentTagIds: string[]) => {
       const next = new URLSearchParams();
       if (currentKeyword.trim()) next.set(PARAM_KEYWORD, currentKeyword.trim());
-      if (currentTagNames.length > 0) next.set(PARAM_TAG_IDS, currentTagNames.join(','));
+      if (currentTagIds.length > 0) next.set(PARAM_TAG_IDS, currentTagIds.join(','));
       if (currentPage > 1) next.set(PARAM_PAGE, String(currentPage));
       setSearchParams(next, { replace: true });
     },
@@ -55,7 +56,7 @@ export default function QuestionListPage() {
   );
 
   const loadQuestions = useCallback(
-    (currentPage: number, currentKeyword: string, currentTagNames: string[]) => {
+    (currentPage: number, currentKeyword: string, currentTagIds: string[]) => {
       if (!activeTeam) return;
       let isMounted = true;
       setIsLoading(true);
@@ -68,8 +69,8 @@ export default function QuestionListPage() {
       if (currentKeyword.trim()) {
         params.keyword = currentKeyword.trim();
       }
-      if (currentTagNames.length > 0) {
-        params.tag_ids = currentTagNames.join(',');
+      if (currentTagIds.length > 0) {
+        params.tag_ids = currentTagIds.join(',');
       }
 
       fetchQuestions(activeTeam.id, params)
@@ -110,14 +111,14 @@ export default function QuestionListPage() {
   }, [page]);
 
   useEffect(() => {
-    syncSearchParams(page, keyword, selectedTagNames);
-    const cleanup = loadQuestions(page, keyword, selectedTagNames);
+    syncSearchParams(page, keyword, selectedTagIds);
+    const cleanup = loadQuestions(page, keyword, selectedTagIds);
     return cleanup;
-  }, [page, keyword, selectedTagNames, loadQuestions, syncSearchParams]);
+  }, [page, keyword, selectedTagIds, loadQuestions, syncSearchParams]);
 
-  const handleTagToggle = (tagName: string) => {
-    setSelectedTagNames((prev) =>
-      prev.includes(tagName) ? prev.filter((n) => n !== tagName) : [...prev, tagName]
+  const handleTagToggle = (tagId: string) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
     );
     setPage(1);
   };
@@ -156,7 +157,7 @@ export default function QuestionListPage() {
               <TagChip
                 key={tag.id}
                 tag={tag}
-                selected={selectedTagNames.includes(tag.name)}
+                selected={selectedTagIds.includes(tag.id)}
                 onToggle={handleTagToggle}
               />
             ))}
@@ -187,7 +188,7 @@ export default function QuestionListPage() {
                       <ul className="question-tags" aria-label={t('question.tagsLabel')}>
                         {q.tags.map((tag) => (
                           <li key={tag} className="tag-badge">
-                            {tag}
+                            {tagMap.get(tag) ?? tag}
                           </li>
                         ))}
                       </ul>

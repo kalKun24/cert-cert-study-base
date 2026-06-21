@@ -48,6 +48,21 @@
 
 ---
 
+## P4 — 知識共有ノート機能
+
+問題（Question）機能と並列して活用できる知識共有ノート機能。GCSパス統一（TICKET-061）を先行させ、その後ノートを積み上げる。
+
+| 順位 | チケット | 依存 |
+|---|---|---|
+| 16 | [TICKET-061 Question・CommentのGCSパスをチーム別に移行](backlog/TICKET-061_Question・CommentのGCSパスをチーム別に移行.md) | なし（ノート実装前に完了すること。既存機能のリファクタリング） |
+| 17 | [TICKET-056 ノートドメイン定義とリポジトリインターフェース](backlog/TICKET-056_ノートドメイン定義とリポジトリインターフェース.md) | TICKET-061（GCSパス統一後に着手） |
+| 18 | [TICKET-057 ノートCRUD API実装](backlog/TICKET-057_ノートCRUD_API実装.md) | TICKET-056 |
+| 19 | [TICKET-058 ノートコメントAPI実装](backlog/TICKET-058_ノートコメントAPI実装.md) | TICKET-056, TICKET-057 |
+| 20 | [TICKET-059 ノート機能フロントエンド実装](backlog/TICKET-059_ノート機能フロントエンド実装.md) | TICKET-057, TICKET-058 |
+| 21 | [TICKET-060 NavBarにノートリンクを追加](backlog/TICKET-060_NavBarにノートリンクを追加.md) | TICKET-059 |
+
+---
+
 ## 完了済み
 
 | チケット |

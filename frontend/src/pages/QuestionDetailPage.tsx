@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
 import { fetchQuestion, deleteQuestion } from '../utils/questionApi';
+import { fetchTags } from '../utils/tagApi';
+import { Tag } from '../types/tag';
 import { useAuth } from '../context/AuthContext';
 import { useTeam } from '../context/TeamContext';
 import { Question } from '../types/question';
@@ -27,6 +29,8 @@ export default function QuestionDetailPage() {
   const { activeTeam } = useTeam();
 
   const [question, setQuestion] = useState<Question | null>(null);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const tagMap = useMemo(() => new Map(tags.map((t) => [t.id, t.name])), [tags]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -37,9 +41,12 @@ export default function QuestionDetailPage() {
     let isMounted = true;
     setIsLoading(true);
     setLoadError('');
-    fetchQuestion(activeTeam.id, id)
-      .then((q) => {
-        if (isMounted) setQuestion(q);
+    Promise.all([fetchQuestion(activeTeam.id, id), fetchTags(activeTeam.id)])
+      .then(([q, ts]) => {
+        if (isMounted) {
+          setQuestion(q);
+          setTags(ts);
+        }
       })
       .catch(() => {
         if (isMounted) setLoadError(t('question.error.fetchFailed'));
@@ -137,7 +144,7 @@ export default function QuestionDetailPage() {
             <ul className="question-tags" aria-label={t('question.tagsLabel')} role="list">
               {question.tags.map((tag) => (
                 <li key={tag} className="tag-badge" role="listitem">
-                  {tag}
+                  {tagMap.get(tag) ?? tag}
                 </li>
               ))}
             </ul>
