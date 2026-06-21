@@ -115,12 +115,16 @@ func main() {
 	tagRepo := repository.NewGCSTagRepository(sc, gcsBucket, questionRepo)
 	tagUC := usecase.NewTagUseCase(tagRepo, teamRepo)
 
+	noteRepo := repository.NewGCSNoteRepository(sc, gcsBucket)
+	noteUC := usecase.NewNoteUseCase(noteRepo, teamRepo)
+
 	authHandler := handler.NewAuthHandler(authUC)
 	userHandler := handler.NewUserHandler(userUC)
 	questionHandler := handler.NewQuestionHandler(questionUC)
 	commentHandler := handler.NewCommentHandler(commentUC)
 	teamHandler := handler.NewTeamHandler(teamUC)
 	tagHandler := handler.NewTagHandler(tagUC)
+	noteHandler := handler.NewNoteHandler(noteUC)
 	invitationHandler := handler.NewInvitationHandler(invitationUC)
 
 	// ルーティング設定
@@ -208,6 +212,15 @@ func main() {
 	mux.Handle("GET /api/v1/teams/{team_id}/questions/{id}/comments", withAuth(commentHandler.HandleListComments))
 	mux.Handle("PUT /api/v1/teams/{team_id}/questions/{id}/comments/{comment_id}", withAuth(commentHandler.HandleUpdateComment))
 	mux.Handle("DELETE /api/v1/teams/{team_id}/questions/{id}/comments/{comment_id}", withAuth(commentHandler.HandleDeleteComment))
+
+	// ノートCRUD（チームスコープ: チームメンバーのみアクセス可能。編集・削除はチームオーナー・admin・作成者のみ）
+	mux.Handle("POST /api/v1/teams/{team_id}/notes", withAuth(noteHandler.HandleCreateNote))
+	mux.Handle("GET /api/v1/teams/{team_id}/notes", withAuth(noteHandler.HandleListNotes))
+	mux.Handle("GET /api/v1/teams/{team_id}/notes/{note_id}", withAuth(noteHandler.HandleGetNote))
+	mux.Handle("PUT /api/v1/teams/{team_id}/notes/{note_id}", withAuth(noteHandler.HandleUpdateNote))
+	mux.Handle("DELETE /api/v1/teams/{team_id}/notes/{note_id}", withAuth(noteHandler.HandleDeleteNote))
+	// ノート公開設定変更（チームオーナー・admin・作成者のみ。認可はユースケース層で実施）
+	mux.Handle("PATCH /api/v1/teams/{team_id}/notes/{note_id}/visibility", withAuth(noteHandler.HandleUpdateNoteVisibility))
 
 	srv := &http.Server{
 		Addr:         net.JoinHostPort("", port),
