@@ -40,9 +40,9 @@
 
 ## サブチケット（コミット単位）
 
-- [ ] `feat(team-detail): TeamDetailPage のメンバー一覧を TeamMemberStatsDTO で表示`
-- [ ] `feat(team-detail): 権限に応じたロール変更・メンバー除名ボタンの表示分岐`
-- [ ] `feat(locales): TeamDetailPage メンバー一覧の日本語文字列を ja.json に追加`
+- [x] `feat(team-detail): TeamDetailPage のメンバー一覧を TeamMemberStatsDTO で表示`
+- [x] `feat(team-detail): 権限に応じたロール変更・メンバー除名ボタンの表示分岐`
+- [x] `feat(locales): TeamDetailPage メンバー一覧の日本語文字列を ja.json に追加`
 
 ---
 
