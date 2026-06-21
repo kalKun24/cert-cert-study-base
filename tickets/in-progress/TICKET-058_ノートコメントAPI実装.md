@@ -29,27 +29,27 @@
 
 ## 受け入れ条件
 
-- [ ] `api/openapi.yaml` に以下のエンドポイントが追加されている
+- [x] `api/openapi.yaml` に以下のエンドポイントが追加されている
   - `POST   /api/v1/teams/{team_id}/notes/{note_id}/comments`
   - `GET    /api/v1/teams/{team_id}/notes/{note_id}/comments`
   - `PUT    /api/v1/teams/{team_id}/notes/{note_id}/comments/{comment_id}`
   - `DELETE /api/v1/teams/{team_id}/notes/{note_id}/comments/{comment_id}`
-- [ ] コメント投稿者本人のみ編集可能、削除は投稿者本人または admin のみ可能（問題コメントと同じルール）
-- [ ] チームメンバーであり、ノートの閲覧権限（`draft` ならば作成者本人または admin）を持つユーザーのみコメント可能
-- [ ] コメント一覧が投稿日時の昇順で返される
-- [ ] コメント本文の空チェック・最大長チェックが行われる
-- [ ] ユースケースのユニットテストが追加されている
-- [ ] `golangci-lint` を通過する
+- [x] コメント投稿者本人のみ編集可能、削除は投稿者本人または admin のみ可能（問題コメントと同じルール）
+- [x] チームメンバーであり、ノートの閲覧権限（`draft` ならば作成者本人または admin）を持つユーザーのみコメント可能
+- [x] コメント一覧が投稿日時の昇順で返される
+- [x] コメント本文の空チェック・最大長チェックが行われる
+- [x] ユースケースのユニットテストが追加されている
+- [x] `golangci-lint` を通過する
 
 ---
 
 ## サブチケット（コミット単位）
 
-- [ ] `docs(api): openapi.yamlにノートコメントエンドポイントを追加`
-- [ ] `feat(usecase): NoteCommentUseCaseを実装（NoteCommentエンティティを使用）`
-- [ ] `test(usecase): NoteCommentUseCaseのユニットテストを追加`
-- [ ] `feat(infra): GCSノートコメントリポジトリ実装を追加（NoteCommentRepositoryインターフェースを実装）`
-- [ ] `feat(handler): ノートコメントハンドラを追加しルーターに登録`
+- [x] `docs(api): openapi.yamlにノートコメントエンドポイントを追加`
+- [x] `feat(usecase): NoteCommentUseCaseを実装（NoteCommentエンティティを使用）`
+- [x] `test(usecase): NoteCommentUseCaseのユニットテストを追加`
+- [x] `feat(infra): GCSノートコメントリポジトリ実装を追加（NoteCommentRepositoryインターフェースを実装）`
+- [x] `feat(handler): ノートコメントハンドラを追加しルーターに登録`
 
 ---
 
