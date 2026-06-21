@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router-dom';
 import NavBar from './NavBar';
 import { useAuth } from '../context/AuthContext';
+import { useInvitationCount } from '../hooks/useInvitationCount';
 import apiClient from '../utils/apiClient';
 
 // ロールの表示ラベル
@@ -30,6 +31,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
+  const { count: invitationCount } = useInvitationCount();
 
   const handleLogout = async () => {
     try {
@@ -135,6 +137,7 @@ export default function Layout() {
       <NavBar
         isMobileMenuOpen={isMobileMenuOpen}
         onMobileMenuToggle={handleMobileMenuToggle}
+        invitationCount={invitationCount}
       />
 
       {/* モバイルドロワーオーバーレイ（タップで閉じる） */}
@@ -214,6 +217,26 @@ export default function Layout() {
                   onClick={closeMobileMenu}
                 >
                   {t('nav.users')}
+                </NavLink>
+              </li>
+            )}
+            {/* 招待一覧（pending 件数があるときのみ表示） */}
+            {invitationCount > 0 && (
+              <li>
+                <NavLink
+                  to="/invitations"
+                  className={({ isActive }) =>
+                    isActive ? 'mobile-nav-link mobile-nav-link--active' : 'mobile-nav-link'
+                  }
+                  onClick={closeMobileMenu}
+                >
+                  {t('nav.invitations')}
+                  <span
+                    className="nav-badge"
+                    aria-label={t('nav.invitationsBadgeLabel', { count: invitationCount })}
+                  >
+                    {invitationCount}
+                  </span>
                 </NavLink>
               </li>
             )}

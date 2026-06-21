@@ -21,6 +21,8 @@
     "activeTeam": "現在のチーム",
     "switchTeam": "チームを切り替え",
     "createTeam": "チームを作成",
+    "invitations": "招待",
+    "invitationsBadgeLabel": "招待が{{count}}件あります",
     "group": {
       "content": "コンテンツ",
       "admin": "管理"
