@@ -95,9 +95,9 @@ export default function TeamDetailPage() {
 
   const isOwnerOrAdmin =
     user?.role === 'admin' ||
-    memberStats.some((m) => m.user_id === user?.id && m.is_team_owner);
+    memberStats.some((m) => m.user_id === user?.id && m.role === 'owner');
 
-  const ownerCount = memberStats.filter((m) => m.is_team_owner).length;
+  const ownerCount = memberStats.filter((m) => m.role === 'owner').length;
 
   const handleDelete = async () => {
     if (!team) return;
@@ -267,7 +267,7 @@ export default function TeamDetailPage() {
                   <tbody>
                     {memberStats.map((member) => {
                       const isCurrentUser = user?.id === member.user_id;
-                      const isMemberOwner = member.is_team_owner;
+                      const isMemberOwner = member.role === 'owner';
                       const canRevokeOwner = isMemberOwner && ownerCount > 1;
                       const isSoleOwner = isMemberOwner && ownerCount === 1;
                       const lastLoginDisplay =
@@ -299,11 +299,13 @@ export default function TeamDetailPage() {
                           {isOwnerOrAdmin && (
                             <td>
                               <div className="table-actions">
-                                <MemberRemoveButton
-                                  teamId={team.id}
-                                  userId={member.user_id}
-                                  onRemoved={loadMemberStats}
-                                />
+                                {!isCurrentUser && (
+                                  <MemberRemoveButton
+                                    teamId={team.id}
+                                    userId={member.user_id}
+                                    onRemoved={loadMemberStats}
+                                  />
+                                )}
                                 {!isCurrentUser && (
                                   <>
                                     {!isMemberOwner && (
