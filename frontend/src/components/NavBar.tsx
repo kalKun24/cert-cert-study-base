@@ -75,6 +75,11 @@ export default function NavBar({ isMobileMenuOpen, onMobileMenuToggle, invitatio
             </NavLink>
           </li>
           <li>
+            <NavLink to="/notes" className={({ isActive }) => isActive ? 'topbar-nav-link topbar-nav-link--active' : 'topbar-nav-link'}>
+              {t('nav.notes')}
+            </NavLink>
+          </li>
+          <li>
             <NavLink to="/tags" className={({ isActive }) => isActive ? 'topbar-nav-link topbar-nav-link--active' : 'topbar-nav-link'}>
               {t('nav.tags')}
             </NavLink>
