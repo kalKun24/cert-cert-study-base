@@ -41,7 +41,8 @@ type NoteCommentRepository interface {
 	// コメントが存在しない場合は ErrNoteCommentNotFound を返します。
 	FindByID(ctx context.Context, teamID, noteID, commentID string) (*NoteComment, error)
 
-	// ListByNoteID は指定したチームIDとノートIDのコメント一覧を投稿日時の昇順で返します。
+	// ListByNoteID は指定したチームIDとノートIDのコメント一覧を返します。
+	// 返却順序は保証しません。投稿日時によるソートはユースケース層で実施します。
 	ListByNoteID(ctx context.Context, teamID, noteID string) ([]*NoteComment, error)
 
 	// Save はノートコメントを新規作成または更新します。

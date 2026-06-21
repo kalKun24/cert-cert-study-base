@@ -105,6 +105,10 @@ func (h *NoteHandler) HandleListNotes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	callerID, callerRole := callerInfo(r)
+	if callerID == "" {
+		writeJSON(w, http.StatusUnauthorized, response{Error: "認証情報が取得できません"})
+		return
+	}
 
 	// tag_ids クエリパラメータのパース（カンマ区切り、空要素除去）
 	var tagIDs []string
@@ -193,8 +197,16 @@ func (h *NoteHandler) HandleGetNote(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, response{Error: "ノートIDは必須です"})
 		return
 	}
+	if !validateUUID(noteID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "ノートIDの形式が不正です"})
+		return
+	}
 
 	callerID, callerRole := callerInfo(r)
+	if callerID == "" {
+		writeJSON(w, http.StatusUnauthorized, response{Error: "認証情報が取得できません"})
+		return
+	}
 
 	note, err := h.noteUC.GetNote(r.Context(), noteID, teamID, usecase.GetNoteInput{
 		CallerID:   callerID,
@@ -231,6 +243,10 @@ func (h *NoteHandler) HandleUpdateNote(w http.ResponseWriter, r *http.Request) {
 	noteID := r.PathValue("note_id")
 	if noteID == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "ノートIDは必須です"})
+		return
+	}
+	if !validateUUID(noteID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "ノートIDの形式が不正です"})
 		return
 	}
 
@@ -270,7 +286,7 @@ func (h *NoteHandler) HandleUpdateNote(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, domain.ErrNoteNotFound):
 			writeJSON(w, http.StatusNotFound, response{Error: "ノートが見つかりません"})
 		case errors.Is(err, domain.ErrPermissionDenied):
-			writeJSON(w, http.StatusForbidden, response{Error: err.Error()})
+			writeJSON(w, http.StatusForbidden, response{Error: "この操作を行う権限がありません"})
 		case errors.Is(err, domain.ErrInvalidNoteStatus):
 			writeJSON(w, http.StatusBadRequest, response{Error: err.Error()})
 		default:
@@ -298,6 +314,10 @@ func (h *NoteHandler) HandleUpdateNoteVisibility(w http.ResponseWriter, r *http.
 	noteID := r.PathValue("note_id")
 	if noteID == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "ノートIDは必須です"})
+		return
+	}
+	if !validateUUID(noteID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "ノートIDの形式が不正です"})
 		return
 	}
 
@@ -332,7 +352,7 @@ func (h *NoteHandler) HandleUpdateNoteVisibility(w http.ResponseWriter, r *http.
 		case errors.Is(err, domain.ErrNoteNotFound):
 			writeJSON(w, http.StatusNotFound, response{Error: "ノートが見つかりません"})
 		case errors.Is(err, domain.ErrPermissionDenied):
-			writeJSON(w, http.StatusForbidden, response{Error: err.Error()})
+			writeJSON(w, http.StatusForbidden, response{Error: "この操作を行う権限がありません"})
 		case errors.Is(err, domain.ErrInvalidNoteStatus):
 			writeJSON(w, http.StatusBadRequest, response{Error: err.Error()})
 		default:
@@ -362,6 +382,10 @@ func (h *NoteHandler) HandleDeleteNote(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, response{Error: "ノートIDは必須です"})
 		return
 	}
+	if !validateUUID(noteID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "ノートIDの形式が不正です"})
+		return
+	}
 
 	callerID, callerRole := callerInfo(r)
 	if callerID == "" {
@@ -376,7 +400,7 @@ func (h *NoteHandler) HandleDeleteNote(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, domain.ErrNoteNotFound):
 			writeJSON(w, http.StatusNotFound, response{Error: "ノートが見つかりません"})
 		case errors.Is(err, domain.ErrPermissionDenied):
-			writeJSON(w, http.StatusForbidden, response{Error: err.Error()})
+			writeJSON(w, http.StatusForbidden, response{Error: "この操作を行う権限がありません"})
 		default:
 			slog.Error("ノート削除でエラーが発生しました", "team_id", teamID, "note_id", noteID, "error", err)
 			writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
