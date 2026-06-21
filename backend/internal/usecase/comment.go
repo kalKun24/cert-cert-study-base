@@ -54,22 +54,17 @@ func (uc *CommentUseCase) checkTeamMembershipForComment(ctx context.Context, cal
 }
 
 // checkQuestionAccess は指定した問題の閲覧権限をチームスコープで確認します。
-// チームメンバーまたは admin のみアクセス可能です。問題がチームに属することも確認します。
-// チーム不一致 / メンバー非所属の場合は ErrPermissionDenied を返します。
+// チームメンバーまたは admin のみアクセス可能です。
+// メンバー非所属の場合は ErrPermissionDenied を返します。
 // 問題が存在しない場合は ErrQuestionNotFound をラップして返します。
 func (uc *CommentUseCase) checkQuestionAccess(ctx context.Context, questionID, teamID, callerID string, callerRole domain.Role) (*domain.Question, error) {
 	if err := uc.checkTeamMembershipForComment(ctx, callerID, callerRole, teamID); err != nil {
 		return nil, domain.ErrPermissionDenied
 	}
 
-	question, err := uc.questionRepo.FindByID(ctx, questionID)
+	question, err := uc.questionRepo.FindByID(ctx, teamID, questionID)
 	if err != nil {
 		return nil, fmt.Errorf("問題の取得に失敗しました: %w", err)
-	}
-
-	// 問題が指定チームに属することを確認
-	if question.TeamID != teamID {
-		return nil, fmt.Errorf("問題の取得に失敗しました: %w", domain.ErrQuestionNotFound)
 	}
 
 	// admin はすべての問題（draft 含む）を閲覧可能
@@ -125,7 +120,7 @@ func (uc *CommentUseCase) CreateComment(ctx context.Context, input CreateComment
 		UpdatedAt:  now,
 	}
 
-	if err := uc.commentRepo.Save(ctx, comment); err != nil {
+	if err := uc.commentRepo.Save(ctx, input.TeamID, comment); err != nil {
 		return nil, fmt.Errorf("コメントの保存に失敗しました: %w", err)
 	}
 
@@ -157,7 +152,7 @@ func (uc *CommentUseCase) ListComments(ctx context.Context, input ListCommentsIn
 		return nil, err
 	}
 
-	comments, err := uc.commentRepo.ListByQuestionID(ctx, input.QuestionID)
+	comments, err := uc.commentRepo.ListByQuestionID(ctx, input.TeamID, input.QuestionID)
 	if err != nil {
 		return nil, fmt.Errorf("コメント一覧の取得に失敗しました: %w", err)
 	}
@@ -215,7 +210,7 @@ func (uc *CommentUseCase) UpdateComment(ctx context.Context, input UpdateComment
 		return nil, err
 	}
 
-	comment, err := uc.commentRepo.FindByID(ctx, input.QuestionID, input.CommentID)
+	comment, err := uc.commentRepo.FindByID(ctx, input.TeamID, input.QuestionID, input.CommentID)
 	if err != nil {
 		return nil, fmt.Errorf("コメントの取得に失敗しました: %w", err)
 	}
@@ -228,7 +223,7 @@ func (uc *CommentUseCase) UpdateComment(ctx context.Context, input UpdateComment
 	comment.Body = input.Body
 	comment.UpdatedAt = time.Now().UTC()
 
-	if err := uc.commentRepo.Save(ctx, comment); err != nil {
+	if err := uc.commentRepo.Save(ctx, input.TeamID, comment); err != nil {
 		return nil, fmt.Errorf("コメントの保存に失敗しました: %w", err)
 	}
 
@@ -262,7 +257,7 @@ func (uc *CommentUseCase) DeleteComment(ctx context.Context, input DeleteComment
 		return err
 	}
 
-	comment, err := uc.commentRepo.FindByID(ctx, input.QuestionID, input.CommentID)
+	comment, err := uc.commentRepo.FindByID(ctx, input.TeamID, input.QuestionID, input.CommentID)
 	if err != nil {
 		return fmt.Errorf("コメントの取得に失敗しました: %w", err)
 	}
@@ -272,7 +267,7 @@ func (uc *CommentUseCase) DeleteComment(ctx context.Context, input DeleteComment
 		return domain.ErrPermissionDenied
 	}
 
-	if err := uc.commentRepo.Delete(ctx, input.QuestionID, input.CommentID); err != nil {
+	if err := uc.commentRepo.Delete(ctx, input.TeamID, input.QuestionID, input.CommentID); err != nil {
 		return fmt.Errorf("コメントの削除に失敗しました: %w", err)
 	}
 
