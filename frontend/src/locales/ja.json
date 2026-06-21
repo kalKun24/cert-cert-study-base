@@ -120,8 +120,6 @@
       "editButton": "チームを編集",
       "deleteButton": "チームを削除",
       "deleteConfirm": "チーム「{{name}}」を削除しますか？削除すると元に戻せません。",
-      "userId": "ユーザーID",
-      "joinedAt": "参加日",
       "viewMemberList": "メンバー詳細一覧を見る"
     },
     "form": {
