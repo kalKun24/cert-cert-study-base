@@ -1443,6 +1443,170 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /api/v1/teams/{team_id}/notes/{note_id}/comments:
+    post:
+      summary: ノートコメント投稿（チームメンバーかつノートの閲覧権限を持つユーザー）
+      description: |
+        指定チームのノートにコメントを投稿します。
+        チームメンバーであり、ノートの閲覧権限を持つユーザーのみ投稿可能です。
+        draft ノートは作成者本人または admin のみコメント可能です。
+      operationId: createNoteComment
+      tags:
+        - note-comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/NoteID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateNoteCommentRequest"
+      responses:
+        "201":
+          description: コメント投稿成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/NoteComment"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    get:
+      summary: ノートコメント一覧取得（チームメンバーかつノートの閲覧権限を持つユーザー）
+      description: |
+        指定チームのノートのコメント一覧を投稿日時の昇順で返します。
+        チームメンバーであり、ノートの閲覧権限を持つユーザーのみ取得可能です。
+      operationId: listNoteComments
+      tags:
+        - note-comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/NoteID"
+      responses:
+        "200":
+          description: コメント一覧取得成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/NoteComment"
+                  error:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/teams/{team_id}/notes/{note_id}/comments/{comment_id}:
+    put:
+      summary: ノートコメント編集（投稿者本人のみ）
+      description: |
+        指定したノートコメントを編集します。
+        投稿者本人のみ編集可能です。
+      operationId: updateNoteComment
+      tags:
+        - note-comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/NoteID"
+        - $ref: "#/components/parameters/CommentID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateNoteCommentRequest"
+      responses:
+        "200":
+          description: コメント編集成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/NoteComment"
+                  error:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      summary: ノートコメント削除（投稿者本人または admin）
+      description: |
+        指定したノートコメントを削除します。
+        投稿者本人または admin のみ削除可能です。
+      operationId: deleteNoteComment
+      tags:
+        - note-comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/NoteID"
+        - $ref: "#/components/parameters/CommentID"
+      responses:
+        "200":
+          description: コメント削除成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                  error:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/v1/teams/{team_id}/tags:
     get:
       summary: チームタグ一覧取得（チームメンバー or admin）
@@ -2518,6 +2682,69 @@ components:
             - published
           description: 公開ステータス
           example: "published"
+
+    NoteComment:
+      type: object
+      description: ノートコメントエンティティ
+      required:
+        - id
+        - note_id
+        - body
+        - created_by
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: コメントID
+          example: "1ba7b810-9dad-11d1-80b4-00c04fd430c8"
+        note_id:
+          type: string
+          format: uuid
+          description: 対象ノートID
+          example: "9ba7b810-9dad-11d1-80b4-00c04fd430c8"
+        body:
+          type: string
+          description: コメント本文（Markdown形式、最大10000文字）
+          example: "このノートについてのコメントです。"
+        created_by:
+          type: string
+          format: uuid
+          description: 投稿者のユーザーID
+          example: "3ba7b810-9dad-11d1-80b4-00c04fd430c8"
+        created_at:
+          type: string
+          format: date-time
+          description: 投稿日時（UTC）
+          example: "2024-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: 更新日時（UTC）
+          example: "2024-01-01T00:00:00Z"
+
+    CreateNoteCommentRequest:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: string
+          description: コメント本文（Markdown形式、最大10000文字）
+          example: "このノートについてのコメントです。"
+          maxLength: 10000
+
+    UpdateNoteCommentRequest:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: string
+          description: コメント本文（Markdown形式、最大10000文字）
+          example: "編集後のコメントです。"
+          maxLength: 10000
 
     Tag:
       type: object
