@@ -29,33 +29,33 @@
 
 ## 受け入れ条件
 
-- [ ] `api/openapi.yaml` に以下のエンドポイントが追加されている（API First）
+- [x] `api/openapi.yaml` に以下のエンドポイントが追加されている（API First）
   - `POST   /api/v1/teams/{team_id}/notes`
   - `GET    /api/v1/teams/{team_id}/notes`（ページネーション・キーワード・タグ検索対応）
   - `GET    /api/v1/teams/{team_id}/notes/{note_id}`
   - `PUT    /api/v1/teams/{team_id}/notes/{note_id}`
   - `PATCH  /api/v1/teams/{team_id}/notes/{note_id}/visibility`
   - `DELETE /api/v1/teams/{team_id}/notes/{note_id}`
-- [ ] レスポンス形式が `{ "data": ..., "error": ... }` の統一フォーマットに準拠している
-- [ ] `NoteUseCase` が以下のメソッドを持つ: `CreateNote`・`SearchNotes`・`ListNotes`・`GetNote`・`UpdateNote`・`UpdateNoteVisibility`・`DeleteNote`
-- [ ] 可視性ルールが問題と同じ: `draft` は作成者本人または admin のみ、`published`/`private` はチームメンバー全員
-- [ ] 編集権限: チームオーナー・admin・作成ユーザーのみが更新・削除可能。チームオーナーの判定は `teamRepo.IsOwner(ctx, teamID, callerID)` で行う（JWT クレームの `is_team_owner` フラグは使わない）
-- [ ] GCS リポジトリ実装が `backend/internal/infrastructure/repository/note_repository.go` に追加されている
-- [ ] GCS 上のオブジェクトパスが `teams/{team_id}/notes.json`（チーム別ファイル）に統一されている
-- [ ] ハンドラが `backend/internal/interface/handler/note_handler.go` に追加されている
-- [ ] ルーターにノート系エンドポイントが登録されている
-- [ ] `NoteUseCase` のユニットテストが追加されている（`usecase/note_test.go`）
-- [ ] `golangci-lint` を通過する
+- [x] レスポンス形式が `{ "data": ..., "error": ... }` の統一フォーマットに準拠している
+- [x] `NoteUseCase` が以下のメソッドを持つ: `CreateNote`・`SearchNotes`・`ListNotes`・`GetNote`・`UpdateNote`・`UpdateNoteVisibility`・`DeleteNote`
+- [x] 可視性ルールが問題と同じ: `draft` は作成者本人または admin のみ、`published`/`private` はチームメンバー全員
+- [x] 編集権限: チームオーナー・admin・作成ユーザーのみが更新・削除可能。チームオーナーの判定は `teamRepo.IsOwner(ctx, teamID, callerID)` で行う（JWT クレームの `is_team_owner` フラグは使わない）
+- [x] GCS リポジトリ実装が `backend/internal/infrastructure/repository/note_repository.go` に追加されている
+- [x] GCS 上のオブジェクトパスが `teams/{team_id}/notes.json`（チーム別ファイル）に統一されている
+- [x] ハンドラが `backend/internal/interface/handler/note_handler.go` に追加されている
+- [x] ルーターにノート系エンドポイントが登録されている
+- [x] `NoteUseCase` のユニットテストが追加されている（`usecase/note_test.go`）
+- [x] `golangci-lint` を通過する
 
 ---
 
 ## サブチケット（コミット単位）
 
-- [ ] `docs(api): openapi.yamlにノートCRUDエンドポイントを追加`
-- [ ] `feat(usecase): NoteUseCaseを実装（CRUD・可視性ルール・ページネーション）`
-- [ ] `test(usecase): NoteUseCaseのユニットテストを追加`
-- [ ] `feat(infra): GCSノートリポジトリ実装を追加`
-- [ ] `feat(handler): ノートハンドラを追加しルーターに登録`
+- [x] `docs(api): openapi.yamlにノートCRUDエンドポイントを追加`
+- [x] `feat(usecase): NoteUseCaseを実装（CRUD・可視性ルール・ページネーション）`
+- [x] `test(usecase): NoteUseCaseのユニットテストを追加`
+- [x] `feat(infra): GCSノートリポジトリ実装を追加`
+- [x] `feat(handler): ノートハンドラを追加しルーターに登録`
 
 ---
 
