@@ -999,7 +999,7 @@ func TestTeamUseCase_ListMemberStats_LastLoginAt(t *testing.T) {
 // ListMemberStats が一括取得（List）のみ使用し、個別取得（FindByID）を呼ばないことを検証します。
 type countingUserRepository struct {
 	mockUserRepository
-	listCallCount    int
+	listCallCount     int
 	findByIDCallCount int
 }
 
