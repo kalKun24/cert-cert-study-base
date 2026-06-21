@@ -14,11 +14,11 @@ import (
 	"syscall"
 	"time"
 
+	"cloud.google.com/go/firestore"
 	"github.com/kalKun24/cert-study-base/backend/internal/domain"
 	"github.com/kalKun24/cert-study-base/backend/internal/infrastructure/auth"
-	"github.com/kalKun24/cert-study-base/backend/internal/infrastructure/repository"
+	firestoreRepo "github.com/kalKun24/cert-study-base/backend/internal/infrastructure/firestore"
 	"github.com/kalKun24/cert-study-base/backend/internal/infrastructure/seed"
-	gcsStorage "github.com/kalKun24/cert-study-base/backend/internal/infrastructure/storage"
 	"github.com/kalKun24/cert-study-base/backend/internal/interface/handler"
 	"github.com/kalKun24/cert-study-base/backend/internal/usecase"
 )
@@ -53,40 +53,33 @@ func main() {
 		os.Exit(1)
 	}
 
-	gcsBucket := os.Getenv("GCS_BUCKET")
-	if gcsBucket == "" {
-		slog.Error("GCS_BUCKET 環境変数が設定されていません")
+	gcpProjectID := os.Getenv("GCP_PROJECT_ID")
+	if gcpProjectID == "" {
+		slog.Error("GCP_PROJECT_ID 環境変数が設定されていません")
 		os.Exit(1)
 	}
 
 	ctx := context.Background()
 
-	// GCS_EMULATOR_HOST が設定されている場合はエミュレータへ、未設定時は実 GCS へ接続
-	gcsClient, err := gcsStorage.NewClientFromEnv(ctx)
+	// FIRESTORE_EMULATOR_HOST が設定されていれば自動でエミュレータに接続する
+	// （Firestoreクライアントが環境変数を自動参照するためコード分岐は不要）
+	fsClient, err := firestore.NewClient(ctx, gcpProjectID)
 	if err != nil {
-		slog.Error("GCSクライアントの初期化に失敗しました", "error", err)
+		slog.Error("Firestoreクライアントの初期化に失敗しました", "error", err)
 		os.Exit(1)
 	}
 	defer func() {
-		if err := gcsClient.Close(); err != nil {
-			slog.Warn("GCSクライアントのクローズに失敗しました", "error", err)
+		if err := fsClient.Close(); err != nil {
+			slog.Warn("Firestoreクライアントのクローズに失敗しました", "error", err)
 		}
 	}()
 
-	// エミュレータ使用時はバケットが存在しないため起動時に作成する
-	if os.Getenv("GCS_EMULATOR_HOST") != "" {
-		if err := gcsStorage.EnsureBucketExists(ctx, gcsClient, gcsBucket); err != nil {
-			slog.Error("エミュレータバケットの作成に失敗しました", "error", err)
-			os.Exit(1)
-		}
-		slog.Info("GCS エミュレータを使用します", "host", os.Getenv("GCS_EMULATOR_HOST"), "bucket", gcsBucket)
+	if os.Getenv("FIRESTORE_EMULATOR_HOST") != "" {
+		slog.Info("Firestore エミュレータを使用します", "host", os.Getenv("FIRESTORE_EMULATOR_HOST"), "project", gcpProjectID)
 	}
 
-	// StorageClient アダプター（GCS → 独自インターフェース）
-	sc := gcsStorage.NewGCSStorageClient(gcsClient)
-
 	// 依存関係を構築（コンポジションルート）
-	userRepo := repository.NewGCSUserRepository(sc, gcsBucket)
+	userRepo := firestoreRepo.NewFirestoreUserRepository(fsClient)
 	bcryptHasher := auth.NewBcryptHasher()
 	jwtManager := auth.NewJWTManager(jwtSecret)
 
@@ -96,29 +89,29 @@ func main() {
 		os.Exit(1)
 	}
 
-	teamRepo := repository.NewGCSTeamRepository(sc, gcsBucket)
-	invitationRepo := repository.NewGCSInvitationRepository(sc, gcsBucket)
+	teamRepo := firestoreRepo.NewFirestoreTeamRepository(fsClient)
+	invitationRepo := firestoreRepo.NewFirestoreInvitationRepository(fsClient)
 
 	authUC := usecase.NewAuthUseCase(userRepo, bcryptHasher, jwtManager)
 	userUC := usecase.NewUserUseCase(userRepo, bcryptHasher)
 	invitationUC := usecase.NewInvitationUseCase(invitationRepo, teamRepo, userRepo)
 
-	questionRepo := repository.NewGCSQuestionRepository(sc, gcsBucket)
+	questionRepo := firestoreRepo.NewFirestoreQuestionRepository(fsClient)
 	questionUC := usecase.NewQuestionUseCase(questionRepo, teamRepo)
 
-	commentRepo := repository.NewGCSCommentRepository(sc, gcsBucket)
+	commentRepo := firestoreRepo.NewFirestoreCommentRepository(fsClient)
 	commentUC := usecase.NewCommentUseCase(commentRepo, questionRepo, userRepo, teamRepo)
 
 	// TeamUseCase はメンバー統計機能のために questionRepo / commentRepo も注入する
 	teamUC := usecase.NewTeamUseCase(teamRepo, userRepo, questionRepo, commentRepo)
 
-	tagRepo := repository.NewGCSTagRepository(sc, gcsBucket, questionRepo)
+	tagRepo := firestoreRepo.NewFirestoreTagRepository(fsClient, questionRepo)
 	tagUC := usecase.NewTagUseCase(tagRepo, teamRepo)
 
-	noteRepo := repository.NewGCSNoteRepository(sc, gcsBucket)
+	noteRepo := firestoreRepo.NewFirestoreNoteRepository(fsClient)
 	noteUC := usecase.NewNoteUseCase(noteRepo, teamRepo)
 
-	noteCommentRepo := repository.NewGCSNoteCommentRepository(sc, gcsBucket)
+	noteCommentRepo := firestoreRepo.NewFirestoreNoteCommentRepository(fsClient)
 	noteCommentUC := usecase.NewNoteCommentUseCase(noteCommentRepo, noteRepo, teamRepo)
 
 	authHandler := handler.NewAuthHandler(authUC)
