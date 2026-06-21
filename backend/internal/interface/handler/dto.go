@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/kalKun24/cert-study-base/backend/internal/domain"
+	"github.com/kalKun24/cert-study-base/backend/internal/usecase"
 )
 
 // response は統一レスポンスフォーマットです。
@@ -318,25 +319,27 @@ type UpdateCommentRequestDTO struct {
 }
 
 // NoteCommentDTO はAPIレスポンス用のノートコメントDTOです。
-// NoteComment はユーザー表示名を持たないため DisplayName フィールドは含みません。
+// 投稿者の display_name を含みます。
 type NoteCommentDTO struct {
-	ID        string    `json:"id"`
-	NoteID    string    `json:"note_id"`
-	Body      string    `json:"body"`
-	CreatedBy string    `json:"created_by"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID          string    `json:"id"`
+	NoteID      string    `json:"note_id"`
+	Body        string    `json:"body"`
+	CreatedBy   string    `json:"created_by"`
+	DisplayName string    `json:"display_name"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-// toNoteCommentDTO はドメインエンティティをAPIレスポンス用DTOに変換します。
-func toNoteCommentDTO(c *domain.NoteComment) NoteCommentDTO {
+// toNoteCommentDTO はユースケース出力をAPIレスポンス用DTOに変換します。
+func toNoteCommentDTO(c *usecase.NoteCommentWithDisplayName) NoteCommentDTO {
 	return NoteCommentDTO{
-		ID:        c.ID,
-		NoteID:    c.NoteID,
-		Body:      c.Body,
-		CreatedBy: c.CreatedBy,
-		CreatedAt: c.CreatedAt,
-		UpdatedAt: c.UpdatedAt,
+		ID:          c.ID,
+		NoteID:      c.NoteID,
+		Body:        c.Body,
+		CreatedBy:   c.CreatedBy,
+		DisplayName: c.DisplayName,
+		CreatedAt:   c.CreatedAt,
+		UpdatedAt:   c.UpdatedAt,
 	}
 }
 

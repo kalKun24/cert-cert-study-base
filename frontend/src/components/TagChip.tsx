@@ -17,7 +17,7 @@ export default function TagChip({ tag, selected, onToggle }: TagChipProps) {
       aria-checked={selected}
       aria-label={selected ? `${tag.name} - ${t('common.selected')}` : tag.name}
       className={`tag-chip${selected ? ' tag-chip--selected' : ''}`}
-      onClick={() => onToggle(tag.name)}
+      onClick={() => onToggle(tag.id)}
     >
       {tag.name}
     </button>

@@ -4,6 +4,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -18,6 +19,7 @@ type NoteCommentUseCase struct {
 	noteCommentRepo domain.NoteCommentRepository
 	noteRepo        domain.NoteRepository
 	teamRepo        domain.TeamRepository
+	userRepo        domain.UserRepository
 }
 
 // NewNoteCommentUseCase は NoteCommentUseCase を生成します（コンストラクタインジェクション）。
@@ -25,12 +27,54 @@ func NewNoteCommentUseCase(
 	noteCommentRepo domain.NoteCommentRepository,
 	noteRepo domain.NoteRepository,
 	teamRepo domain.TeamRepository,
+	userRepo domain.UserRepository,
 ) *NoteCommentUseCase {
 	return &NoteCommentUseCase{
 		noteCommentRepo: noteCommentRepo,
 		noteRepo:        noteRepo,
 		teamRepo:        teamRepo,
+		userRepo:        userRepo,
 	}
+}
+
+// NoteCommentWithDisplayName はノートコメントと投稿者の表示名をまとめた出力型です。
+type NoteCommentWithDisplayName struct {
+	*domain.NoteComment
+	DisplayName string
+}
+
+// resolveNoteCommentDisplayName はユーザーIDから表示名を取得します。
+// userRepo が nil の場合（テスト用）はユーザーIDをそのまま返します。
+func (uc *NoteCommentUseCase) resolveNoteCommentDisplayName(ctx context.Context, userID string) (string, error) {
+	if uc.userRepo == nil {
+		return userID, nil
+	}
+	user, err := uc.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		// ユーザーが見つからない場合もユーザーIDで代替（コメント一覧の取得を中断しない）
+		if errors.Is(err, domain.ErrUserNotFound) {
+			return userID, nil
+		}
+		return "", fmt.Errorf("ユーザー情報の取得に失敗しました: %w", err)
+	}
+	return user.DisplayName, nil
+}
+
+// resolveNoteCommentDisplayNames はコメント一覧の投稿者の表示名をまとめて取得します。
+// userID → displayName のマップを返します。
+func (uc *NoteCommentUseCase) resolveNoteCommentDisplayNames(ctx context.Context, comments []*domain.NoteComment) (map[string]string, error) {
+	displayNames := make(map[string]string, len(comments))
+	for _, c := range comments {
+		if _, ok := displayNames[c.CreatedBy]; ok {
+			continue
+		}
+		name, err := uc.resolveNoteCommentDisplayName(ctx, c.CreatedBy)
+		if err != nil {
+			return nil, err
+		}
+		displayNames[c.CreatedBy] = name
+	}
+	return displayNames, nil
 }
 
 // checkNoteAccess はチームメンバーシップとノートの閲覧権限をまとめて確認します。
@@ -87,7 +131,7 @@ type CreateNoteCommentInput struct {
 
 // CreateNoteComment は指定したノートにコメントを投稿します。
 // チームメンバーであり、ノートの閲覧権限を持つユーザーのみ投稿可能です。
-func (uc *NoteCommentUseCase) CreateNoteComment(ctx context.Context, input CreateNoteCommentInput) (*domain.NoteComment, error) {
+func (uc *NoteCommentUseCase) CreateNoteComment(ctx context.Context, input CreateNoteCommentInput) (*NoteCommentWithDisplayName, error) {
 	if strings.TrimSpace(input.Body) == "" {
 		return nil, domain.ErrCommentBodyEmpty
 	}
@@ -114,12 +158,17 @@ func (uc *NoteCommentUseCase) CreateNoteComment(ctx context.Context, input Creat
 		return nil, fmt.Errorf("コメントの保存に失敗しました: %w", err)
 	}
 
-	return comment, nil
+	displayName, err := uc.resolveNoteCommentDisplayName(ctx, input.CallerID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &NoteCommentWithDisplayName{NoteComment: comment, DisplayName: displayName}, nil
 }
 
 // ListNoteComments は指定したノートのコメント一覧を投稿日時の昇順で返します。
 // チームメンバーであり、ノートの閲覧権限を持つユーザーのみ取得可能です。
-func (uc *NoteCommentUseCase) ListNoteComments(ctx context.Context, teamID, noteID, callerID string, callerRole domain.Role) ([]*domain.NoteComment, error) {
+func (uc *NoteCommentUseCase) ListNoteComments(ctx context.Context, teamID, noteID, callerID string, callerRole domain.Role) ([]*NoteCommentWithDisplayName, error) {
 	// チームメンバーかつノートの閲覧権限チェック
 	if _, err := uc.checkNoteAccess(ctx, teamID, noteID, callerID, callerRole); err != nil {
 		return nil, err
@@ -135,7 +184,21 @@ func (uc *NoteCommentUseCase) ListNoteComments(ctx context.Context, teamID, note
 		return comments[i].CreatedAt.Before(comments[j].CreatedAt)
 	})
 
-	return comments, nil
+	// ユーザーIDから表示名のマップを構築（一括取得してN+1クエリを回避）
+	displayNames, err := uc.resolveNoteCommentDisplayNames(ctx, comments)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*NoteCommentWithDisplayName, 0, len(comments))
+	for _, c := range comments {
+		result = append(result, &NoteCommentWithDisplayName{
+			NoteComment: c,
+			DisplayName: displayNames[c.CreatedBy],
+		})
+	}
+
+	return result, nil
 }
 
 // UpdateNoteCommentInput はノートコメント編集ユースケースの入力です。
@@ -156,7 +219,7 @@ type UpdateNoteCommentInput struct {
 
 // UpdateNoteComment は指定したノートコメントを編集します。
 // 投稿者本人のみ編集可能です。チームメンバーでありノートの閲覧権限も必要です。
-func (uc *NoteCommentUseCase) UpdateNoteComment(ctx context.Context, input UpdateNoteCommentInput) (*domain.NoteComment, error) {
+func (uc *NoteCommentUseCase) UpdateNoteComment(ctx context.Context, input UpdateNoteCommentInput) (*NoteCommentWithDisplayName, error) {
 	if strings.TrimSpace(input.Body) == "" {
 		return nil, domain.ErrCommentBodyEmpty
 	}
@@ -186,7 +249,12 @@ func (uc *NoteCommentUseCase) UpdateNoteComment(ctx context.Context, input Updat
 		return nil, fmt.Errorf("コメントの保存に失敗しました: %w", err)
 	}
 
-	return comment, nil
+	displayName, err := uc.resolveNoteCommentDisplayName(ctx, comment.CreatedBy)
+	if err != nil {
+		return nil, err
+	}
+
+	return &NoteCommentWithDisplayName{NoteComment: comment, DisplayName: displayName}, nil
 }
 
 // DeleteNoteComment は指定したノートコメントを削除します。

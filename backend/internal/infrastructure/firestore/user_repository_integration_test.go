@@ -1,40 +1,46 @@
-package repository_test
+package firestore_test
 
 import (
 	"context"
-	"fmt"
+	"os"
 	"testing"
 	"time"
 
-	"github.com/fsouza/fake-gcs-server/fakestorage"
+	fs "cloud.google.com/go/firestore"
 	"github.com/kalKun24/cert-study-base/backend/internal/domain"
-	"github.com/kalKun24/cert-study-base/backend/internal/infrastructure/repository"
-	"github.com/kalKun24/cert-study-base/backend/internal/infrastructure/storage"
+	firestoreRepo "github.com/kalKun24/cert-study-base/backend/internal/infrastructure/firestore"
 )
 
-// setupIntegrationTest はインプロセス fake-gcs-server を起動してテスト用リポジトリを返します。
-// 外部 Docker 不要で CI/ローカル問わず常に実行されます。
-func setupIntegrationTest(t *testing.T) *repository.GCSUserRepository {
+// setupFirestoreTest は Firestore エミュレータに接続してテスト用リポジトリを返します。
+// FIRESTORE_EMULATOR_HOST が未設定の場合はテストをスキップします。
+func setupFirestoreTest(t *testing.T) *firestoreRepo.FirestoreUserRepository {
 	t.Helper()
 
-	svr, err := fakestorage.NewServerWithOptions(fakestorage.Options{
-		Scheme: "http",
-		Port:   0, // OS に空きポートを割り当てさせる
-	})
-	if err != nil {
-		t.Fatalf("fake-gcs-server の起動に失敗しました: %v", err)
+	if os.Getenv("FIRESTORE_EMULATOR_HOST") == "" {
+		t.Skip("FIRESTORE_EMULATOR_HOST が設定されていないためスキップします")
 	}
-	t.Cleanup(svr.Stop)
 
-	bucket := fmt.Sprintf("test-bucket-%d", time.Now().UnixNano())
-	svr.CreateBucketWithOpts(fakestorage.CreateBucketOpts{Name: bucket})
+	projectID := os.Getenv("GCP_PROJECT_ID")
+	if projectID == "" {
+		projectID = "test-project"
+	}
 
-	sc := storage.NewGCSStorageClient(svr.Client())
-	return repository.NewGCSUserRepository(sc, bucket)
+	ctx := context.Background()
+	client, err := fs.NewClient(ctx, projectID)
+	if err != nil {
+		t.Fatalf("Firestoreクライアントの初期化に失敗しました: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Firestoreクライアントのクローズに失敗しました: %v", err)
+		}
+	})
+
+	return firestoreRepo.NewFirestoreUserRepository(client)
 }
 
-func TestGCSUserRepository_SaveAndFindByID(t *testing.T) {
-	repo := setupIntegrationTest(t)
+func TestFirestoreUserRepository_SaveAndFindByID(t *testing.T) {
+	repo := setupFirestoreTest(t)
 	ctx := context.Background()
 
 	user := newTestUser("user-001")
@@ -49,8 +55,8 @@ func TestGCSUserRepository_SaveAndFindByID(t *testing.T) {
 	assertUserEqual(t, user, got)
 }
 
-func TestGCSUserRepository_FindByUsername(t *testing.T) {
-	repo := setupIntegrationTest(t)
+func TestFirestoreUserRepository_FindByUsername(t *testing.T) {
+	repo := setupFirestoreTest(t)
 	ctx := context.Background()
 
 	user := newTestUser("user-002")
@@ -65,8 +71,8 @@ func TestGCSUserRepository_FindByUsername(t *testing.T) {
 	assertUserEqual(t, user, got)
 }
 
-func TestGCSUserRepository_FindByEmail(t *testing.T) {
-	repo := setupIntegrationTest(t)
+func TestFirestoreUserRepository_FindByEmail(t *testing.T) {
+	repo := setupFirestoreTest(t)
 	ctx := context.Background()
 
 	user := newTestUser("user-003")
@@ -81,8 +87,8 @@ func TestGCSUserRepository_FindByEmail(t *testing.T) {
 	assertUserEqual(t, user, got)
 }
 
-func TestGCSUserRepository_List(t *testing.T) {
-	repo := setupIntegrationTest(t)
+func TestFirestoreUserRepository_List(t *testing.T) {
+	repo := setupFirestoreTest(t)
 	ctx := context.Background()
 
 	users := []*domain.User{
@@ -100,13 +106,14 @@ func TestGCSUserRepository_List(t *testing.T) {
 	if err != nil {
 		t.Fatalf("List に失敗しました: %v", err)
 	}
-	if len(list) != len(users) {
-		t.Errorf("List の件数 = %d, want %d", len(list), len(users))
+	// 他のテストとの競合があり得るため >= で検証
+	if len(list) < len(users) {
+		t.Errorf("List の件数 = %d, want >= %d", len(list), len(users))
 	}
 }
 
-func TestGCSUserRepository_Update(t *testing.T) {
-	repo := setupIntegrationTest(t)
+func TestFirestoreUserRepository_Update(t *testing.T) {
+	repo := setupFirestoreTest(t)
 	ctx := context.Background()
 
 	user := newTestUser("user-201")
@@ -128,8 +135,8 @@ func TestGCSUserRepository_Update(t *testing.T) {
 	}
 }
 
-func TestGCSUserRepository_Delete(t *testing.T) {
-	repo := setupIntegrationTest(t)
+func TestFirestoreUserRepository_Delete(t *testing.T) {
+	repo := setupFirestoreTest(t)
 	ctx := context.Background()
 
 	user := newTestUser("user-301")
@@ -146,11 +153,11 @@ func TestGCSUserRepository_Delete(t *testing.T) {
 	}
 }
 
-func TestGCSUserRepository_FindByID_NotFound(t *testing.T) {
-	repo := setupIntegrationTest(t)
+func TestFirestoreUserRepository_FindByID_NotFound(t *testing.T) {
+	repo := setupFirestoreTest(t)
 	ctx := context.Background()
 
-	_, err := repo.FindByID(ctx, "non-existent-id")
+	_, err := repo.FindByID(ctx, "non-existent-id-999")
 	if err != domain.ErrUserNotFound {
 		t.Errorf("ErrUserNotFound が返るはず, got: %v", err)
 	}

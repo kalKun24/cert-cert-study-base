@@ -98,6 +98,7 @@ func testNoteComment(id, noteID, createdBy, body string) *domain.NoteComment {
 
 // newNoteCommentUseCase はテスト用の NoteCommentUseCase を生成します。
 // testCallerID が testTeamID のメンバーとして登録されたチームリポジトリを使います。
+// userRepo は nil を渡し、テスト内では display_name の解決をスキップします。
 func newNoteCommentUseCase(
 	ncRepo *mockNoteCommentRepository,
 	nRepo *mockNoteRepository,
@@ -108,16 +109,17 @@ func newNoteCommentUseCase(
 		UserID: testCallerID,
 		Role:   domain.MemberRoleMember,
 	})
-	return usecase.NewNoteCommentUseCase(ncRepo, nRepo, tRepo)
+	return usecase.NewNoteCommentUseCase(ncRepo, nRepo, tRepo, nil)
 }
 
 // newNoteCommentUseCaseWithTeam は自由にチームリポジトリを指定できる NoteCommentUseCase を生成します。
+// userRepo は nil を渡し、テスト内では display_name の解決をスキップします。
 func newNoteCommentUseCaseWithTeam(
 	ncRepo *mockNoteCommentRepository,
 	nRepo *mockNoteRepository,
 	tRepo *mockTeamRepository,
 ) *usecase.NoteCommentUseCase {
-	return usecase.NewNoteCommentUseCase(ncRepo, nRepo, tRepo)
+	return usecase.NewNoteCommentUseCase(ncRepo, nRepo, tRepo, nil)
 }
 
 // --- CreateNoteComment テスト ---

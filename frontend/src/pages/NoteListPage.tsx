@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchNotes } from '../utils/noteApi';
@@ -21,7 +21,7 @@ export default function NoteListPage() {
   const { activeTeam } = useTeam();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const initialTagNames = (): string[] => {
+  const initialTagIds = (): string[] => {
     const raw = searchParams.get(PARAM_TAG_IDS);
     if (!raw) return [];
     return raw.split(',').filter(Boolean);
@@ -31,18 +31,19 @@ export default function NoteListPage() {
 
   const [notes, setNotes] = useState<Note[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
+  const tagMap = useMemo(() => new Map(tags.map((t) => [t.id, t.name])), [tags]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [keyword, setKeyword] = useState(initialKeyword);
-  const [selectedTagNames, setSelectedTagNames] = useState<string[]>(initialTagNames);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(initialTagIds);
   const [page, setPage] = useState(initialPage);
   const [totalPages, setTotalPages] = useState(1);
 
   const syncSearchParams = useCallback(
-    (currentPage: number, currentKeyword: string, currentTagNames: string[]) => {
+    (currentPage: number, currentKeyword: string, currentTagIds: string[]) => {
       const next = new URLSearchParams();
       if (currentKeyword.trim()) next.set(PARAM_KEYWORD, currentKeyword.trim());
-      if (currentTagNames.length > 0) next.set(PARAM_TAG_IDS, currentTagNames.join(','));
+      if (currentTagIds.length > 0) next.set(PARAM_TAG_IDS, currentTagIds.join(','));
       if (currentPage > 1) next.set(PARAM_PAGE, String(currentPage));
       setSearchParams(next, { replace: true });
     },
@@ -50,7 +51,7 @@ export default function NoteListPage() {
   );
 
   const loadNotes = useCallback(
-    (currentPage: number, currentKeyword: string, currentTagNames: string[]) => {
+    (currentPage: number, currentKeyword: string, currentTagIds: string[]) => {
       if (!activeTeam) return;
       let isMounted = true;
       setIsLoading(true);
@@ -63,8 +64,8 @@ export default function NoteListPage() {
       if (currentKeyword.trim()) {
         params.keyword = currentKeyword.trim();
       }
-      if (currentTagNames.length > 0) {
-        params.tag_ids = currentTagNames.join(',');
+      if (currentTagIds.length > 0) {
+        params.tag_ids = currentTagIds.join(',');
       }
 
       fetchNotes(activeTeam.id, params)
@@ -105,14 +106,14 @@ export default function NoteListPage() {
   }, [page]);
 
   useEffect(() => {
-    syncSearchParams(page, keyword, selectedTagNames);
-    const cleanup = loadNotes(page, keyword, selectedTagNames);
+    syncSearchParams(page, keyword, selectedTagIds);
+    const cleanup = loadNotes(page, keyword, selectedTagIds);
     return cleanup;
-  }, [page, keyword, selectedTagNames, loadNotes, syncSearchParams]);
+  }, [page, keyword, selectedTagIds, loadNotes, syncSearchParams]);
 
-  const handleTagToggle = (tagName: string) => {
-    setSelectedTagNames((prev) =>
-      prev.includes(tagName) ? prev.filter((n) => n !== tagName) : [...prev, tagName]
+  const handleTagToggle = (tagId: string) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
     );
     setPage(1);
   };
@@ -151,7 +152,7 @@ export default function NoteListPage() {
               <TagChip
                 key={tag.id}
                 tag={tag}
-                selected={selectedTagNames.includes(tag.name)}
+                selected={selectedTagIds.includes(tag.id)}
                 onToggle={handleTagToggle}
               />
             ))}
@@ -185,7 +186,7 @@ export default function NoteListPage() {
                       <ul className="question-tags" aria-label={t('note.tagsLabel')}>
                         {note.tags.map((tag) => (
                           <li key={tag} className="tag-badge">
-                            {tag}
+                            {tagMap.get(tag) ?? tag}
                           </li>
                         ))}
                       </ul>

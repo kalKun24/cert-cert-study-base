@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
 import { fetchNote, deleteNote, updateNoteVisibility } from '../utils/noteApi';
+import { fetchTags } from '../utils/tagApi';
+import { Tag } from '../types/tag';
 import { useAuth } from '../context/AuthContext';
 import { useTeam } from '../context/TeamContext';
 import { Note, NoteStatus } from '../types/note';
@@ -33,6 +35,8 @@ export default function NoteDetailPage() {
   const { activeTeam } = useTeam();
 
   const [note, setNote] = useState<Note | null>(null);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const tagMap = useMemo(() => new Map(tags.map((t) => [t.id, t.name])), [tags]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -45,9 +49,12 @@ export default function NoteDetailPage() {
     let isMounted = true;
     setIsLoading(true);
     setLoadError('');
-    fetchNote(activeTeam.id, id)
-      .then((n) => {
-        if (isMounted) setNote(n);
+    Promise.all([fetchNote(activeTeam.id, id), fetchTags(activeTeam.id)])
+      .then(([n, ts]) => {
+        if (isMounted) {
+          setNote(n);
+          setTags(ts);
+        }
       })
       .catch(() => {
         if (isMounted) setLoadError(t('note.error.fetchFailed'));
@@ -157,7 +164,7 @@ export default function NoteDetailPage() {
             <ul className="question-tags" aria-label={t('note.tagsLabel')} role="list">
               {note.tags.map((tag) => (
                 <li key={tag} className="tag-badge" role="listitem">
-                  {tag}
+                  {tagMap.get(tag) ?? tag}
                 </li>
               ))}
             </ul>
