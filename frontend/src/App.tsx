@@ -12,6 +12,10 @@ import QuestionListPage from './pages/QuestionListPage';
 import QuestionDetailPage from './pages/QuestionDetailPage';
 import QuestionCreatePage from './pages/QuestionCreatePage';
 import QuestionEditPage from './pages/QuestionEditPage';
+import NoteListPage from './pages/NoteListPage';
+import NoteDetailPage from './pages/NoteDetailPage';
+import NoteCreatePage from './pages/NoteCreatePage';
+import NoteEditPage from './pages/NoteEditPage';
 import TeamListPage from './pages/TeamListPage';
 import TeamDetailPage from './pages/TeamDetailPage';
 import TeamCreatePage from './pages/TeamCreatePage';
@@ -97,6 +101,10 @@ export default function App() {
                 <Route path="/questions/new" element={<QuestionCreatePage />} />
                 <Route path="/questions/:id" element={<QuestionDetailPage />} />
                 <Route path="/questions/:id/edit" element={<QuestionEditPage />} />
+                <Route path="/notes" element={<NoteListPage />} />
+                <Route path="/notes/new" element={<NoteCreatePage />} />
+                <Route path="/notes/:id" element={<NoteDetailPage />} />
+                <Route path="/notes/:id/edit" element={<NoteEditPage />} />
                 <Route path="/tags" element={<TagManagePage />} />
                 <Route path="/teams" element={<TeamListPage />} />
                 <Route element={<PrivateRoute requiredRoles={['admin', 'teamowner']} />}>
