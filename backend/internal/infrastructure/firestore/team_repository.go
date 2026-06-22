@@ -188,11 +188,12 @@ func (r *FirestoreTeamRepository) Save(ctx context.Context, team *domain.Team) e
 	return nil
 }
 
-// Delete はIDで指定したチームとそのサブコレクション（メンバー）を削除します。
-// Firestoreはコレクションの自動カスケード削除を行わないため、
-// メンバーサブコレクションを明示的に削除します。
+// Delete はIDで指定したチームと全サブコレクションをカスケード削除します。
+// Firestoreはドキュメント削除時にサブコレクションを自動削除しないため、
+// questions（+各コメント）、notes（+各コメント）、tags、members を明示的に削除します。
 func (r *FirestoreTeamRepository) Delete(ctx context.Context, id string) error {
-	_, err := r.teamsCol().Doc(id).Get(ctx)
+	teamRef := r.teamsCol().Doc(id)
+	_, err := teamRef.Get(ctx)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			return domain.ErrTeamNotFound
@@ -200,20 +201,67 @@ func (r *FirestoreTeamRepository) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("チームの存在確認に失敗しました: %w", err)
 	}
 
-	// メンバーサブコレクションを削除
-	if err := r.deleteSubCollection(ctx, r.membersCol(id)); err != nil {
+	// questions と各 question の comments を削除
+	questionIter := teamRef.Collection("questions").Documents(ctx)
+	defer questionIter.Stop()
+	for {
+		qDoc, err := questionIter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("問題一覧の取得に失敗しました: %w", err)
+		}
+		if err := deleteSubCollection(ctx, r.client, qDoc.Ref.Collection("comments")); err != nil {
+			return fmt.Errorf("問題コメントの削除に失敗しました: %w", err)
+		}
+		if _, err := qDoc.Ref.Delete(ctx); err != nil {
+			return fmt.Errorf("問題の削除に失敗しました: %w", err)
+		}
+	}
+
+	// notes と各 note の comments を削除
+	noteIter := teamRef.Collection("notes").Documents(ctx)
+	defer noteIter.Stop()
+	for {
+		nDoc, err := noteIter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("ノート一覧の取得に失敗しました: %w", err)
+		}
+		if err := deleteSubCollection(ctx, r.client, nDoc.Ref.Collection("comments")); err != nil {
+			return fmt.Errorf("ノートコメントの削除に失敗しました: %w", err)
+		}
+		if _, err := nDoc.Ref.Delete(ctx); err != nil {
+			return fmt.Errorf("ノートの削除に失敗しました: %w", err)
+		}
+	}
+
+	// tags を削除
+	if err := deleteSubCollection(ctx, r.client, teamRef.Collection("tags")); err != nil {
+		return fmt.Errorf("タグの削除に失敗しました: %w", err)
+	}
+
+	// members を削除
+	if err := deleteSubCollection(ctx, r.client, r.membersCol(id)); err != nil {
 		return fmt.Errorf("メンバーの削除に失敗しました: %w", err)
 	}
 
-	_, err = r.teamsCol().Doc(id).Delete(ctx)
+	_, err = teamRef.Delete(ctx)
 	if err != nil {
 		return fmt.Errorf("チームの削除に失敗しました: %w", err)
 	}
 	return nil
 }
 
-// deleteSubCollection はサブコレクション内の全ドキュメントを削除します。
-func (r *FirestoreTeamRepository) deleteSubCollection(ctx context.Context, col *fs.CollectionRef) error {
+// deleteSubCollection はサブコレクション内の全ドキュメントを BulkWriter で削除します。
+// BulkWriter は操作をバッチ化して並列送信するため、1件ずつ直列削除より高速です。
+// Firestoreのカスケード削除が必要な全リポジトリで共用します。
+func deleteSubCollection(ctx context.Context, client *fs.Client, col *fs.CollectionRef) error {
+	bw := client.BulkWriter(ctx)
+
 	iter := col.Documents(ctx)
 	defer iter.Stop()
 
@@ -223,12 +271,15 @@ func (r *FirestoreTeamRepository) deleteSubCollection(ctx context.Context, col *
 			break
 		}
 		if err != nil {
+			bw.End()
 			return fmt.Errorf("サブコレクション走査に失敗しました: %w", err)
 		}
-		if _, err := doc.Ref.Delete(ctx); err != nil {
-			return fmt.Errorf("ドキュメント削除に失敗しました: %w", err)
+		if _, err := bw.Delete(doc.Ref); err != nil {
+			bw.End()
+			return fmt.Errorf("削除ジョブのエンキューに失敗しました: %w", err)
 		}
 	}
+	bw.End()
 	return nil
 }
 
