@@ -91,6 +91,9 @@ jobs:
   security-scan:
     name: セキュリティスキャン（Trivy + gosec）
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
 
     steps:
       - name: コードをチェックアウト
@@ -116,6 +119,7 @@ jobs:
           category: gosec
 
       - name: Trivy で Go の依存関係脆弱性スキャンを実行
+        if: always()
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
