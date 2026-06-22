@@ -193,11 +193,11 @@ func TestTeamDelete_CascadesAll(t *testing.T) {
 
 	// 全サブコレクションが空になっていることを確認
 	checks := map[string]*fs.CollectionRef{
-		"questions":        client.Collection("teams").Doc(teamID).Collection("questions"),
+		"questions":         client.Collection("teams").Doc(teamID).Collection("questions"),
 		"question comments": qCommentsCol,
-		"notes":            client.Collection("teams").Doc(teamID).Collection("notes"),
-		"note comments":    nCommentsCol,
-		"tags":             tagsCol,
+		"notes":             client.Collection("teams").Doc(teamID).Collection("notes"),
+		"note comments":     nCommentsCol,
+		"tags":              tagsCol,
 	}
 	for name, col := range checks {
 		if got := countDocs(ctx, t, col); got != 0 {
