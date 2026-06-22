@@ -10,6 +10,9 @@ import (
 	"github.com/kalKun24/cert-study-base/backend/internal/usecase"
 )
 
+// maxTeamBodyBytes はチーム系ハンドラのリクエストボディ最大サイズ制限です（64KB）。
+const maxTeamBodyBytes = 64 * 1024
+
 // TeamHandler はチーム管理に関するHTTPハンドラです。
 type TeamHandler struct {
 	teamUC *usecase.TeamUseCase
@@ -31,6 +34,7 @@ func callerInfo(r *http.Request) (id string, role domain.Role) {
 func (h *TeamHandler) HandleCreateTeam(w http.ResponseWriter, r *http.Request) {
 	callerID, callerRole := callerInfo(r)
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxTeamBodyBytes)
 	var req CreateTeamRequestDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
@@ -129,6 +133,7 @@ func (h *TeamHandler) HandleUpdateTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxTeamBodyBytes)
 	var req UpdateTeamRequestDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
@@ -237,6 +242,7 @@ func (h *TeamHandler) HandleAddTeamMember(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxTeamBodyBytes)
 	var req AddTeamMemberRequestDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
@@ -280,6 +286,7 @@ func (h *TeamHandler) HandleChangeMemberRole(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxTeamBodyBytes)
 	var req ChangeMemberRoleRequestDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})

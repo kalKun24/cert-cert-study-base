@@ -10,6 +10,9 @@ import (
 	"github.com/kalKun24/cert-study-base/backend/internal/usecase"
 )
 
+// maxUserBodyBytes はユーザー系ハンドラのリクエストボディ最大サイズ制限です（64KB）。
+const maxUserBodyBytes = 64 * 1024
+
 // UserHandler はユーザー管理に関するHTTPハンドラです。
 type UserHandler struct {
 	userUC *usecase.UserUseCase
@@ -39,6 +42,7 @@ func (h *UserHandler) HandleListUsers(w http.ResponseWriter, r *http.Request) {
 
 // HandleCreateUser は POST /api/v1/users を処理します（admin のみ）。
 func (h *UserHandler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxUserBodyBytes)
 	var req CreateUserRequestDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
@@ -110,6 +114,7 @@ func (h *UserHandler) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxUserBodyBytes)
 	var req UpdateUserRequestDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
@@ -181,6 +186,7 @@ func (h *UserHandler) HandleUpdateMyProfile(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxUserBodyBytes)
 	var req UpdateMyProfileRequestDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
@@ -219,6 +225,7 @@ func (h *UserHandler) HandleChangeMyPassword(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxUserBodyBytes)
 	var req ChangeMyPasswordRequestDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
@@ -270,6 +277,7 @@ func (h *UserHandler) HandleUpdateTeamOwnerStatus(w http.ResponseWriter, r *http
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxUserBodyBytes)
 	var req UpdateTeamOwnerStatusRequestDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
@@ -307,6 +315,7 @@ func (h *UserHandler) HandleUpdateUserStatus(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxUserBodyBytes)
 	var req UpdateUserStatusRequestDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
