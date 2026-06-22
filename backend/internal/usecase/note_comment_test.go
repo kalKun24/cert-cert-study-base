@@ -3,6 +3,7 @@ package usecase_test
 import (
 	"context"
 	"errors"
+	"sort"
 	"testing"
 	"time"
 
@@ -49,6 +50,10 @@ func (m *mockNoteCommentRepository) ListByNoteID(_ context.Context, teamID, note
 			result = append(result, c)
 		}
 	}
+	// マップのイテレーション順はランダムのため、ID で昇順ソートして決定的な順序を保証する
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].ID < result[j].ID
+	})
 	return result, nil
 }
 
