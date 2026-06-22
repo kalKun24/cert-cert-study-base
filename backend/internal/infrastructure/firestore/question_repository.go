@@ -121,22 +121,39 @@ func (r *FirestoreQuestionRepository) ListByTeam(ctx context.Context, teamID str
 
 // SearchByTeam は指定チームの問題を検索・フィルタリングして返します。
 // フィルタ条件が空の場合はチーム全件を返します。
+//
+// タグフィルタ最適化:
+//   - TagIDs が空でない場合、最初の1タグを Firestore の array-contains クエリでサーバーサイド絞り込みする。
+//     Firestore は1クエリにつき array-contains を1つしか使用できないため、残りのタグはメモリフィルタで AND 処理する。
+//   - TagIDs が空の場合は全件取得してメモリフィルタのみ適用する。
 func (r *FirestoreQuestionRepository) SearchByTeam(ctx context.Context, teamID string, filter domain.QuestionSearchFilter) ([]*domain.Question, error) {
-	all, err := r.ListByTeam(ctx, teamID)
+	var (
+		candidates []*domain.Question
+		err        error
+	)
+
+	if len(filter.TagIDs) > 0 {
+		// 最初の1タグをサーバーサイドで絞り込む（Firestore は array-contains を1クエリ1つのみ許可）
+		iter := r.questionsCol(teamID).Where("tags", "array-contains", filter.TagIDs[0]).Documents(ctx)
+		defer iter.Stop()
+		candidates, err = r.collectQuestions(iter)
+	} else {
+		candidates, err = r.ListByTeam(ctx, teamID)
+	}
 	if err != nil {
 		return nil, err
 	}
 
 	var result []*domain.Question
-	for _, q := range all {
-		// タグANDフィルタリング
-		if len(filter.TagIDs) > 0 {
+	for _, q := range candidates {
+		// 残りのタグ（index 1 以降）をメモリフィルタで AND 処理
+		if len(filter.TagIDs) > 1 {
 			tagSet := make(map[string]struct{}, len(q.Tags))
 			for _, t := range q.Tags {
 				tagSet[t] = struct{}{}
 			}
 			match := true
-			for _, tid := range filter.TagIDs {
+			for _, tid := range filter.TagIDs[1:] {
 				if _, ok := tagSet[tid]; !ok {
 					match = false
 					break
@@ -147,7 +164,11 @@ func (r *FirestoreQuestionRepository) SearchByTeam(ctx context.Context, teamID s
 			}
 		}
 
-		// キーワード検索
+		// キーワード検索: Firestore はネイティブな全文検索をサポートしないため、
+		// 取得した全ドキュメントをメモリ内でスキャンする。
+		// スケール限界: チームあたり数百件以上になると応答時間が線形増加し、
+		// メモリ使用量も増大する。将来的には Algolia や Typesense 等の
+		// 外部全文検索エンジンへの移行を検討すること。
 		if filter.Keyword != "" {
 			kw := filter.Keyword
 			if !strings.Contains(q.Title, kw) &&
