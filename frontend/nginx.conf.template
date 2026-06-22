@@ -30,5 +30,10 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         # HTTPS upstream（Cloud Run）に接続する際に SNI を送るために必要
         proxy_ssl_server_name on;
+        # Cloud Run は alt-svc・via・x-cloud-trace-context 等の大きなヘッダーを付加するため
+        # デフォルト（4k）だと "upstream sent too big header" で 502 になる
+        proxy_buffer_size 32k;
+        proxy_buffers 4 32k;
+        proxy_busy_buffers_size 32k;
     }
 }
