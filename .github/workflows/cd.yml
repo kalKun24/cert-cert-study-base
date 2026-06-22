@@ -1,0 +1,117 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-backend:
+    name: バックエンドビルド・デプロイ
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: コードをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: GCP 認証（Workload Identity Federation）
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Docker を Artifact Registry へ認証
+        run: gcloud auth configure-docker asia-northeast1-docker.pkg.dev --quiet
+
+      - name: バックエンド Docker イメージをビルド・プッシュ
+        run: |
+          IMAGE="asia-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cert-study/backend"
+          docker build \
+            -t "${IMAGE}:${{ github.sha }}" \
+            -t "${IMAGE}:latest" \
+            ./backend
+          docker push "${IMAGE}:${{ github.sha }}"
+          docker push "${IMAGE}:latest"
+
+      - name: バックエンドを Cloud Run へデプロイ
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: cert-study-backend
+          region: asia-northeast1
+          image: asia-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cert-study/backend:${{ github.sha }}
+          secrets: |
+            JWT_SECRET=jwt-secret:latest
+            SEED_ADMIN_PASSWORD=seed-admin-password:latest
+
+      - name: デプロイ結果をジョブサマリーへ出力
+        run: |
+          echo "## バックエンド デプロイ完了" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **サービス URL**: ${{ steps.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **イメージタグ**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+
+  deploy-frontend:
+    name: フロントエンドビルド・デプロイ
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: コードをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: GCP 認証（Workload Identity Federation）
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Docker を Artifact Registry へ認証
+        run: gcloud auth configure-docker asia-northeast1-docker.pkg.dev --quiet
+
+      - name: バックエンド URL からホスト名を抽出
+        id: backend
+        run: |
+          BACKEND_URL="${{ needs.deploy-backend.outputs.url }}"
+          # "https://" プレフィックスを除いたホスト名を抽出
+          BACKEND_HOST="${BACKEND_URL#https://}"
+          echo "url=${BACKEND_URL}" >> $GITHUB_OUTPUT
+          echo "host=${BACKEND_HOST}" >> $GITHUB_OUTPUT
+
+      - name: フロントエンド Docker イメージをビルド・プッシュ
+        run: |
+          IMAGE="asia-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cert-study/frontend"
+          docker build \
+            -t "${IMAGE}:${{ github.sha }}" \
+            -t "${IMAGE}:latest" \
+            ./frontend
+          docker push "${IMAGE}:${{ github.sha }}"
+          docker push "${IMAGE}:latest"
+
+      - name: フロントエンドを Cloud Run へデプロイ
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: cert-study-frontend
+          region: asia-northeast1
+          image: asia-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cert-study/frontend:${{ github.sha }}
+          env_vars: |
+            BACKEND_URL=${{ steps.backend.outputs.url }}
+            BACKEND_HOST=${{ steps.backend.outputs.host }}
+
+      - name: デプロイ結果をジョブサマリーへ出力
+        run: |
+          echo "## フロントエンド デプロイ完了" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **サービス URL**: ${{ steps.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **イメージタグ**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **BACKEND_URL**: ${{ steps.backend.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **BACKEND_HOST**: ${{ steps.backend.outputs.host }}" >> $GITHUB_STEP_SUMMARY
