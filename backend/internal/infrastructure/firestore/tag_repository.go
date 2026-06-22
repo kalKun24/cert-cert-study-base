@@ -41,18 +41,20 @@ func toTag(r tagRecord) *domain.Tag {
 
 // FirestoreTagRepository はCloud Firestoreにタグデータを永続化するリポジトリです。
 // domain.TagRepository インターフェースを実装します。
-// questionRepo を保持することで、Delete 時の使用中チェックを実施します。
+// questionRepo と noteRepo を保持することで、Delete 時の使用中チェックを実施します。
 type FirestoreTagRepository struct {
 	client       *fs.Client
 	questionRepo domain.QuestionRepository
+	noteRepo     domain.NoteRepository
 }
 
 // NewFirestoreTagRepository は FirestoreTagRepository を生成します。
-// questionRepo はタグ削除時の使用中チェックに使用します。
-func NewFirestoreTagRepository(client *fs.Client, questionRepo domain.QuestionRepository) *FirestoreTagRepository {
+// questionRepo と noteRepo はタグ削除時の使用中チェックに使用します。
+func NewFirestoreTagRepository(client *fs.Client, questionRepo domain.QuestionRepository, noteRepo domain.NoteRepository) *FirestoreTagRepository {
 	return &FirestoreTagRepository{
 		client:       client,
 		questionRepo: questionRepo,
+		noteRepo:     noteRepo,
 	}
 }
 
@@ -155,12 +157,20 @@ func (r *FirestoreTagRepository) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("タグレコードのteamIDが空です（データ不整合）: %w", domain.ErrTagDataInconsistent)
 	}
 
-	// 使用中チェック: 指定チームの指定タグIDを含む問題が存在するか確認
+	// 使用中チェック: 問題またはノートが参照するタグは削除できない
 	questions, err := r.questionRepo.FindByTagID(ctx, tag.TeamID, id)
 	if err != nil {
-		return fmt.Errorf("使用中チェックに失敗しました: %w", err)
+		return fmt.Errorf("使用中チェック（問題）に失敗しました: %w", err)
 	}
 	if len(questions) > 0 {
+		return domain.ErrTagInUse
+	}
+
+	notes, err := r.noteRepo.FindByTagID(ctx, tag.TeamID, id)
+	if err != nil {
+		return fmt.Errorf("使用中チェック（ノート）に失敗しました: %w", err)
+	}
+	if len(notes) > 0 {
 		return domain.ErrTagInUse
 	}
 
