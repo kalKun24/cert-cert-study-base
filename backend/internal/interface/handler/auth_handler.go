@@ -35,7 +35,7 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	out, err := h.authUC.Login(usecase.LoginInput{
+	out, err := h.authUC.Login(r.Context(), usecase.LoginInput{
 		Username: req.Username,
 		Password: req.Password,
 	})

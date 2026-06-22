@@ -10,6 +10,9 @@ import (
 	"github.com/kalKun24/cert-study-base/backend/internal/usecase"
 )
 
+// maxUserBodyBytes はユーザー系ハンドラのリクエストボディ最大サイズ制限です（64KB）。
+const maxUserBodyBytes = 64 * 1024
+
 // UserHandler はユーザー管理に関するHTTPハンドラです。
 type UserHandler struct {
 	userUC *usecase.UserUseCase
@@ -22,7 +25,7 @@ func NewUserHandler(userUC *usecase.UserUseCase) *UserHandler {
 
 // HandleListUsers は GET /api/v1/users を処理します（admin のみ）。
 func (h *UserHandler) HandleListUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := h.userUC.ListUsers()
+	users, err := h.userUC.ListUsers(r.Context())
 	if err != nil {
 		slog.Error("ユーザー一覧取得でエラーが発生しました", "error", err)
 		writeJSON(w, http.StatusInternalServerError, response{Error: "サーバー内部エラーが発生しました"})
@@ -39,6 +42,7 @@ func (h *UserHandler) HandleListUsers(w http.ResponseWriter, r *http.Request) {
 
 // HandleCreateUser は POST /api/v1/users を処理します（admin のみ）。
 func (h *UserHandler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxUserBodyBytes)
 	var req CreateUserRequestDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
@@ -55,7 +59,7 @@ func (h *UserHandler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.userUC.CreateUser(usecase.CreateUserInput{
+	user, err := h.userUC.CreateUser(r.Context(), usecase.CreateUserInput{
 		Username:    req.Username,
 		DisplayName: req.DisplayName,
 		Email:       req.Email,
@@ -69,6 +73,10 @@ func (h *UserHandler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, domain.ErrEmailAlreadyExists):
 			writeJSON(w, http.StatusConflict, response{Error: err.Error()})
 		case errors.Is(err, domain.ErrInvalidRole):
+			writeJSON(w, http.StatusBadRequest, response{Error: err.Error()})
+		case errors.Is(err, domain.ErrInvalidUsernameFormat):
+			writeJSON(w, http.StatusBadRequest, response{Error: err.Error()})
+		case errors.Is(err, domain.ErrInvalidEmailFormat):
 			writeJSON(w, http.StatusBadRequest, response{Error: err.Error()})
 		default:
 			slog.Error("ユーザー作成でエラーが発生しました", "error", err)
@@ -88,7 +96,7 @@ func (h *UserHandler) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.userUC.GetUser(id)
+	user, err := h.userUC.GetUser(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			writeJSON(w, http.StatusNotFound, response{Error: "ユーザーが見つかりません"})
@@ -110,6 +118,7 @@ func (h *UserHandler) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxUserBodyBytes)
 	var req UpdateUserRequestDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
@@ -132,7 +141,7 @@ func (h *UserHandler) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
 		input.Role = &r
 	}
 
-	user, err := h.userUC.UpdateUser(id, input)
+	user, err := h.userUC.UpdateUser(r.Context(), id, input)
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrUserNotFound):
@@ -140,6 +149,8 @@ func (h *UserHandler) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, domain.ErrEmailAlreadyExists):
 			writeJSON(w, http.StatusConflict, response{Error: err.Error()})
 		case errors.Is(err, domain.ErrInvalidRole):
+			writeJSON(w, http.StatusBadRequest, response{Error: err.Error()})
+		case errors.Is(err, domain.ErrInvalidEmailFormat):
 			writeJSON(w, http.StatusBadRequest, response{Error: err.Error()})
 		default:
 			slog.Error("ユーザー更新でエラーが発生しました", "id", id, "error", err)
@@ -159,7 +170,7 @@ func (h *UserHandler) HandleDeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.userUC.DeleteUser(id); err != nil {
+	if err := h.userUC.DeleteUser(r.Context(), id); err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			writeJSON(w, http.StatusNotFound, response{Error: "ユーザーが見つかりません"})
 			return
@@ -181,6 +192,7 @@ func (h *UserHandler) HandleUpdateMyProfile(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxUserBodyBytes)
 	var req UpdateMyProfileRequestDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
@@ -192,7 +204,7 @@ func (h *UserHandler) HandleUpdateMyProfile(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	user, err := h.userUC.UpdateProfile(usecase.UpdateProfileInput{
+	user, err := h.userUC.UpdateProfile(r.Context(), usecase.UpdateProfileInput{
 		UserID:      userID,
 		DisplayName: req.DisplayName,
 	})
@@ -219,6 +231,7 @@ func (h *UserHandler) HandleChangeMyPassword(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxUserBodyBytes)
 	var req ChangeMyPasswordRequestDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
@@ -240,7 +253,7 @@ func (h *UserHandler) HandleChangeMyPassword(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err := h.userUC.ChangePassword(usecase.ChangePasswordInput{
+	err := h.userUC.ChangePassword(r.Context(), usecase.ChangePasswordInput{
 		UserID:          userID,
 		CurrentPassword: req.CurrentPassword,
 		NewPassword:     req.NewPassword,
@@ -270,6 +283,7 @@ func (h *UserHandler) HandleUpdateTeamOwnerStatus(w http.ResponseWriter, r *http
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxUserBodyBytes)
 	var req UpdateTeamOwnerStatusRequestDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
@@ -281,7 +295,7 @@ func (h *UserHandler) HandleUpdateTeamOwnerStatus(w http.ResponseWriter, r *http
 		return
 	}
 
-	user, err := h.userUC.UpdateTeamOwnerStatus(usecase.UpdateTeamOwnerStatusInput{
+	user, err := h.userUC.UpdateTeamOwnerStatus(r.Context(), usecase.UpdateTeamOwnerStatusInput{
 		UserID:      id,
 		IsTeamOwner: req.IsTeamOwner,
 		MaxTeams:    req.MaxTeams,
@@ -307,13 +321,14 @@ func (h *UserHandler) HandleUpdateUserStatus(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxUserBodyBytes)
 	var req UpdateUserStatusRequestDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, response{Error: "リクエストボディが不正です"})
 		return
 	}
 
-	user, err := h.userUC.UpdateUserStatus(id, req.IsActive)
+	user, err := h.userUC.UpdateUserStatus(r.Context(), id, req.IsActive)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			writeJSON(w, http.StatusNotFound, response{Error: "ユーザーが見つかりません"})

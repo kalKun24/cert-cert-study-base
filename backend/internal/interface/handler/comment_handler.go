@@ -40,6 +40,10 @@ func (h *CommentHandler) HandleCreateComment(w http.ResponseWriter, r *http.Requ
 		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
 		return
 	}
+	if !validateUUID(teamID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDの形式が不正です"})
+		return
+	}
 
 	questionID := r.PathValue("id")
 	if questionID == "" {
@@ -98,6 +102,10 @@ func (h *CommentHandler) HandleListComments(w http.ResponseWriter, r *http.Reque
 		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
 		return
 	}
+	if !validateUUID(teamID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDの形式が不正です"})
+		return
+	}
 
 	questionID := r.PathValue("id")
 	if questionID == "" {
@@ -147,6 +155,10 @@ func (h *CommentHandler) HandleUpdateComment(w http.ResponseWriter, r *http.Requ
 	teamID := r.PathValue("team_id")
 	if teamID == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+		return
+	}
+	if !validateUUID(teamID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDの形式が不正です"})
 		return
 	}
 
@@ -218,6 +230,10 @@ func (h *CommentHandler) HandleDeleteComment(w http.ResponseWriter, r *http.Requ
 	teamID := r.PathValue("team_id")
 	if teamID == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+		return
+	}
+	if !validateUUID(teamID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDの形式が不正です"})
 		return
 	}
 

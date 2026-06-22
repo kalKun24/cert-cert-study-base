@@ -5,13 +5,13 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-066 |
-| ステータス | 🔴 未着手 |
+| ステータス | 🟡 作業中 |
 | 作成日 | 2026-06-22 |
-| 着手日 | - |
+| 着手日 | 2026-06-22 |
 | 完了日 | - |
-| ブランチ名 | - |
-| PR番号 | - |
-| PRリンク | - |
+| ブランチ名 | feature/TICKET-066 |
+| PR番号 | #57 |
+| PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/57 |
 
 ---
 
@@ -32,21 +32,21 @@
 
 ## 受け入れ条件
 
-- [ ] セキュリティヘッダーミドルウェアを作成し `X-Content-Type-Options: nosniff`・`X-Frame-Options: DENY`・`Referrer-Policy: strict-origin-when-cross-origin`・`Permissions-Policy` を全レスポンスに設定する
-- [ ] `frontend/Dockerfile` の nginx 設定に同等のセキュリティヘッダーを追加する
-- [ ] `user_handler.go` と `team_handler.go` の json.Decode 前に `http.MaxBytesReader` を適用する
-- [ ] ユーザー作成・更新時に username のフォーマット（英数字・ハイフン・アンダースコア、3〜50文字）と email のフォーマットを検証するバリデーションをユースケース層に追加する
-- [ ] `comment_handler.go` の HandleCreateComment / HandleListComments / HandleUpdateComment / HandleDeleteComment に `teamID` の UUID バリデーションを追加する
+- [x] セキュリティヘッダーミドルウェアを作成し `X-Content-Type-Options: nosniff`・`X-Frame-Options: DENY`・`Referrer-Policy: strict-origin-when-cross-origin`・`Permissions-Policy` を全レスポンスに設定する
+- [x] `frontend/Dockerfile` の nginx 設定に同等のセキュリティヘッダーを追加する
+- [x] `user_handler.go` と `team_handler.go` の json.Decode 前に `http.MaxBytesReader` を適用する
+- [x] ユーザー作成・更新時に username のフォーマット（英数字・ハイフン・アンダースコア、3〜50文字）と email のフォーマットを検証するバリデーションをユースケース層に追加する
+- [x] `comment_handler.go` の HandleCreateComment / HandleListComments / HandleUpdateComment / HandleDeleteComment に `teamID` の UUID バリデーションを追加する
 
 ---
 
 ## サブチケット（コミット単位）
 
-- [ ] `feat(middleware): セキュリティHTTPヘッダーミドルウェアを追加`
-- [ ] `fix(docker): フロントエンド nginx 設定にセキュリティヘッダーを追加`
-- [ ] `fix(handler): user / team ハンドラに MaxBytesReader を追加`
-- [ ] `fix(usecase): ユーザー名・メールアドレスのフォーマットバリデーションを追加`
-- [ ] `fix(handler): comment 系ハンドラに teamID の UUID バリデーションを追加`
+- [x] `feat(middleware): セキュリティHTTPヘッダーミドルウェアを追加`
+- [x] `fix(docker): フロントエンド nginx 設定にセキュリティヘッダーを追加`
+- [x] `fix(handler): user / team ハンドラに MaxBytesReader を追加`
+- [x] `fix(usecase): ユーザー名・メールアドレスのフォーマットバリデーションを追加`
+- [x] `fix(handler): comment 系ハンドラに teamID の UUID バリデーションを追加`
 
 ---
 

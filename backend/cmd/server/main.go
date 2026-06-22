@@ -231,9 +231,9 @@ func main() {
 
 	srv := &http.Server{
 		Addr: net.JoinHostPort("", port),
-		// CORS → ログ の順でミドルウェアチェーンを適用する
+		// SecurityHeaders → CORS → ログ の順でミドルウェアチェーンを適用する
 		// CORS_ALLOWED_ORIGINS 環境変数でオリジンを制御（未設定時は * でローカル開発に対応）
-		Handler:           loggingMiddleware(middleware.CORS(mux)),
+		Handler:           loggingMiddleware(middleware.CORS(middleware.SecurityHeaders(mux))),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,

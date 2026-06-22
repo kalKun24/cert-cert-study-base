@@ -24,6 +24,12 @@ RUN printf 'server {\n\
     root /usr/share/nginx/html;\n\
     index index.html;\n\
 \n\
+    # セキュリティ HTTP ヘッダー\n\
+    add_header X-Content-Type-Options "nosniff" always;\n\
+    add_header X-Frame-Options "DENY" always;\n\
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;\n\
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;\n\
+\n\
     # SPA のクライアントサイドルーティング対応\n\
     location / {\n\
         try_files $uri $uri/ /index.html;\n\

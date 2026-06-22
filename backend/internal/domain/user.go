@@ -80,6 +80,11 @@ var (
 	ErrPermissionDenied = errors.New("この操作を行う権限がありません")
 	// ErrCurrentPasswordIncorrect は現在のパスワードが正しくない場合のエラーです。
 	ErrCurrentPasswordIncorrect = errors.New("current password is incorrect")
+	// ErrInvalidUsernameFormat はusernameのフォーマットが不正な場合のエラーです。
+	// username は英数字・ハイフン・アンダースコアのみ使用可能で、3〜50文字の制約があります。
+	ErrInvalidUsernameFormat = errors.New("usernameは英数字・ハイフン・アンダースコアのみ使用可能で、3〜50文字で入力してください")
+	// ErrInvalidEmailFormat はメールアドレスのフォーマットが不正な場合のエラーです。
+	ErrInvalidEmailFormat = errors.New("メールアドレスの形式が正しくありません")
 )
 
 // UserRepository はユーザーの永続化操作を抽象化するインターフェースです。
