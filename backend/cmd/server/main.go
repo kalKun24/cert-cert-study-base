@@ -105,11 +105,11 @@ func main() {
 	// TeamUseCase はメンバー統計機能のために questionRepo / commentRepo も注入する
 	teamUC := usecase.NewTeamUseCase(teamRepo, userRepo, questionRepo, commentRepo)
 
-	tagRepo := firestoreRepo.NewFirestoreTagRepository(fsClient, questionRepo)
-	tagUC := usecase.NewTagUseCase(tagRepo, teamRepo)
-
 	noteRepo := firestoreRepo.NewFirestoreNoteRepository(fsClient)
 	noteUC := usecase.NewNoteUseCase(noteRepo, teamRepo)
+
+	tagRepo := firestoreRepo.NewFirestoreTagRepository(fsClient, questionRepo, noteRepo)
+	tagUC := usecase.NewTagUseCase(tagRepo, teamRepo)
 
 	noteCommentRepo := firestoreRepo.NewFirestoreNoteCommentRepository(fsClient)
 	noteCommentUC := usecase.NewNoteCommentUseCase(noteCommentRepo, noteRepo, teamRepo, userRepo)

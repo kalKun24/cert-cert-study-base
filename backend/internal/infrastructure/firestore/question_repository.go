@@ -186,7 +186,8 @@ func (r *FirestoreQuestionRepository) Save(ctx context.Context, question *domain
 	return nil
 }
 
-// Delete はチームIDとIDで指定した問題を削除します。
+// Delete はチームIDとIDで指定した問題とそのコメントサブコレクションを削除します。
+// Firestoreはドキュメント削除時にサブコレクションを自動削除しないため、明示的に削除します。
 func (r *FirestoreQuestionRepository) Delete(ctx context.Context, teamID, id string) error {
 	ref := r.questionsCol(teamID).Doc(id)
 
@@ -196,6 +197,10 @@ func (r *FirestoreQuestionRepository) Delete(ctx context.Context, teamID, id str
 			return domain.ErrQuestionNotFound
 		}
 		return fmt.Errorf("問題の存在確認に失敗しました: %w", err)
+	}
+
+	if err := deleteSubCollection(ctx, r.client, ref.Collection("comments")); err != nil {
+		return fmt.Errorf("問題コメントの削除に失敗しました: %w", err)
 	}
 
 	_, err = ref.Delete(ctx)
