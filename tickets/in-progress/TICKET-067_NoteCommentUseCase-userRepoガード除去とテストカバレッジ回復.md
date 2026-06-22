@@ -5,11 +5,11 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-067 |
-| ステータス | 🔴 未着手 |
+| ステータス | 🟡 作業中 |
 | 作成日 | 2026-06-22 |
-| 着手日 | - |
+| 着手日 | 2026-06-22 |
 | 完了日 | - |
-| ブランチ名 | - |
+| ブランチ名 | feature/TICKET-067 |
 | PR番号 | - |
 | PRリンク | - |
 
@@ -23,7 +23,7 @@
 
 ## 背景・目的
 
-`backend/internal/usecase/note_comment.go:49` に `if uc.userRepo == nil { return userID, nil }` という分岐が存在する。コメントにも「テスト用」と明記されているプロダクションコードへの分岐埋め込みであり、CLAUDE.md の DI 原則（「層の境界はinterfaceで定義し、具体実装はInfrastructure層に置く（DI）」）に反する。
+`backend/internal/usecase/note_comment.go:49` に `if uc.userRepo == nil { return userID, nil }` という分岐が存在する。コメントにも「テスト用」と明記されているプロダクションコードへの分岐埋め込みであり、CLAUDE.md の DI 原則（「層の境界はinterfaceで定義し、具体実装はInfラstructure層に置く（DI）」）に反する。
 
 `backend/internal/usecase/note_comment_test.go` が `userRepo=nil` を渡しているため、`resolveNoteCommentDisplayName` の実際の `FindByID` 呼び出しパス（正常系・ErrUserNotFound・その他エラー）が全くテストされておらず、CLAUDE.md の「特にユースケース層はユニットテストを必須とする」という要件を満たしていない。
 
