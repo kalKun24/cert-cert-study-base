@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(ls *)",
+      "Bash(ls)",
+      "Bash(cat *)",
+      "Bash(grep *)",
+      "Bash(find *)",
+      "Bash(go *)",
+      "Bash(golangci-lint *)",
+      "Bash(/home/kal24hi/go/bin/go *)",
+      "Bash(/home/kal24hi/go/bin/golangci-lint *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(make *)",
+      "Bash(mkdir *)",
+      "Bash(mv *)",
+      "Bash(rm *)",
+      "Bash(cp *)",
+      "Bash(echo *)",
+      "Bash(which *)",
+      "Bash(pwd)",
+      "Bash(export *)",
+      "Bash(cd *)",
+      "Bash(sed *)",
+      "Bash(sort *)",
+      "Bash(gh *)",
+      "Edit",
+      "Write"
+    ]
+  }
+}
