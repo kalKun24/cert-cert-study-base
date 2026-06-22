@@ -100,6 +100,10 @@ func (h *InvitationHandler) HandleRespondInvitation(w http.ResponseWriter, r *ht
 		writeJSON(w, http.StatusBadRequest, response{Error: "招待IDは必須です"})
 		return
 	}
+	if !validateUUID(invitationID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "招待IDの形式が不正です"})
+		return
+	}
 
 	var req RespondInvitationRequestDTO
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&req); err != nil {

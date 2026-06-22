@@ -22,7 +22,7 @@ interface FormValues {
   explanation: string;
   memo: string;
   status: QuestionStatus;
-  selectedTagNames: string[];
+  selectedTagIds: string[];
 }
 
 export default function QuestionEditPage() {
@@ -65,7 +65,7 @@ export default function QuestionEditPage() {
           explanation: q.explanation,
           memo: q.memo,
           status: q.status,
-          selectedTagNames: q.tags,
+          selectedTagIds: q.tags,
         });
         setTags(tagList);
       })
@@ -81,15 +81,15 @@ export default function QuestionEditPage() {
     };
   }, [id, t, user, navigate, activeTeam]);
 
-  const handleTagToggle = (tagName: string) => {
+  const handleTagToggle = (tagId: string) => {
     if (!form) return;
     setForm((prev) => {
       if (!prev) return prev;
       return {
         ...prev,
-        selectedTagNames: prev.selectedTagNames.includes(tagName)
-          ? prev.selectedTagNames.filter((n) => n !== tagName)
-          : [...prev.selectedTagNames, tagName],
+        selectedTagIds: prev.selectedTagIds.includes(tagId)
+          ? prev.selectedTagIds.filter((id) => id !== tagId)
+          : [...prev.selectedTagIds, tagId],
       };
     });
   };
@@ -129,7 +129,7 @@ export default function QuestionEditPage() {
         answer: form.answer,
         explanation: form.explanation,
         memo: form.memo,
-        tags: form.selectedTagNames,
+        tags: form.selectedTagIds,
         status: form.status,
       });
       navigate(`/questions/${id}`);
@@ -191,7 +191,7 @@ export default function QuestionEditPage() {
           {/* タグドロップダウン */}
           <TagDropdown
             tags={tags}
-            selectedTagNames={form.selectedTagNames}
+            selectedTagIds={form.selectedTagIds}
             onToggle={handleTagToggle}
           />
 

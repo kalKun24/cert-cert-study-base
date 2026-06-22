@@ -416,6 +416,112 @@ func TestDeleteNoteComment_NotOwnerForbidden(t *testing.T) {
 	}
 }
 
+// TestUpdateNoteComment_AdminCanUpdateOthersComment は
+// admin が他人のノートコメントを更新できることのテストです。
+func TestUpdateNoteComment_AdminCanUpdateOthersComment(t *testing.T) {
+	nRepo := newMockNoteRepository()
+	nRepo.addNote(testPublishedNote("note-1", "owner-1"))
+
+	ncRepo := newMockNoteCommentRepository()
+	// testCallerID が投稿したコメント
+	ncRepo.addNoteComment(testNoteComment("nc-1", "note-1", testCallerID, "元のコメント"))
+
+	// admin-user はチームメンバーではない（admin はメンバーチェックをスキップ）
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+
+	uc := newNoteCommentUseCaseWithTeam(ncRepo, nRepo, tRepo)
+
+	result, err := uc.UpdateNoteComment(context.Background(), usecase.UpdateNoteCommentInput{
+		TeamID:     testTeamID,
+		NoteID:     "note-1",
+		CommentID:  "nc-1",
+		Body:       "adminが編集したコメント",
+		CallerID:   "admin-user", // 作成者とは別の admin
+		CallerRole: domain.RoleAdmin,
+	})
+
+	if err != nil {
+		t.Fatalf("admin は他人のノートコメントを更新できるべきです: %v", err)
+	}
+	if result.Body != "adminが編集したコメント" {
+		t.Errorf("Bodyが期待値と異なります: got %s, want adminが編集したコメント", result.Body)
+	}
+}
+
+// TestUpdateNoteComment_UserCannotUpdateOthersComment は
+// 一般 user が他人のノートコメントを更新しようとすると ErrPermissionDenied になることのテストです。
+func TestUpdateNoteComment_UserCannotUpdateOthersComment(t *testing.T) {
+	nRepo := newMockNoteRepository()
+	nRepo.addNote(testPublishedNote("note-1", "owner-1"))
+
+	ncRepo := newMockNoteCommentRepository()
+	ncRepo.addNoteComment(testNoteComment("nc-1", "note-1", testCallerID, "コメント"))
+
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "user-2", Role: domain.MemberRoleMember})
+
+	uc := newNoteCommentUseCaseWithTeam(ncRepo, nRepo, tRepo)
+
+	_, err := uc.UpdateNoteComment(context.Background(), usecase.UpdateNoteCommentInput{
+		TeamID:     testTeamID,
+		NoteID:     "note-1",
+		CommentID:  "nc-1",
+		Body:       "不正な編集",
+		CallerID:   "user-2", // 非投稿者・非 admin
+		CallerRole: domain.RoleUser,
+	})
+
+	if !errors.Is(err, domain.ErrPermissionDenied) {
+		t.Errorf("一般 user が他人のノートコメントを更新しようとすると ErrPermissionDenied になるべきです: got %v", err)
+	}
+}
+
+// TestDeleteNoteComment_AdminCanDeleteOthersComment は
+// admin が他人のノートコメントを削除できることのテストです（チーム非メンバー）。
+func TestDeleteNoteComment_AdminCanDeleteOthersComment(t *testing.T) {
+	nRepo := newMockNoteRepository()
+	nRepo.addNote(testPublishedNote("note-1", "owner-1"))
+
+	ncRepo := newMockNoteCommentRepository()
+	ncRepo.addNoteComment(testNoteComment("nc-1", "note-1", testCallerID, "コメント"))
+
+	// admin-user はチームメンバーではない
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+
+	uc := newNoteCommentUseCaseWithTeam(ncRepo, nRepo, tRepo)
+
+	err := uc.DeleteNoteComment(context.Background(), testTeamID, "note-1", "nc-1", "admin-user", domain.RoleAdmin)
+
+	if err != nil {
+		t.Errorf("admin は他人のノートコメントを削除できるべきです: %v", err)
+	}
+}
+
+// TestDeleteNoteComment_UserCannotDeleteOthersComment は
+// 一般 user が他人のノートコメントを削除しようとすると ErrPermissionDenied になることのテストです。
+func TestDeleteNoteComment_UserCannotDeleteOthersComment(t *testing.T) {
+	nRepo := newMockNoteRepository()
+	nRepo.addNote(testPublishedNote("note-1", "owner-1"))
+
+	ncRepo := newMockNoteCommentRepository()
+	ncRepo.addNoteComment(testNoteComment("nc-1", "note-1", testCallerID, "コメント"))
+
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "user-2", Role: domain.MemberRoleMember})
+
+	uc := newNoteCommentUseCaseWithTeam(ncRepo, nRepo, tRepo)
+
+	err := uc.DeleteNoteComment(context.Background(), testTeamID, "note-1", "nc-1", "user-2", domain.RoleUser)
+
+	if !errors.Is(err, domain.ErrPermissionDenied) {
+		t.Errorf("一般 user が他人のノートコメントを削除しようとすると ErrPermissionDenied になるべきです: got %v", err)
+	}
+}
+
 // --- resolveNoteCommentDisplayName テスト ---
 
 // TestResolveDisplayName_Success はユーザー取得成功時に display_name が返ることのテストです。

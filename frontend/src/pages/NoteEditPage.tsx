@@ -21,7 +21,7 @@ interface FormValues {
   discussion_points: string;
   memo: string;
   status: NoteStatus;
-  selectedTagNames: string[];
+  selectedTagIds: string[];
 }
 
 const TAB_LABEL_KEYS: Record<EditorTab, string> = {
@@ -68,7 +68,7 @@ export default function NoteEditPage() {
           discussion_points: note.discussion_points,
           memo: note.memo,
           status: note.status,
-          selectedTagNames: note.tags,
+          selectedTagIds: note.tags,
         });
         setTags(tagList);
       })
@@ -84,15 +84,15 @@ export default function NoteEditPage() {
     };
   }, [id, t, user, navigate, activeTeam]);
 
-  const handleTagToggle = (tagName: string) => {
+  const handleTagToggle = (tagId: string) => {
     if (!form) return;
     setForm((prev) => {
       if (!prev) return prev;
       return {
         ...prev,
-        selectedTagNames: prev.selectedTagNames.includes(tagName)
-          ? prev.selectedTagNames.filter((n) => n !== tagName)
-          : [...prev.selectedTagNames, tagName],
+        selectedTagIds: prev.selectedTagIds.includes(tagId)
+          ? prev.selectedTagIds.filter((id) => id !== tagId)
+          : [...prev.selectedTagIds, tagId],
       };
     });
   };
@@ -128,7 +128,7 @@ export default function NoteEditPage() {
         body: form.body,
         discussion_points: form.discussion_points,
         memo: form.memo,
-        tags: form.selectedTagNames,
+        tags: form.selectedTagIds,
         status: form.status,
       });
       navigate(`/notes/${id}`);
@@ -191,7 +191,7 @@ export default function NoteEditPage() {
           {/* タグドロップダウン */}
           <TagDropdown
             tags={tags}
-            selectedTagNames={form.selectedTagNames}
+            selectedTagIds={form.selectedTagIds}
             onToggle={handleTagToggle}
           />
 

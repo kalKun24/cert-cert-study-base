@@ -98,6 +98,10 @@ func (h *TeamHandler) HandleGetTeam(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
 		return
 	}
+	if !validateUUID(teamID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDの形式が不正です"})
+		return
+	}
 
 	out, err := h.teamUC.GetTeam(r.Context(), callerID, callerRole, teamID)
 	if err != nil {
@@ -130,6 +134,10 @@ func (h *TeamHandler) HandleUpdateTeam(w http.ResponseWriter, r *http.Request) {
 	teamID := r.PathValue("id")
 	if teamID == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+		return
+	}
+	if !validateUUID(teamID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDの形式が不正です"})
 		return
 	}
 
@@ -173,6 +181,10 @@ func (h *TeamHandler) HandleDeleteTeam(w http.ResponseWriter, r *http.Request) {
 	teamID := r.PathValue("id")
 	if teamID == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
+		return
+	}
+	if !validateUUID(teamID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDの形式が不正です"})
 		return
 	}
 
@@ -241,6 +253,10 @@ func (h *TeamHandler) HandleAddTeamMember(w http.ResponseWriter, r *http.Request
 		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDは必須です"})
 		return
 	}
+	if !validateUUID(teamID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "チームIDの形式が不正です"})
+		return
+	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxTeamBodyBytes)
 	var req AddTeamMemberRequestDTO
@@ -251,6 +267,10 @@ func (h *TeamHandler) HandleAddTeamMember(w http.ResponseWriter, r *http.Request
 
 	if req.UserID == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "user_id は必須です"})
+		return
+	}
+	if !validateUUID(req.UserID) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "user_id の形式が不正です"})
 		return
 	}
 

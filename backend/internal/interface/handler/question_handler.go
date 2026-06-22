@@ -59,6 +59,12 @@ func (h *QuestionHandler) HandleCreateQuestion(w http.ResponseWriter, r *http.Re
 		writeJSON(w, http.StatusBadRequest, response{Error: "タイトルは必須です"})
 		return
 	}
+	for _, tagID := range req.Tags {
+		if !validateUUID(tagID) {
+			writeJSON(w, http.StatusBadRequest, response{Error: "tags には有効なタグIDを指定してください"})
+			return
+		}
+	}
 
 	input := usecase.CreateQuestionInput{
 		CallerID:    callerID,
@@ -262,6 +268,13 @@ func (h *QuestionHandler) HandleUpdateQuestion(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	for _, tagID := range req.Tags {
+		if !validateUUID(tagID) {
+			writeJSON(w, http.StatusBadRequest, response{Error: "tags には有効なタグIDを指定してください"})
+			return
+		}
+	}
+
 	input := usecase.UpdateQuestionInput{
 		CallerID:    callerID,
 		CallerRole:  callerRole,
@@ -331,6 +344,10 @@ func (h *QuestionHandler) HandleUpdateQuestionVisibility(w http.ResponseWriter, 
 
 	if req.Status == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "status は必須です"})
+		return
+	}
+	if !domain.QuestionStatus(req.Status).IsValid() {
+		writeJSON(w, http.StatusBadRequest, response{Error: "status は draft, private, published のいずれかを指定してください"})
 		return
 	}
 

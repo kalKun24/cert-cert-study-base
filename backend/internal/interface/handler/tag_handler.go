@@ -99,6 +99,10 @@ func (h *TagHandler) HandleUpdateTag(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, response{Error: "タグIDは必須です"})
 		return
 	}
+	if !validateUUID(id) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "タグIDの形式が不正です"})
+		return
+	}
 
 	var req UpdateTagRequestDTO
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -139,6 +143,10 @@ func (h *TagHandler) HandleDeleteTag(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if id == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "タグIDは必須です"})
+		return
+	}
+	if !validateUUID(id) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "タグIDの形式が不正です"})
 		return
 	}
 

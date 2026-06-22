@@ -95,6 +95,10 @@ func (h *UserHandler) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, response{Error: "ユーザーIDは必須です"})
 		return
 	}
+	if !validateUUID(id) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "ユーザーIDの形式が不正です"})
+		return
+	}
 
 	user, err := h.userUC.GetUser(r.Context(), id)
 	if err != nil {
@@ -115,6 +119,10 @@ func (h *UserHandler) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if id == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "ユーザーIDは必須です"})
+		return
+	}
+	if !validateUUID(id) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "ユーザーIDの形式が不正です"})
 		return
 	}
 
@@ -167,6 +175,10 @@ func (h *UserHandler) HandleDeleteUser(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if id == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "ユーザーIDは必須です"})
+		return
+	}
+	if !validateUUID(id) {
+		writeJSON(w, http.StatusBadRequest, response{Error: "ユーザーIDの形式が不正です"})
 		return
 	}
 

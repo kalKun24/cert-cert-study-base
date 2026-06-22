@@ -639,3 +639,279 @@ func TestSearchNotes_AdminSeesAll(t *testing.T) {
 		t.Errorf("admin は全ノートを閲覧できるべきです: got %d, want 2", result.Total)
 	}
 }
+
+// --- 可視性ルール全組み合わせのテスト ---
+
+// testPrivateNote は private ステータスのノートエンティティを生成します（testTeamID に所属）。
+func testPrivateNote(id, createdBy string) *domain.Note {
+	n := testNote(id, "非公開ノート", createdBy)
+	n.Status = domain.NoteStatusPrivate
+	return n
+}
+
+// TestNoteUseCase_SearchNotes_VisibilityPublished_VisibleToOtherMember は
+// published ノートがチームメンバー（他人）に見えることを確認します。
+func TestNoteUseCase_SearchNotes_VisibilityPublished_VisibleToOtherMember(t *testing.T) {
+	repo := newMockNoteRepository()
+	repo.addNote(testPublishedNote("n-1", testCallerID))
+
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "user-2", Role: domain.MemberRoleMember})
+
+	uc := newNoteUseCaseWithTeam(repo, tRepo)
+
+	result, err := uc.SearchNotes(context.Background(), testTeamID, usecase.SearchNotesInput{
+		CallerID:   "user-2",
+		CallerRole: domain.RoleUser,
+		Page:       1,
+		PerPage:    20,
+	})
+	if err != nil {
+		t.Fatalf("ノート検索に失敗しました: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("published ノートはチームメンバー全員に見えるべきです: got %d, want 1", result.Total)
+	}
+}
+
+// TestNoteUseCase_SearchNotes_VisibilityPublished_VisibleToAdmin は
+// published ノートが admin に見えることを確認します。
+func TestNoteUseCase_SearchNotes_VisibilityPublished_VisibleToAdmin(t *testing.T) {
+	repo := newMockNoteRepository()
+	repo.addNote(testPublishedNote("n-1", testCallerID))
+
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+
+	uc := newNoteUseCaseWithTeam(repo, tRepo)
+
+	result, err := uc.SearchNotes(context.Background(), testTeamID, usecase.SearchNotesInput{
+		CallerID:   "admin-1",
+		CallerRole: domain.RoleAdmin,
+		Page:       1,
+		PerPage:    20,
+	})
+	if err != nil {
+		t.Fatalf("ノート検索に失敗しました: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("published ノートは admin に見えるべきです: got %d, want 1", result.Total)
+	}
+}
+
+// TestNoteUseCase_SearchNotes_VisibilityPrivate_VisibleToOwner は
+// private ノートが作成者本人に見えることを確認します。
+func TestNoteUseCase_SearchNotes_VisibilityPrivate_VisibleToOwner(t *testing.T) {
+	repo := newMockNoteRepository()
+	repo.addNote(testPrivateNote("n-1", testCallerID))
+
+	uc := newNoteUseCase(repo)
+
+	result, err := uc.SearchNotes(context.Background(), testTeamID, usecase.SearchNotesInput{
+		CallerID:   testCallerID,
+		CallerRole: domain.RoleUser,
+		Page:       1,
+		PerPage:    20,
+	})
+	if err != nil {
+		t.Fatalf("ノート検索に失敗しました: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("private ノートは作成者本人に見えるべきです: got %d, want 1", result.Total)
+	}
+}
+
+// TestNoteUseCase_SearchNotes_VisibilityPrivate_VisibleToOtherMember は
+// private ノートがチームメンバー（他人）にも見えることを確認します（private は published 扱い）。
+func TestNoteUseCase_SearchNotes_VisibilityPrivate_VisibleToOtherMember(t *testing.T) {
+	repo := newMockNoteRepository()
+	repo.addNote(testPrivateNote("n-1", testCallerID))
+
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "user-2", Role: domain.MemberRoleMember})
+
+	uc := newNoteUseCaseWithTeam(repo, tRepo)
+
+	result, err := uc.SearchNotes(context.Background(), testTeamID, usecase.SearchNotesInput{
+		CallerID:   "user-2",
+		CallerRole: domain.RoleUser,
+		Page:       1,
+		PerPage:    20,
+	})
+	if err != nil {
+		t.Fatalf("ノート検索に失敗しました: %v", err)
+	}
+	// isNoteVisibleToTeamMember: private は published と同様に全メンバーに見える
+	if result.Total != 1 {
+		t.Errorf("private ノートはチームメンバーに見えるべきです: got %d, want 1", result.Total)
+	}
+}
+
+// TestNoteUseCase_SearchNotes_VisibilityPrivate_VisibleToAdmin は
+// private ノートが admin に見えることを確認します。
+func TestNoteUseCase_SearchNotes_VisibilityPrivate_VisibleToAdmin(t *testing.T) {
+	repo := newMockNoteRepository()
+	repo.addNote(testPrivateNote("n-1", testCallerID))
+
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+
+	uc := newNoteUseCaseWithTeam(repo, tRepo)
+
+	result, err := uc.SearchNotes(context.Background(), testTeamID, usecase.SearchNotesInput{
+		CallerID:   "admin-1",
+		CallerRole: domain.RoleAdmin,
+		Page:       1,
+		PerPage:    20,
+	})
+	if err != nil {
+		t.Fatalf("ノート検索に失敗しました: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("private ノートは admin に見えるべきです: got %d, want 1", result.Total)
+	}
+}
+
+// TestNoteUseCase_SearchNotes_VisibilityDraft_VisibleToOwner は
+// draft ノートが作成者本人に見えることを確認します。
+func TestNoteUseCase_SearchNotes_VisibilityDraft_VisibleToOwner(t *testing.T) {
+	repo := newMockNoteRepository()
+	repo.addNote(testNote("n-1", "下書きノート", testCallerID))
+
+	uc := newNoteUseCase(repo)
+
+	result, err := uc.SearchNotes(context.Background(), testTeamID, usecase.SearchNotesInput{
+		CallerID:   testCallerID,
+		CallerRole: domain.RoleUser,
+		Page:       1,
+		PerPage:    20,
+	})
+	if err != nil {
+		t.Fatalf("ノート検索に失敗しました: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("draft ノートは作成者本人に見えるべきです: got %d, want 1", result.Total)
+	}
+}
+
+// TestNoteUseCase_SearchNotes_VisibilityDraft_HiddenFromOtherMember は
+// draft ノートがチームメンバー（他人）に見えないことを確認します。
+func TestNoteUseCase_SearchNotes_VisibilityDraft_HiddenFromOtherMember(t *testing.T) {
+	repo := newMockNoteRepository()
+	repo.addNote(testNote("n-1", "下書きノート", testCallerID))
+
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "user-2", Role: domain.MemberRoleMember})
+
+	uc := newNoteUseCaseWithTeam(repo, tRepo)
+
+	result, err := uc.SearchNotes(context.Background(), testTeamID, usecase.SearchNotesInput{
+		CallerID:   "user-2",
+		CallerRole: domain.RoleUser,
+		Page:       1,
+		PerPage:    20,
+	})
+	if err != nil {
+		t.Fatalf("ノート検索に失敗しました: %v", err)
+	}
+	if result.Total != 0 {
+		t.Errorf("draft ノートはチームメンバー（他人）に見えないべきです: got %d, want 0", result.Total)
+	}
+}
+
+// TestNoteUseCase_SearchNotes_VisibilityDraft_VisibleToAdmin は
+// draft ノートが admin に見えることを確認します。
+func TestNoteUseCase_SearchNotes_VisibilityDraft_VisibleToAdmin(t *testing.T) {
+	repo := newMockNoteRepository()
+	repo.addNote(testNote("n-1", "下書きノート", testCallerID))
+
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+
+	uc := newNoteUseCaseWithTeam(repo, tRepo)
+
+	result, err := uc.SearchNotes(context.Background(), testTeamID, usecase.SearchNotesInput{
+		CallerID:   "admin-1",
+		CallerRole: domain.RoleAdmin,
+		Page:       1,
+		PerPage:    20,
+	})
+	if err != nil {
+		t.Fatalf("ノート検索に失敗しました: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("draft ノートは admin に見えるべきです: got %d, want 1", result.Total)
+	}
+}
+
+// --- 権限チェック境界テスト（④追加分） ---
+
+// TestNoteUseCase_UpdateNote_AdminCanUpdateOthersNote は
+// admin が他人（作成者 ID が異なる）のノートを更新できることを確認します。
+func TestNoteUseCase_UpdateNote_AdminCanUpdateOthersNote(t *testing.T) {
+	repo := newMockNoteRepository()
+	repo.addNote(testNote("n-1", "元のタイトル", testCallerID))
+
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+
+	uc := newNoteUseCaseWithTeam(repo, tRepo)
+
+	newTitle := "adminが別人のノートを更新"
+	n, err := uc.UpdateNote(context.Background(), "n-1", testTeamID, usecase.UpdateNoteInput{
+		CallerID:   "admin-user", // 作成者とは別の admin
+		CallerRole: domain.RoleAdmin,
+		Title:      &newTitle,
+	})
+
+	if err != nil {
+		t.Errorf("admin は他人のノートを更新できるべきです: %v", err)
+	}
+	if n != nil && n.Title != newTitle {
+		t.Errorf("タイトルが更新されていません: got %s, want %s", n.Title, newTitle)
+	}
+}
+
+// TestNoteUseCase_DeleteNote_AdminCanDeleteOthersNote は
+// admin が他人（作成者 ID が異なる）のノートを削除できることを確認します。
+func TestNoteUseCase_DeleteNote_AdminCanDeleteOthersNote(t *testing.T) {
+	repo := newMockNoteRepository()
+	repo.addNote(testNote("n-1", "ノート1", testCallerID))
+
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+
+	uc := newNoteUseCaseWithTeam(repo, tRepo)
+
+	err := uc.DeleteNote(context.Background(), "n-1", testTeamID, "admin-user", domain.RoleAdmin)
+	if err != nil {
+		t.Errorf("admin は他人のノートを削除できるべきです: %v", err)
+	}
+}
+
+// TestNoteUseCase_UpdateNote_UserCannotUpdateOthersNote は
+// 一般 user が他人のノートを更新しようとすると ErrPermissionDenied になることを確認します。
+func TestNoteUseCase_UpdateNote_UserCannotUpdateOthersNote(t *testing.T) {
+	repo := newMockNoteRepository()
+	repo.addNote(testNote("n-1", "ノート1", testCallerID))
+
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "other-user", Role: domain.MemberRoleMember})
+
+	uc := newNoteUseCaseWithTeam(repo, tRepo)
+
+	newTitle := "不正な更新"
+	_, err := uc.UpdateNote(context.Background(), "n-1", testTeamID, usecase.UpdateNoteInput{
+		CallerID:   "other-user", // 非作成者・非 admin・非 owner
+		CallerRole: domain.RoleUser,
+		Title:      &newTitle,
+	})
+
+	if !errors.Is(err, domain.ErrPermissionDenied) {
+		t.Errorf("一般 user が他人のノートを更新しようとすると ErrPermissionDenied になるべきです: got %v", err)
+	}
+}

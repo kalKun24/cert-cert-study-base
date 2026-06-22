@@ -21,7 +21,7 @@ interface FormValues {
   explanation: string;
   memo: string;
   status: QuestionStatus;
-  selectedTagNames: string[];
+  selectedTagIds: string[];
 }
 
 const INITIAL_FORM: FormValues = {
@@ -31,7 +31,7 @@ const INITIAL_FORM: FormValues = {
   explanation: '',
   memo: '',
   status: 'draft',
-  selectedTagNames: [],
+  selectedTagIds: [],
 };
 
 export default function QuestionCreatePage() {
@@ -53,12 +53,12 @@ export default function QuestionCreatePage() {
     });
   }, [activeTeam?.id]);
 
-  const handleTagToggle = (tagName: string) => {
+  const handleTagToggle = (tagId: string) => {
     setForm((prev) => ({
       ...prev,
-      selectedTagNames: prev.selectedTagNames.includes(tagName)
-        ? prev.selectedTagNames.filter((n) => n !== tagName)
-        : [...prev.selectedTagNames, tagName],
+      selectedTagIds: prev.selectedTagIds.includes(tagId)
+        ? prev.selectedTagIds.filter((id) => id !== tagId)
+        : [...prev.selectedTagIds, tagId],
     }));
   };
 
@@ -92,7 +92,7 @@ export default function QuestionCreatePage() {
         answer: form.answer,
         explanation: form.explanation,
         memo: form.memo,
-        tags: form.selectedTagNames,
+        tags: form.selectedTagIds,
         status: form.status,
       });
       navigate(`/questions/${created.id}`);
@@ -133,7 +133,7 @@ export default function QuestionCreatePage() {
           {/* タグドロップダウン */}
           <TagDropdown
             tags={tags}
-            selectedTagNames={form.selectedTagNames}
+            selectedTagIds={form.selectedTagIds}
             onToggle={handleTagToggle}
           />
 
