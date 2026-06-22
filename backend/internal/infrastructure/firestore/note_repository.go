@@ -123,6 +123,13 @@ func (r *FirestoreNoteRepository) ListByTeam(ctx context.Context, teamID string)
 //   - TagIDs が空でない場合、最初の1タグを Firestore の array-contains クエリでサーバーサイド絞り込みする。
 //     Firestore は1クエリにつき array-contains を1つしか使用できないため、残りのタグはメモリフィルタで AND 処理する。
 //   - TagIDs が空の場合は全件取得してメモリフィルタのみ適用する。
+//
+// キーワード検索のスケール限界（フルスキャン継続）:
+//   - Firestore はネイティブな全文検索をサポートしないため、Keyword フィルタは候補ドキュメント全件を
+//     メモリ内でスキャンする（フルスキャン）。これは将来にわたって回避できない制約である。
+//   - チームあたりのノート数が数百件を超えると応答時間が線形増加し、Cloud Run のメモリ上限にも影響する。
+//   - スケールが問題になった場合は Algolia・Typesense・OpenSearch 等の外部全文検索エンジンへの
+//     移行を検討すること。その際は本メソッドのシグネチャを変えずにインフラ層の実装のみ差し替えられる。
 func (r *FirestoreNoteRepository) SearchByTeam(ctx context.Context, teamID string, filter domain.NoteSearchFilter) ([]*domain.Note, error) {
 	var (
 		candidates []*domain.Note
