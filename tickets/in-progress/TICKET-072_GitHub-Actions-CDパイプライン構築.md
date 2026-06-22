@@ -10,8 +10,8 @@
 | 着手日 | 2026-06-23 |
 | 完了日 | - |
 | ブランチ名 | `feature/cd-pipeline` |
-| PR番号 | - |
-| PRリンク | - |
+| PR番号 | #66 |
+| PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/66 |
 
 ---
 
