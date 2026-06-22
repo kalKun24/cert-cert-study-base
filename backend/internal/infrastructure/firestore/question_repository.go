@@ -199,7 +199,7 @@ func (r *FirestoreQuestionRepository) Delete(ctx context.Context, teamID, id str
 		return fmt.Errorf("問題の存在確認に失敗しました: %w", err)
 	}
 
-	if err := deleteSubCollection(ctx, ref.Collection("comments")); err != nil {
+	if err := deleteSubCollection(ctx, r.client, ref.Collection("comments")); err != nil {
 		return fmt.Errorf("問題コメントの削除に失敗しました: %w", err)
 	}
 

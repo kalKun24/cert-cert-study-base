@@ -195,7 +195,7 @@ func (r *FirestoreNoteRepository) Delete(ctx context.Context, teamID, id string)
 		return fmt.Errorf("ノートの存在確認に失敗しました: %w", err)
 	}
 
-	if err := deleteSubCollection(ctx, ref.Collection("comments")); err != nil {
+	if err := deleteSubCollection(ctx, r.client, ref.Collection("comments")); err != nil {
 		return fmt.Errorf("ノートコメントの削除に失敗しました: %w", err)
 	}
 

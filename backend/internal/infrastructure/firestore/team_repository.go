@@ -212,7 +212,7 @@ func (r *FirestoreTeamRepository) Delete(ctx context.Context, id string) error {
 		if err != nil {
 			return fmt.Errorf("問題一覧の取得に失敗しました: %w", err)
 		}
-		if err := deleteSubCollection(ctx, qDoc.Ref.Collection("comments")); err != nil {
+		if err := deleteSubCollection(ctx, r.client, qDoc.Ref.Collection("comments")); err != nil {
 			return fmt.Errorf("問題コメントの削除に失敗しました: %w", err)
 		}
 		if _, err := qDoc.Ref.Delete(ctx); err != nil {
@@ -231,7 +231,7 @@ func (r *FirestoreTeamRepository) Delete(ctx context.Context, id string) error {
 		if err != nil {
 			return fmt.Errorf("ノート一覧の取得に失敗しました: %w", err)
 		}
-		if err := deleteSubCollection(ctx, nDoc.Ref.Collection("comments")); err != nil {
+		if err := deleteSubCollection(ctx, r.client, nDoc.Ref.Collection("comments")); err != nil {
 			return fmt.Errorf("ノートコメントの削除に失敗しました: %w", err)
 		}
 		if _, err := nDoc.Ref.Delete(ctx); err != nil {
@@ -240,12 +240,12 @@ func (r *FirestoreTeamRepository) Delete(ctx context.Context, id string) error {
 	}
 
 	// tags を削除
-	if err := deleteSubCollection(ctx, teamRef.Collection("tags")); err != nil {
+	if err := deleteSubCollection(ctx, r.client, teamRef.Collection("tags")); err != nil {
 		return fmt.Errorf("タグの削除に失敗しました: %w", err)
 	}
 
 	// members を削除
-	if err := deleteSubCollection(ctx, r.membersCol(id)); err != nil {
+	if err := deleteSubCollection(ctx, r.client, r.membersCol(id)); err != nil {
 		return fmt.Errorf("メンバーの削除に失敗しました: %w", err)
 	}
 
@@ -256,9 +256,12 @@ func (r *FirestoreTeamRepository) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-// deleteSubCollection はサブコレクション内の全ドキュメントを削除します。
+// deleteSubCollection はサブコレクション内の全ドキュメントを BulkWriter で削除します。
+// BulkWriter は操作をバッチ化して並列送信するため、1件ずつ直列削除より高速です。
 // Firestoreのカスケード削除が必要な全リポジトリで共用します。
-func deleteSubCollection(ctx context.Context, col *fs.CollectionRef) error {
+func deleteSubCollection(ctx context.Context, client *fs.Client, col *fs.CollectionRef) error {
+	bw := client.BulkWriter(ctx)
+
 	iter := col.Documents(ctx)
 	defer iter.Stop()
 
@@ -268,12 +271,15 @@ func deleteSubCollection(ctx context.Context, col *fs.CollectionRef) error {
 			break
 		}
 		if err != nil {
+			bw.End()
 			return fmt.Errorf("サブコレクション走査に失敗しました: %w", err)
 		}
-		if _, err := doc.Ref.Delete(ctx); err != nil {
-			return fmt.Errorf("ドキュメント削除に失敗しました: %w", err)
+		if _, err := bw.Delete(doc.Ref); err != nil {
+			bw.End()
+			return fmt.Errorf("削除ジョブのエンキューに失敗しました: %w", err)
 		}
 	}
+	bw.End()
 	return nil
 }
 

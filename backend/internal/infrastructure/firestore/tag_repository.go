@@ -8,8 +8,6 @@ import (
 	fs "cloud.google.com/go/firestore"
 	"github.com/kalKun24/cert-study-base/backend/internal/domain"
 	"google.golang.org/api/iterator"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // tagRecord はFirestoreに保存するタグレコードです。
@@ -174,15 +172,8 @@ func (r *FirestoreTagRepository) Delete(ctx context.Context, id string) error {
 		return domain.ErrTagInUse
 	}
 
+	// FindByID で存在確認済みのため再読み取り不要
 	ref := r.tagsCol(tag.TeamID).Doc(id)
-	_, err = ref.Get(ctx)
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			return domain.ErrTagNotFound
-		}
-		return fmt.Errorf("タグの存在確認に失敗しました: %w", err)
-	}
-
 	_, err = ref.Delete(ctx)
 	if err != nil {
 		return fmt.Errorf("タグの削除に失敗しました: %w", err)
