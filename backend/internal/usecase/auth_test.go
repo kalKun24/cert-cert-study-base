@@ -19,6 +19,8 @@ type mockUserRepository struct {
 	byEmail    map[string]*domain.User
 	saveErr    error
 	deleteErr  error
+	// findErr が nil でない場合、FindByID はこのエラーを返します（強制エラー注入用）
+	findErr error
 }
 
 func newMockUserRepository() *mockUserRepository {
@@ -37,6 +39,9 @@ func (m *mockUserRepository) addUser(u *domain.User) {
 }
 
 func (m *mockUserRepository) FindByID(_ context.Context, id string) (*domain.User, error) {
+	if m.findErr != nil {
+		return nil, m.findErr
+	}
 	if u, ok := m.users[id]; ok {
 		return u, nil
 	}

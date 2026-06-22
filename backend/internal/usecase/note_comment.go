@@ -44,11 +44,7 @@ type NoteCommentWithDisplayName struct {
 }
 
 // resolveNoteCommentDisplayName はユーザーIDから表示名を取得します。
-// userRepo が nil の場合（テスト用）はユーザーIDをそのまま返します。
 func (uc *NoteCommentUseCase) resolveNoteCommentDisplayName(ctx context.Context, userID string) (string, error) {
-	if uc.userRepo == nil {
-		return userID, nil
-	}
 	user, err := uc.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		// ユーザーが見つからない場合もユーザーIDで代替（コメント一覧の取得を中断しない）

@@ -5,11 +5,11 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-067 |
-| ステータス | 🔴 未着手 |
+| ステータス | 🟡 作業中 |
 | 作成日 | 2026-06-22 |
-| 着手日 | - |
+| 着手日 | 2026-06-22 |
 | 完了日 | - |
-| ブランチ名 | - |
+| ブランチ名 | feature/TICKET-067 |
 | PR番号 | - |
 | PRリンク | - |
 
@@ -23,7 +23,7 @@
 
 ## 背景・目的
 
-`backend/internal/usecase/note_comment.go:49` に `if uc.userRepo == nil { return userID, nil }` という分岐が存在する。コメントにも「テスト用」と明記されているプロダクションコードへの分岐埋め込みであり、CLAUDE.md の DI 原則（「層の境界はinterfaceで定義し、具体実装はInfrastructure層に置く（DI）」）に反する。
+`backend/internal/usecase/note_comment.go:49` に `if uc.userRepo == nil { return userID, nil }` という分岐が存在する。コメントにも「テスト用」と明記されているプロダクションコードへの分岐埋め込みであり、CLAUDE.md の DI 原則（「層の境界はinterfaceで定義し、具体実装はInfラstructure層に置く（DI）」）に反する。
 
 `backend/internal/usecase/note_comment_test.go` が `userRepo=nil` を渡しているため、`resolveNoteCommentDisplayName` の実際の `FindByID` 呼び出しパス（正常系・ErrUserNotFound・その他エラー）が全くテストされておらず、CLAUDE.md の「特にユースケース層はユニットテストを必須とする」という要件を満たしていない。
 
@@ -31,19 +31,19 @@
 
 ## 受け入れ条件
 
-- [ ] `note_comment.go` の `if uc.userRepo == nil` ガードを除去する
-- [ ] `note_comment_test.go` に `mockUserRepo` 構造体を追加し、`nil` の代わりに注入する形に修正する
-- [ ] `resolveNoteCommentDisplayName` の正常系（ユーザー取得成功・display_name 返却）をテストする
-- [ ] `ErrUserNotFound` 時のフォールバック（userID を返す）をテストする
-- [ ] その他エラー時の挙動をテストする
-- [ ] `make test` が全てパスすることを確認する
+- [x] `note_comment.go` の `if uc.userRepo == nil` ガードを除去する
+- [x] `note_comment_test.go` に `mockUserRepo` 構造体を追加し、`nil` の代わりに注入する形に修正する
+- [x] `resolveNoteCommentDisplayName` の正常系（ユーザー取得成功・display_name 返却）をテストする
+- [x] `ErrUserNotFound` 時のフォールバック（userID を返す）をテストする
+- [x] その他エラー時の挙動をテストする
+- [x] `make test` が全てパスすることを確認する
 
 ---
 
 ## サブチケット（コミット単位）
 
-- [ ] `refactor(usecase): NoteCommentUseCase の userRepo nil ガードを除去`
-- [ ] `test(usecase): mockUserRepo を追加し display_name 解決パスのテストを実装`
+- [x] `refactor(usecase): NoteCommentUseCase の userRepo nil ガードを除去`
+- [x] `test(usecase): mockUserRepo を追加し display_name 解決パスのテストを実装`
 
 ---
 
