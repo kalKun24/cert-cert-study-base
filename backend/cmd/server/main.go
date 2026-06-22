@@ -226,11 +226,12 @@ func main() {
 	mux.Handle("DELETE /api/v1/teams/{team_id}/notes/{note_id}/comments/{comment_id}", withAuth(noteCommentHandler.HandleDeleteNoteComment))
 
 	srv := &http.Server{
-		Addr:         net.JoinHostPort("", port),
-		Handler:      loggingMiddleware(mux),
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		Addr:              net.JoinHostPort("", port),
+		Handler:           loggingMiddleware(mux),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	// グレースフルシャットダウンのためにシグナルを待機
