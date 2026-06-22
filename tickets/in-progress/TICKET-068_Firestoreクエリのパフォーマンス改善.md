@@ -5,13 +5,13 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-068 |
-| ステータス | 🔴 未着手 |
+| ステータス | 🟡 作業中 |
 | 作成日 | 2026-06-22 |
-| 着手日 | - |
+| 着手日 | 2026-06-22 |
 | 完了日 | - |
-| ブランチ名 | - |
-| PR番号 | - |
-| PRリンク | - |
+| ブランチ名 | feature/TICKET-068 |
+| PR番号 | #53 |
+| PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/53 |
 
 ---
 
@@ -32,18 +32,18 @@
 
 ## 受け入れ条件
 
-- [ ] `ListByOwnerOrMember` を Firestore の `collectionGroup` クエリ（`Where("user_id", "==", userID)`）で書き換えるか、チームドキュメントにメンバーIDリストを非正規化する設計を選択・決定し実装する
-- [ ] `SearchByTeam` の TagIDs フィルタに `array-contains` または `array-contains-any` クエリを使用してサーバーサイドで絞り込む
-- [ ] キーワード検索のフルスキャン継続が避けられない場合はスケール限界（件数・応答時間）を設計ドキュメントまたはコードコメントに記録する
-- [ ] 修正後のクエリが既存のユニットテストをパスすることを確認する
+- [x] `ListByOwnerOrMember` を Firestore の `collectionGroup` クエリ（`Where("user_id", "==", userID)`）で書き換えるか、チームドキュメントにメンバーIDリストを非正規化する設計を選択・決定し実装する
+- [x] `SearchByTeam` の TagIDs フィルタに `array-contains` または `array-contains-any` クエリを使用してサーバーサイドで絞り込む
+- [x] キーワード検索のフルスキャン継続が避けられない場合はスケール限界（件数・応答時間）を設計ドキュメントまたはコードコメントに記録する
+- [x] 修正後のクエリが既存のユニットテストをパスすることを確認する
 
 ---
 
 ## サブチケット（コミット単位）
 
-- [ ] `refactor(firestore): ListByOwnerOrMember を collectionGroup クエリに書き換え`
-- [ ] `refactor(firestore): SearchByTeam のタグフィルタに array-contains を使用`
-- [ ] `docs(firestore): キーワード検索フルスキャンのスケール限界をコードコメントに記録`
+- [x] `refactor(firestore): ListByOwnerOrMember を collectionGroup クエリに書き換え`
+- [x] `refactor(firestore): SearchByTeam のタグフィルタに array-contains を使用`
+- [x] `docs(firestore): キーワード検索フルスキャンのスケール限界をコードコメントに記録`
 
 ---
 
