@@ -105,7 +105,7 @@ gcloud secrets add-iam-policy-binding jwt-secret \
 
 ### フェーズ 2: コード修正
 
-- [ ] `fix(frontend): nginx を Cloud Run 対応に修正（BACKEND_URL 環境変数サポート）`
+- [x] `fix(frontend): nginx を Cloud Run 対応に修正（BACKEND_URL 環境変数サポート）`
 
   **問題**: 現在の nginx config は `http://backend:8080` にプロキシ（Docker Compose のサービス名）。
   Cloud Run では解決不能。
