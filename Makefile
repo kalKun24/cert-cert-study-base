@@ -9,12 +9,12 @@ BACKEND_DIR := ./backend
 ## up: バックエンド・フロントエンドをまとめて起動（Docker Compose）
 up:
 	@echo "サーバーを起動します..."
-	docker-compose up -d
+	docker compose up -d
 
 ## down: 全サービスを停止（Docker Compose）
 down:
 	@echo "サービスを停止します..."
-	docker-compose down
+	docker compose down
 
 ## test: 全テストを実行
 test:
@@ -49,4 +49,4 @@ swagger:
 ## build: バックエンド・フロントエンドのDockerイメージをビルド
 build:
 	@echo "Dockerイメージをビルドします..."
-	docker-compose build
+	docker compose build

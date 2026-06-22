@@ -5,17 +5,17 @@ import { Tag } from '../types/tag';
 interface TagDropdownProps {
   /** 選択可能なタグの一覧 */
   tags: Tag[];
-  /** 選択中のタグ名の配列 */
-  selectedTagNames: string[];
-  /** タグのトグル時に呼ばれるコールバック */
-  onToggle: (tagName: string) => void;
+  /** 選択中のタグIDの配列 */
+  selectedTagIds: string[];
+  /** タグのトグル時に呼ばれるコールバック（タグIDを渡す） */
+  onToggle: (tagId: string) => void;
 }
 
 /**
  * タグ選択ドロップダウンコンポーネント
  * メタバー内でタグを複数選択するためのドロップダウン
  */
-export default function TagDropdown({ tags, selectedTagNames, onToggle }: TagDropdownProps) {
+export default function TagDropdown({ tags, selectedTagIds, onToggle }: TagDropdownProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -51,11 +51,9 @@ export default function TagDropdown({ tags, selectedTagNames, onToggle }: TagDro
     };
   }, [isOpen]);
 
-  // ボタンに表示するラベル（選択中タグをカンマ区切り or デフォルトラベル）
-  const buttonLabel =
-    selectedTagNames.length > 0
-      ? selectedTagNames.join(', ')
-      : t('question.tagSelectLabel');
+  // ボタンに表示するラベル（選択中タグ名をカンマ区切り or デフォルトラベル）
+  const selectedNames = tags.filter((t) => selectedTagIds.includes(t.id)).map((t) => t.name);
+  const buttonLabel = selectedNames.length > 0 ? selectedNames.join(', ') : t('question.tagSelectLabel');
 
   /**
    * リスト項目内での矢印キーナビゲーション（WCAG 2.1 SC 2.4.7 対応）
@@ -69,7 +67,7 @@ export default function TagDropdown({ tags, selectedTagNames, onToggle }: TagDro
       case 'Enter':
       case ' ':
         e.preventDefault();
-        onToggle(tags[index].name);
+        onToggle(tags[index].id);
         break;
       case 'ArrowDown':
         e.preventDefault();
@@ -118,7 +116,7 @@ export default function TagDropdown({ tags, selectedTagNames, onToggle }: TagDro
             </li>
           )}
           {tags.map((tag, index) => {
-            const isSelected = selectedTagNames.includes(tag.name);
+            const isSelected = selectedTagIds.includes(tag.id);
             return (
               <li
                 key={tag.id}
@@ -126,7 +124,7 @@ export default function TagDropdown({ tags, selectedTagNames, onToggle }: TagDro
                 role="option"
                 aria-selected={isSelected}
                 className={`tag-dropdown-item${isSelected ? ' tag-dropdown-item--selected' : ''}`}
-                onClick={() => onToggle(tag.name)}
+                onClick={() => onToggle(tag.id)}
                 onKeyDown={(e) => handleItemKeyDown(e, index)}
                 tabIndex={0}
               >

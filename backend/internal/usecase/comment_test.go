@@ -653,6 +653,127 @@ func TestCommentUseCase_DeleteComment_CommentNotFound(t *testing.T) {
 	}
 }
 
+// TestCommentUseCase_UpdateComment_AdminCanUpdateOthersComment は
+// admin が他人のコメントを更新できることのテストです。
+func TestCommentUseCase_UpdateComment_AdminCanUpdateOthersComment(t *testing.T) {
+	qRepo := newMockQuestionRepository()
+	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
+
+	uRepo := newMockUserRepository()
+
+	cRepo := newMockCommentRepository()
+	// testCallerID が投稿したコメント
+	cRepo.addComment(testComment("c-1", "q-1", testCallerID, "元のコメント"))
+
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	// admin-user はチームメンバーではない（admin はメンバーチェックをスキップ）
+
+	uc := newCommentUseCaseWithTeam(cRepo, qRepo, uRepo, tRepo)
+
+	// admin-user（作成者とは別の admin）が編集
+	result, err := uc.UpdateComment(context.Background(), usecase.UpdateCommentInput{
+		QuestionID: "q-1",
+		TeamID:     testTeamID,
+		CommentID:  "c-1",
+		Body:       "adminが編集したコメント",
+		CallerID:   "admin-user",
+		CallerRole: domain.RoleAdmin,
+	})
+
+	if err != nil {
+		t.Fatalf("admin は他人のコメントを更新できるべきです: %v", err)
+	}
+	if result.Body != "adminが編集したコメント" {
+		t.Errorf("Bodyが期待値と異なります: got %s, want adminが編集したコメント", result.Body)
+	}
+}
+
+// TestCommentUseCase_UpdateComment_UserCannotUpdateOthersComment は
+// 一般 user が他人のコメントを更新しようとすると ErrPermissionDenied になることのテストです。
+func TestCommentUseCase_UpdateComment_UserCannotUpdateOthersComment(t *testing.T) {
+	qRepo := newMockQuestionRepository()
+	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
+
+	cRepo := newMockCommentRepository()
+	cRepo.addComment(testComment("c-1", "q-1", testCallerID, "コメント"))
+
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "user-2", Role: domain.MemberRoleMember})
+
+	uc := newCommentUseCaseWithTeam(cRepo, qRepo, newMockUserRepository(), tRepo)
+
+	_, err := uc.UpdateComment(context.Background(), usecase.UpdateCommentInput{
+		QuestionID: "q-1",
+		TeamID:     testTeamID,
+		CommentID:  "c-1",
+		Body:       "不正な編集",
+		CallerID:   "user-2", // 非投稿者・非 admin
+		CallerRole: domain.RoleUser,
+	})
+
+	if !errors.Is(err, domain.ErrPermissionDenied) {
+		t.Errorf("一般 user が他人のコメントを更新しようとすると ErrPermissionDenied になるべきです: got %v", err)
+	}
+}
+
+// TestCommentUseCase_DeleteComment_AdminCanDeleteOthersComment は
+// admin が他人のコメントを削除できることのテストです（チーム非メンバー）。
+func TestCommentUseCase_DeleteComment_AdminCanDeleteOthersComment(t *testing.T) {
+	qRepo := newMockQuestionRepository()
+	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
+
+	cRepo := newMockCommentRepository()
+	cRepo.addComment(testComment("c-1", "q-1", testCallerID, "コメント"))
+
+	// admin-user はチームメンバーではない
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+
+	uc := newCommentUseCaseWithTeam(cRepo, qRepo, newMockUserRepository(), tRepo)
+
+	err := uc.DeleteComment(context.Background(), usecase.DeleteCommentInput{
+		QuestionID: "q-1",
+		TeamID:     testTeamID,
+		CommentID:  "c-1",
+		CallerID:   "admin-user", // 非チームメンバーの admin
+		CallerRole: domain.RoleAdmin,
+	})
+
+	if err != nil {
+		t.Errorf("admin は他人のコメントを削除できるべきです: %v", err)
+	}
+}
+
+// TestCommentUseCase_DeleteComment_UserCannotDeleteOthersComment は
+// 一般 user が他人のコメントを削除しようとすると ErrPermissionDenied になることのテストです。
+func TestCommentUseCase_DeleteComment_UserCannotDeleteOthersComment(t *testing.T) {
+	qRepo := newMockQuestionRepository()
+	qRepo.addQuestion(testPublishedQuestion_comment("q-1", "owner-1"))
+
+	cRepo := newMockCommentRepository()
+	cRepo.addComment(testComment("c-1", "q-1", testCallerID, "コメント"))
+
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: testCallerID, Role: domain.MemberRoleMember})
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{TeamID: testTeamID, UserID: "user-2", Role: domain.MemberRoleMember})
+
+	uc := newCommentUseCaseWithTeam(cRepo, qRepo, newMockUserRepository(), tRepo)
+
+	err := uc.DeleteComment(context.Background(), usecase.DeleteCommentInput{
+		QuestionID: "q-1",
+		TeamID:     testTeamID,
+		CommentID:  "c-1",
+		CallerID:   "user-2", // 非投稿者・非 admin
+		CallerRole: domain.RoleUser,
+	})
+
+	if !errors.Is(err, domain.ErrPermissionDenied) {
+		t.Errorf("一般 user が他人のコメントを削除しようとすると ErrPermissionDenied になるべきです: got %v", err)
+	}
+}
+
 // --- 可視性チェックのテスト（チームスコープ化後） ---
 
 // TestCommentUseCase_VisibilityCheck_DraftAndPrivate_OnlyOwnerCanComment は

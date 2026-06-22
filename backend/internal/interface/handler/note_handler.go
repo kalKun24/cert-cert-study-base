@@ -59,6 +59,12 @@ func (h *NoteHandler) HandleCreateNote(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, response{Error: "タイトルは必須です"})
 		return
 	}
+	for _, tagID := range req.Tags {
+		if !validateUUID(tagID) {
+			writeJSON(w, http.StatusBadRequest, response{Error: "tags には有効なタグIDを指定してください"})
+			return
+		}
+	}
 
 	input := usecase.CreateNoteInput{
 		CallerID:         callerID,
@@ -277,6 +283,13 @@ func (h *NoteHandler) HandleUpdateNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	for _, tagID := range req.Tags {
+		if !validateUUID(tagID) {
+			writeJSON(w, http.StatusBadRequest, response{Error: "tags には有効なタグIDを指定してください"})
+			return
+		}
+	}
+
 	input := usecase.UpdateNoteInput{
 		CallerID:         callerID,
 		CallerRole:       callerRole,
@@ -349,6 +362,10 @@ func (h *NoteHandler) HandleUpdateNoteVisibility(w http.ResponseWriter, r *http.
 
 	if req.Status == "" {
 		writeJSON(w, http.StatusBadRequest, response{Error: "status は必須です"})
+		return
+	}
+	if !domain.NoteStatus(req.Status).IsValid() {
+		writeJSON(w, http.StatusBadRequest, response{Error: "status は draft, private, published のいずれかを指定してください"})
 		return
 	}
 

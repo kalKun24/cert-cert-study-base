@@ -215,8 +215,8 @@ func (uc *CommentUseCase) UpdateComment(ctx context.Context, input UpdateComment
 		return nil, fmt.Errorf("コメントの取得に失敗しました: %w", err)
 	}
 
-	// 認可チェック: 投稿者本人のみ編集可能
-	if comment.CreatedBy != input.CallerID {
+	// 認可チェック: 投稿者本人または admin のみ編集可能
+	if comment.CreatedBy != input.CallerID && input.CallerRole != domain.RoleAdmin {
 		return nil, domain.ErrPermissionDenied
 	}
 
