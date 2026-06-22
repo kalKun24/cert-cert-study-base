@@ -48,14 +48,14 @@ func (s *stubTeamRepo) FindByID(_ context.Context, _ string) (*domain.Team, erro
 func (s *stubTeamRepo) FindByName(_ context.Context, _ string) (*domain.Team, error) {
 	return nil, domain.ErrTeamNotFound
 }
-func (s *stubTeamRepo) List(_ context.Context) ([]*domain.Team, error)   { return nil, nil }
+func (s *stubTeamRepo) List(_ context.Context) ([]*domain.Team, error) { return nil, nil }
 func (s *stubTeamRepo) ListByOwnerOrMember(_ context.Context, _ string) ([]*domain.Team, error) {
 	return nil, nil
 }
-func (s *stubTeamRepo) Save(_ context.Context, _ *domain.Team) error    { return nil }
-func (s *stubTeamRepo) Delete(_ context.Context, _ string) error        { return nil }
+func (s *stubTeamRepo) Save(_ context.Context, _ *domain.Team) error            { return nil }
+func (s *stubTeamRepo) Delete(_ context.Context, _ string) error                { return nil }
 func (s *stubTeamRepo) AddMember(_ context.Context, _ *domain.TeamMember) error { return nil }
-func (s *stubTeamRepo) RemoveMember(_ context.Context, _, _ string) error { return nil }
+func (s *stubTeamRepo) RemoveMember(_ context.Context, _, _ string) error       { return nil }
 func (s *stubTeamRepo) ListMembers(_ context.Context, _ string) ([]*domain.TeamMember, error) {
 	return nil, nil
 }
