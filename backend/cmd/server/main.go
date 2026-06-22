@@ -18,7 +18,6 @@ import (
 	"github.com/kalKun24/cert-study-base/backend/internal/domain"
 	"github.com/kalKun24/cert-study-base/backend/internal/infrastructure/auth"
 	firestoreRepo "github.com/kalKun24/cert-study-base/backend/internal/infrastructure/firestore"
-	"github.com/kalKun24/cert-study-base/backend/internal/infrastructure/middleware"
 	"github.com/kalKun24/cert-study-base/backend/internal/infrastructure/seed"
 	"github.com/kalKun24/cert-study-base/backend/internal/interface/handler"
 	"github.com/kalKun24/cert-study-base/backend/internal/usecase"
@@ -132,10 +131,7 @@ func main() {
 	mux.HandleFunc("GET /health", handleHealth)
 
 	// 認証エンドポイント（認証不要）
-	// ログインにはIP単位のレート制限（10回/分）を適用してブルートフォース攻撃を抑制する
-	mux.Handle("POST /api/v1/auth/login",
-		middleware.LoginRateLimit(http.HandlerFunc(authHandler.HandleLogin)),
-	)
+	mux.HandleFunc("POST /api/v1/auth/login", authHandler.HandleLogin)
 
 	// authMiddleware はDBからユーザーの最新 is_active を確認する認証ミドルウェアです。
 	// トークン発行後に管理者がユーザーを停止した場合も即座に反映されます。
@@ -230,10 +226,8 @@ func main() {
 	mux.Handle("DELETE /api/v1/teams/{team_id}/notes/{note_id}/comments/{comment_id}", withAuth(noteCommentHandler.HandleDeleteNoteComment))
 
 	srv := &http.Server{
-		Addr: net.JoinHostPort("", port),
-		// CORS → ログ の順でミドルウェアチェーンを適用する
-		// CORS_ALLOWED_ORIGINS 環境変数でオリジンを制御（未設定時は * でローカル開発に対応）
-		Handler:      loggingMiddleware(middleware.CORS(mux)),
+		Addr:         net.JoinHostPort("", port),
+		Handler:      loggingMiddleware(mux),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  60 * time.Second,
