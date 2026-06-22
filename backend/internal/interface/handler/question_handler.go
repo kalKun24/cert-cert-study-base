@@ -15,6 +15,11 @@ import (
 // maxQuestionBodyBytes はリクエストボディの最大サイズ制限です（2MB）。
 const maxQuestionBodyBytes = 2 << 20
 
+// maxQuestionTagFilterCount は tag_ids フィルタの最大件数です。
+// Firestore の array-contains クエリは1クエリ1タグのみサーバーサイド処理し、
+// 残りはメモリフィルタとなるため、過大なリストによる DoS を防ぐために件数を制限します。
+const maxQuestionTagFilterCount = 10
+
 // QuestionHandler は問題管理に関するHTTPハンドラです。
 type QuestionHandler struct {
 	questionUC *usecase.QuestionUseCase
@@ -90,7 +95,7 @@ func (h *QuestionHandler) HandleCreateQuestion(w http.ResponseWriter, r *http.Re
 // クエリパラメータによるタグフィルタリング・キーワード検索・ページネーションに対応しています。
 //
 // クエリパラメータ:
-//   - tag_ids: カンマ区切りのタグID一覧（複数指定時はAND絞り込み）
+//   - tag_ids: カンマ区切りのタグID一覧（複数指定時はAND絞り込み、最大10件、UUID形式必須）
 //   - keyword: タイトル・問題文・解説・メモを対象とした部分一致検索
 //   - page: ページ番号（1始まり。省略時は1）
 //   - per_page: 1ページあたりの件数（省略時は20、最大100）
@@ -107,14 +112,23 @@ func (h *QuestionHandler) HandleListQuestions(w http.ResponseWriter, r *http.Req
 
 	callerID, callerRole := callerInfo(r)
 
-	// tag_ids クエリパラメータのパース（カンマ区切り、空要素除去）
+	// tag_ids クエリパラメータのパース・バリデーション（カンマ区切り、UUID形式チェック、件数上限）
 	var tagIDs []string
 	if raw := r.URL.Query().Get("tag_ids"); raw != "" {
 		for _, tid := range strings.Split(raw, ",") {
 			tid = strings.TrimSpace(tid)
-			if tid != "" {
-				tagIDs = append(tagIDs, tid)
+			if tid == "" {
+				continue
 			}
+			if !validateUUID(tid) {
+				writeJSON(w, http.StatusBadRequest, response{Error: "tag_ids に不正な形式のIDが含まれています"})
+				return
+			}
+			tagIDs = append(tagIDs, tid)
+		}
+		if len(tagIDs) > maxQuestionTagFilterCount {
+			writeJSON(w, http.StatusBadRequest, response{Error: "tag_ids は最大10件まで指定できます"})
+			return
 		}
 	}
 

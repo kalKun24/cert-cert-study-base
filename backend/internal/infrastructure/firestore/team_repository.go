@@ -153,6 +153,8 @@ func (r *FirestoreTeamRepository) List(ctx context.Context) ([]*domain.Team, err
 //   - collectionGroup("members") クエリで user_id == userID のサブコレクションドキュメントを横断検索し、
 //     teamID を収集してから各チームを個別取得する（N+1 は残るが、以前の全チーム走査 + 全メンバーサブコレクション
 //     アクセスより大幅に削減される）。
+//   - teamID はドキュメントのパス構造（teams/{teamID}/members/{userID}）から派生させる。
+//     team_id フィールド値は改ざんされうるため、パスを信頼の根拠とする。
 //   - オーナーのチームは teams コレクションの owner_id クエリで別途取得し、map で重複排除してマージする。
 //
 // 注意: collectionGroup("members") クエリには Firestore のコレクショングループインデックス
@@ -174,12 +176,13 @@ func (r *FirestoreTeamRepository) ListByOwnerOrMember(ctx context.Context, userI
 		if err != nil {
 			return nil, fmt.Errorf("メンバーサブコレクション検索に失敗しました: %w", err)
 		}
-		var rec teamMemberRecord
-		if err := doc.DataTo(&rec); err != nil {
-			return nil, fmt.Errorf("メンバーデータのデコードに失敗しました: %w", err)
-		}
-		if rec.TeamID != "" {
-			memberTeamIDs = append(memberTeamIDs, rec.TeamID)
+		// teamID はドキュメントパス（teams/{teamID}/members/{userID}）から派生させる。
+		// team_id フィールド値は書き込み権限次第で改ざんされうるため、パスを信頼の根拠とする。
+		// doc.Ref.Parent = members コレクション（CollectionRef）
+		// doc.Ref.Parent.Parent = チームドキュメント（DocumentRef）
+		teamID := doc.Ref.Parent.Parent.ID
+		if teamID != "" {
+			memberTeamIDs = append(memberTeamIDs, teamID)
 		}
 	}
 
