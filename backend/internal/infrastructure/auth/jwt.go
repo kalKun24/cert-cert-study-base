@@ -16,6 +16,12 @@ import (
 // jwtTokenExpiry はJWTトークンの有効期限です。
 const jwtTokenExpiry = 24 * time.Hour
 
+// jwtIssuer はJWTのIssuerクレームです。
+const jwtIssuer = "cert-study-base"
+
+// jwtAudience はJWTのAudienceクレームです。
+const jwtAudience = "cert-study-base-api"
+
 // Claims はJWTのペイロード（クレーム）です。
 type Claims struct {
 	UserID string      `json:"user_id"`
@@ -43,6 +49,8 @@ func (m *JWTManager) Generate(user *domain.User) (string, error) {
 		Role:   user.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   user.ID,
+			Issuer:    jwtIssuer,
+			Audience:  jwt.ClaimStrings{jwtAudience},
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(jwtTokenExpiry)),
 		},
@@ -57,13 +65,20 @@ func (m *JWTManager) Generate(user *domain.User) (string, error) {
 }
 
 // Parse はJWTトークンを検証し、クレームを返します。
+// Issuer および Audience クレームも検証します。
 func (m *JWTManager) Parse(tokenString string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(t *jwt.Token) (any, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("予期しない署名アルゴリズム: %v", t.Header["alg"])
-		}
-		return m.secretKey, nil
-	})
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		&Claims{},
+		func(t *jwt.Token) (any, error) {
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("予期しない署名アルゴリズム: %v", t.Header["alg"])
+			}
+			return m.secretKey, nil
+		},
+		jwt.WithIssuer(jwtIssuer),
+		jwt.WithAudience(jwtAudience),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("JWTトークンの検証に失敗しました: %w", err)
 	}

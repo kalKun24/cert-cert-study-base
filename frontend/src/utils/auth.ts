@@ -15,6 +15,9 @@ export interface AuthUser {
   is_team_owner?: boolean;
 }
 
+// NOTE(セキュリティ): JWT トークンを localStorage に保存しているため、XSS 成功時のトークン盗取リスクがある。
+// HttpOnly Cookie への移行はバックエンドの Cookie 発行エンドポイント整備が必要なため現フェーズでは保留。
+// TICKET-065 にて検討済み。
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
