@@ -5,13 +5,13 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-060 |
-| ステータス | 🟡 作業中 |
+| ステータス | ✅ 完了 |
 | 作成日 | 2026-06-21 |
 | 着手日 | 2026-06-22 |
-| 完了日 | - |
+| 完了日 | 2026-06-22 |
 | ブランチ名 | feature/note-frontend |
-| PR番号 | - |
-| PRリンク | - |
+| PR番号 | #47 |
+| PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/47 |
 
 ---
 
@@ -29,12 +29,12 @@
 
 ## 受け入れ条件
 
-- [ ] `frontend/src/components/NavBar.tsx` の「問題」リンクの直後に「ノート」`NavLink` が追加されている
-- [ ] リンク先は `/notes`
-- [ ] アクティブ状態のスタイル（`topbar-nav-link--active`）が問題リンクと同じ挙動で適用される
-- [ ] モバイル用ドロワーメニューにも同じ順序で「ノート」リンクが追加されている（モバイルメニューが実装されている場合）
-- [ ] i18n キー `nav.notes` が翻訳ファイル（`ja.json` / `en.json`）に追加されている（`t('nav.notes')` で表示）
-- [ ] ESLint・Prettier を通過する
+- [x] `frontend/src/components/NavBar.tsx` の「問題」リンクの直後に「ノート」`NavLink` が追加されている
+- [x] リンク先は `/notes`
+- [x] アクティブ状態のスタイル（`topbar-nav-link--active`）が問題リンクと同じ挙動で適用される
+- [x] モバイル用ドロワーメニューにも同じ順序で「ノート」リンクが追加されている（モバイルメニューが実装されている場合）
+- [x] i18n キー `nav.notes` が翻訳ファイル（`ja.json` / `en.json`）に追加されている（`t('nav.notes')` で表示）
+- [x] ESLint・Prettier を通過する
 
 ---
 

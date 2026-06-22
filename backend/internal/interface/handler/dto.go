@@ -11,7 +11,7 @@ import (
 
 // response は統一レスポンスフォーマットです。
 type response struct {
-	Data  any    `json:"data,omitempty"`
+	Data  any    `json:"data"`
 	Error string `json:"error,omitempty"`
 }
 
