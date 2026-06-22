@@ -31,19 +31,19 @@ CI パイプラインへのシークレット検出・SAST の追加、.env の 
 
 ## 受け入れ条件
 
-- [ ] `.github/workflows/ci.yml` に `gitleaks` または `truffleHog` によるシークレット検出ステップを追加する
-- [ ] CI パイプラインに `gosec` または Trivy による Go 依存関係スキャンステップを追加する
-- [ ] `.env.example` にダミー値を記載したテンプレートを整備し、README のセットアップ手順に `.env` の生成方法を追記する
-- [ ] `context.TODO()` を使用しているユースケース層のメソッドシグネチャに `ctx context.Context` を追加し、Firestore 操作に伝播させる
+- [x] `.github/workflows/ci.yml` に `gitleaks` または `truffleHog` によるシークレット検出ステップを追加する
+- [x] CI パイプラインに `gosec` または Trivy による Go 依存関係スキャンステップを追加する
+- [x] `.env.example` にダミー値を記載したテンプレートを整備し、README のセットアップ手順に `.env` の生成方法を追記する
+- [x] `context.TODO()` を使用しているユースケース層のメソッドシグネチャに `ctx context.Context` を追加し、Firestore 操作に伝播させる
 
 ---
 
 ## サブチケット（コミット単位）
 
-- [ ] `ci: gitleaks によるシークレット検出ステップを CI に追加`
-- [ ] `ci: Trivy / gosec による依存関係スキャンステップを CI に追加`
-- [ ] `docs: .env.example を整備し README にセットアップ手順を追記`
-- [ ] `refactor(usecase): context.TODO() を ctx に置き換えてリクエストコンテキストを伝播`
+- [x] `ci: gitleaks によるシークレット検出ステップを CI に追加`
+- [x] `ci: Trivy / gosec による依存関係スキャンステップを CI に追加`
+- [x] `docs: .env.example を整備し README にセットアップ手順を追記`
+- [x] `refactor(usecase): context.TODO() を ctx に置き換えてリクエストコンテキストを伝播`
 
 ---
 
