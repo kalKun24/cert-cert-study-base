@@ -63,10 +63,8 @@ type LoginOutput struct {
 // Login はusername/パスワードで認証し、JWTトークンを返します。
 // - is_active: false のユーザーは ErrUserInactive を返します。
 // - 認証失敗時は ErrInvalidCredentials を返します。
-// TODO: ユースケース層のメソッドシグネチャに context.Context を追加し、
-// context.TODO() を呼び元から受け取った ctx に置き換える。
-func (uc *AuthUseCase) Login(input LoginInput) (*LoginOutput, error) {
-	user, err := uc.userRepo.FindByUsername(context.TODO(), input.Username)
+func (uc *AuthUseCase) Login(ctx context.Context, input LoginInput) (*LoginOutput, error) {
+	user, err := uc.userRepo.FindByUsername(ctx, input.Username)
 	if err != nil {
 		// ユーザーが存在しない場合も認証失敗として扱い、情報漏洩を防ぐ
 		return nil, domain.ErrInvalidCredentials
@@ -93,7 +91,7 @@ func (uc *AuthUseCase) Login(input LoginInput) (*LoginOutput, error) {
 	now := time.Now().UTC()
 	user.LastLoginAt = &now
 	user.UpdatedAt = now
-	if err := uc.userRepo.Save(context.TODO(), user); err != nil {
+	if err := uc.userRepo.Save(ctx, user); err != nil {
 		// GCS の一時的な障害時もログインを失敗させないため、エラーは握り潰してログのみ出力する
 		slog.Warn("最終ログイン日時の更新に失敗しました", "user_id", user.ID, "error", err)
 	}
@@ -130,21 +128,19 @@ type CreateUserInput struct {
 // CreateUser は新しいユーザーを作成します（admin のみ呼び出し可）。
 // - username または email の重複時は対応するドメインエラーを返します。
 // - パスワードはbcryptでハッシュ化して保存します。平文は保存しません。
-// TODO: ユースケース層のメソッドシグネチャに context.Context を追加し、
-// context.TODO() を呼び元から受け取った ctx に置き換える。
-func (uc *UserUseCase) CreateUser(input CreateUserInput) (*domain.User, error) {
+func (uc *UserUseCase) CreateUser(ctx context.Context, input CreateUserInput) (*domain.User, error) {
 	// ロール検証
 	if !input.Role.IsValid() {
 		return nil, domain.ErrInvalidRole
 	}
 
 	// username 重複チェック
-	if _, err := uc.userRepo.FindByUsername(context.TODO(), input.Username); err == nil {
+	if _, err := uc.userRepo.FindByUsername(ctx, input.Username); err == nil {
 		return nil, domain.ErrUsernameAlreadyExists
 	}
 
 	// email 重複チェック
-	if _, err := uc.userRepo.FindByEmail(context.TODO(), input.Email); err == nil {
+	if _, err := uc.userRepo.FindByEmail(ctx, input.Email); err == nil {
 		return nil, domain.ErrEmailAlreadyExists
 	}
 
@@ -167,7 +163,7 @@ func (uc *UserUseCase) CreateUser(input CreateUserInput) (*domain.User, error) {
 		UpdatedAt:    now,
 	}
 
-	if err := uc.userRepo.Save(context.TODO(), user); err != nil {
+	if err := uc.userRepo.Save(ctx, user); err != nil {
 		return nil, fmt.Errorf("ユーザーの保存に失敗しました: %w", err)
 	}
 
@@ -175,10 +171,8 @@ func (uc *UserUseCase) CreateUser(input CreateUserInput) (*domain.User, error) {
 }
 
 // GetUser はIDでユーザーを取得します（admin のみ呼び出し可）。
-// TODO: ユースケース層のメソッドシグネチャに context.Context を追加し、
-// context.TODO() を呼び元から受け取った ctx に置き換える。
-func (uc *UserUseCase) GetUser(id string) (*domain.User, error) {
-	user, err := uc.userRepo.FindByID(context.TODO(), id)
+func (uc *UserUseCase) GetUser(ctx context.Context, id string) (*domain.User, error) {
+	user, err := uc.userRepo.FindByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("ユーザー取得に失敗しました: %w", err)
 	}
@@ -186,10 +180,8 @@ func (uc *UserUseCase) GetUser(id string) (*domain.User, error) {
 }
 
 // ListUsers は全ユーザーを取得します（admin のみ呼び出し可）。
-// TODO: ユースケース層のメソッドシグネチャに context.Context を追加し、
-// context.TODO() を呼び元から受け取った ctx に置き換える。
-func (uc *UserUseCase) ListUsers() ([]*domain.User, error) {
-	users, err := uc.userRepo.List(context.TODO())
+func (uc *UserUseCase) ListUsers(ctx context.Context) ([]*domain.User, error) {
+	users, err := uc.userRepo.List(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("ユーザー一覧取得に失敗しました: %w", err)
 	}
@@ -206,10 +198,8 @@ type UpdateUserInput struct {
 }
 
 // UpdateUser は指定IDのユーザー情報を更新します（admin のみ呼び出し可）。
-// TODO: ユースケース層のメソッドシグネチャに context.Context を追加し、
-// context.TODO() を呼び元から受け取った ctx に置き換える。
-func (uc *UserUseCase) UpdateUser(id string, input UpdateUserInput) (*domain.User, error) {
-	user, err := uc.userRepo.FindByID(context.TODO(), id)
+func (uc *UserUseCase) UpdateUser(ctx context.Context, id string, input UpdateUserInput) (*domain.User, error) {
+	user, err := uc.userRepo.FindByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("ユーザー取得に失敗しました: %w", err)
 	}
@@ -220,7 +210,7 @@ func (uc *UserUseCase) UpdateUser(id string, input UpdateUserInput) (*domain.Use
 
 	if input.Email != nil {
 		// 別ユーザーがそのemailを既に使っていないか確認
-		existing, err := uc.userRepo.FindByEmail(context.TODO(), *input.Email)
+		existing, err := uc.userRepo.FindByEmail(ctx, *input.Email)
 		if err == nil && existing.ID != id {
 			return nil, domain.ErrEmailAlreadyExists
 		}
@@ -244,7 +234,7 @@ func (uc *UserUseCase) UpdateUser(id string, input UpdateUserInput) (*domain.Use
 
 	user.UpdatedAt = time.Now().UTC()
 
-	if err := uc.userRepo.Save(context.TODO(), user); err != nil {
+	if err := uc.userRepo.Save(ctx, user); err != nil {
 		return nil, fmt.Errorf("ユーザーの保存に失敗しました: %w", err)
 	}
 
@@ -252,15 +242,13 @@ func (uc *UserUseCase) UpdateUser(id string, input UpdateUserInput) (*domain.Use
 }
 
 // DeleteUser は指定IDのユーザーを削除します（admin のみ呼び出し可）。
-// TODO: ユースケース層のメソッドシグネチャに context.Context を追加し、
-// context.TODO() を呼び元から受け取った ctx に置き換える。
-func (uc *UserUseCase) DeleteUser(id string) error {
+func (uc *UserUseCase) DeleteUser(ctx context.Context, id string) error {
 	// ユーザーが存在するか確認
-	if _, err := uc.userRepo.FindByID(context.TODO(), id); err != nil {
+	if _, err := uc.userRepo.FindByID(ctx, id); err != nil {
 		return fmt.Errorf("ユーザー取得に失敗しました: %w", err)
 	}
 
-	if err := uc.userRepo.Delete(context.TODO(), id); err != nil {
+	if err := uc.userRepo.Delete(ctx, id); err != nil {
 		return fmt.Errorf("ユーザーの削除に失敗しました: %w", err)
 	}
 
@@ -276,14 +264,12 @@ type UpdateProfileInput struct {
 }
 
 // UpdateProfile はログイン中のユーザーの display_name を更新します（全ロール可）。
-// TODO: ユースケース層のメソッドシグネチャに context.Context を追加し、
-// context.TODO() を呼び元から受け取った ctx に置き換える。
-func (uc *UserUseCase) UpdateProfile(input UpdateProfileInput) (*domain.User, error) {
+func (uc *UserUseCase) UpdateProfile(ctx context.Context, input UpdateProfileInput) (*domain.User, error) {
 	if input.DisplayName == "" {
 		return nil, fmt.Errorf("display_name は必須です")
 	}
 
-	user, err := uc.userRepo.FindByID(context.TODO(), input.UserID)
+	user, err := uc.userRepo.FindByID(ctx, input.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("ユーザー取得に失敗しました: %w", err)
 	}
@@ -291,7 +277,7 @@ func (uc *UserUseCase) UpdateProfile(input UpdateProfileInput) (*domain.User, er
 	user.DisplayName = input.DisplayName
 	user.UpdatedAt = time.Now().UTC()
 
-	if err := uc.userRepo.Save(context.TODO(), user); err != nil {
+	if err := uc.userRepo.Save(ctx, user); err != nil {
 		return nil, fmt.Errorf("ユーザーの保存に失敗しました: %w", err)
 	}
 
@@ -310,10 +296,8 @@ type ChangePasswordInput struct {
 
 // ChangePassword はログイン中のユーザーのパスワードを変更します（全ロール可）。
 // 現在のパスワードが誤っている場合は ErrCurrentPasswordIncorrect を返します。
-// TODO: ユースケース層のメソッドシグネチャに context.Context を追加し、
-// context.TODO() を呼び元から受け取った ctx に置き換える。
-func (uc *UserUseCase) ChangePassword(input ChangePasswordInput) error {
-	user, err := uc.userRepo.FindByID(context.TODO(), input.UserID)
+func (uc *UserUseCase) ChangePassword(ctx context.Context, input ChangePasswordInput) error {
+	user, err := uc.userRepo.FindByID(ctx, input.UserID)
 	if err != nil {
 		return fmt.Errorf("ユーザー取得に失敗しました: %w", err)
 	}
@@ -332,7 +316,7 @@ func (uc *UserUseCase) ChangePassword(input ChangePasswordInput) error {
 	user.PasswordHash = hash
 	user.UpdatedAt = time.Now().UTC()
 
-	if err := uc.userRepo.Save(context.TODO(), user); err != nil {
+	if err := uc.userRepo.Save(ctx, user); err != nil {
 		return fmt.Errorf("ユーザーの保存に失敗しました: %w", err)
 	}
 
@@ -340,10 +324,8 @@ func (uc *UserUseCase) ChangePassword(input ChangePasswordInput) error {
 }
 
 // UpdateUserStatus はユーザーの有効/停止を切り替えます（admin のみ呼び出し可）。
-// TODO: ユースケース層のメソッドシグネチャに context.Context を追加し、
-// context.TODO() を呼び元から受け取った ctx に置き換える。
-func (uc *UserUseCase) UpdateUserStatus(id string, isActive bool) (*domain.User, error) {
-	user, err := uc.userRepo.FindByID(context.TODO(), id)
+func (uc *UserUseCase) UpdateUserStatus(ctx context.Context, id string, isActive bool) (*domain.User, error) {
+	user, err := uc.userRepo.FindByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("ユーザー取得に失敗しました: %w", err)
 	}
@@ -351,7 +333,7 @@ func (uc *UserUseCase) UpdateUserStatus(id string, isActive bool) (*domain.User,
 	user.IsActive = isActive
 	user.UpdatedAt = time.Now().UTC()
 
-	if err := uc.userRepo.Save(context.TODO(), user); err != nil {
+	if err := uc.userRepo.Save(ctx, user); err != nil {
 		return nil, fmt.Errorf("ユーザーの保存に失敗しました: %w", err)
 	}
 
@@ -370,12 +352,12 @@ type UpdateTeamOwnerStatusInput struct {
 
 // UpdateTeamOwnerStatus はユーザーのグローバルチームオーナー権限を更新します（admin のみ呼び出し可）。
 // 指定ユーザーが存在しない場合は ErrUserNotFound を返します。
-func (uc *UserUseCase) UpdateTeamOwnerStatus(input UpdateTeamOwnerStatusInput) (*domain.User, error) {
+func (uc *UserUseCase) UpdateTeamOwnerStatus(ctx context.Context, input UpdateTeamOwnerStatusInput) (*domain.User, error) {
 	if input.MaxTeams < 0 {
 		return nil, fmt.Errorf("max_teams は0以上の値を指定してください")
 	}
 
-	user, err := uc.userRepo.FindByID(context.TODO(), input.UserID)
+	user, err := uc.userRepo.FindByID(ctx, input.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("ユーザー取得に失敗しました: %w", err)
 	}
@@ -384,7 +366,7 @@ func (uc *UserUseCase) UpdateTeamOwnerStatus(input UpdateTeamOwnerStatusInput) (
 	user.MaxTeams = input.MaxTeams
 	user.UpdatedAt = time.Now().UTC()
 
-	if err := uc.userRepo.Save(context.TODO(), user); err != nil {
+	if err := uc.userRepo.Save(ctx, user); err != nil {
 		return nil, fmt.Errorf("ユーザーの保存に失敗しました: %w", err)
 	}
 

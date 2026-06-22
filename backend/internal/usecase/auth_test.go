@@ -158,7 +158,7 @@ func TestAuthUseCase_Login_Success(t *testing.T) {
 	tokenGen := &mockTokenGenerator{token: "jwt-token"}
 	uc := usecase.NewAuthUseCase(repo, hasher, tokenGen)
 
-	out, err := uc.Login(usecase.LoginInput{
+	out, err := uc.Login(context.Background(), usecase.LoginInput{
 		Username: "alice",
 		Password: "password123",
 	})
@@ -180,7 +180,7 @@ func TestAuthUseCase_Login_UserNotFound(t *testing.T) {
 	tokenGen := &mockTokenGenerator{}
 	uc := usecase.NewAuthUseCase(repo, hasher, tokenGen)
 
-	_, err := uc.Login(usecase.LoginInput{
+	_, err := uc.Login(context.Background(), usecase.LoginInput{
 		Username: "nonexistent",
 		Password: "password123",
 	})
@@ -200,7 +200,7 @@ func TestAuthUseCase_Login_InvalidPassword(t *testing.T) {
 	tokenGen := &mockTokenGenerator{}
 	uc := usecase.NewAuthUseCase(repo, hasher, tokenGen)
 
-	_, err := uc.Login(usecase.LoginInput{
+	_, err := uc.Login(context.Background(), usecase.LoginInput{
 		Username: "alice",
 		Password: "wrongpassword",
 	})
@@ -220,7 +220,7 @@ func TestAuthUseCase_Login_InactiveUser(t *testing.T) {
 	tokenGen := &mockTokenGenerator{}
 	uc := usecase.NewAuthUseCase(repo, hasher, tokenGen)
 
-	_, err := uc.Login(usecase.LoginInput{
+	_, err := uc.Login(context.Background(), usecase.LoginInput{
 		Username: "alice",
 		Password: "password123",
 	})
@@ -239,7 +239,7 @@ func TestAuthUseCase_Login_TokenGenerationError(t *testing.T) {
 	tokenGen := &mockTokenGenerator{tokenErr: errors.New("JWT生成エラー")}
 	uc := usecase.NewAuthUseCase(repo, hasher, tokenGen)
 
-	_, err := uc.Login(usecase.LoginInput{
+	_, err := uc.Login(context.Background(), usecase.LoginInput{
 		Username: "alice",
 		Password: "password123",
 	})
@@ -256,7 +256,7 @@ func TestUserUseCase_CreateUser_Success(t *testing.T) {
 	hasher := &mockPasswordHasher{}
 	uc := usecase.NewUserUseCase(repo, hasher)
 
-	user, err := uc.CreateUser(usecase.CreateUserInput{
+	user, err := uc.CreateUser(context.Background(), usecase.CreateUserInput{
 		Username:    "bob",
 		DisplayName: "Bob",
 		Email:       "bob@example.com",
@@ -287,7 +287,7 @@ func TestUserUseCase_CreateUser_DuplicateUsername(t *testing.T) {
 	hasher := &mockPasswordHasher{}
 	uc := usecase.NewUserUseCase(repo, hasher)
 
-	_, err := uc.CreateUser(usecase.CreateUserInput{
+	_, err := uc.CreateUser(context.Background(), usecase.CreateUserInput{
 		Username:    "alice", // 既存のusername
 		DisplayName: "Alice2",
 		Email:       "alice2@example.com",
@@ -308,7 +308,7 @@ func TestUserUseCase_CreateUser_DuplicateEmail(t *testing.T) {
 	hasher := &mockPasswordHasher{}
 	uc := usecase.NewUserUseCase(repo, hasher)
 
-	_, err := uc.CreateUser(usecase.CreateUserInput{
+	_, err := uc.CreateUser(context.Background(), usecase.CreateUserInput{
 		Username:    "alice2", // 別のusername
 		DisplayName: "Alice2",
 		Email:       "alice@example.com", // 既存のemail
@@ -326,7 +326,7 @@ func TestUserUseCase_CreateUser_InvalidRole(t *testing.T) {
 	hasher := &mockPasswordHasher{}
 	uc := usecase.NewUserUseCase(repo, hasher)
 
-	_, err := uc.CreateUser(usecase.CreateUserInput{
+	_, err := uc.CreateUser(context.Background(), usecase.CreateUserInput{
 		Username:    "bob",
 		DisplayName: "Bob",
 		Email:       "bob@example.com",
@@ -347,7 +347,7 @@ func TestUserUseCase_GetUser_Success(t *testing.T) {
 	hasher := &mockPasswordHasher{}
 	uc := usecase.NewUserUseCase(repo, hasher)
 
-	got, err := uc.GetUser("id-1")
+	got, err := uc.GetUser(context.Background(), "id-1")
 	if err != nil {
 		t.Fatalf("ユーザー取得に失敗しました: %v", err)
 	}
@@ -361,7 +361,7 @@ func TestUserUseCase_GetUser_NotFound(t *testing.T) {
 	hasher := &mockPasswordHasher{}
 	uc := usecase.NewUserUseCase(repo, hasher)
 
-	_, err := uc.GetUser("nonexistent-id")
+	_, err := uc.GetUser(context.Background(), "nonexistent-id")
 	if !errors.Is(err, domain.ErrUserNotFound) {
 		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrUserNotFound)
 	}
@@ -375,7 +375,7 @@ func TestUserUseCase_ListUsers_Success(t *testing.T) {
 	hasher := &mockPasswordHasher{}
 	uc := usecase.NewUserUseCase(repo, hasher)
 
-	users, err := uc.ListUsers()
+	users, err := uc.ListUsers(context.Background())
 	if err != nil {
 		t.Fatalf("ユーザー一覧取得に失敗しました: %v", err)
 	}
@@ -393,7 +393,7 @@ func TestUserUseCase_UpdateUser_Success(t *testing.T) {
 	uc := usecase.NewUserUseCase(repo, hasher)
 
 	newDisplayName := "Alice Updated"
-	got, err := uc.UpdateUser("id-1", usecase.UpdateUserInput{
+	got, err := uc.UpdateUser(context.Background(), "id-1", usecase.UpdateUserInput{
 		DisplayName: &newDisplayName,
 	})
 
@@ -415,7 +415,7 @@ func TestUserUseCase_UpdateUser_DuplicateEmail(t *testing.T) {
 
 	// bob のメールを alice と同じにしようとする
 	aliceEmail := "alice@example.com"
-	_, err := uc.UpdateUser("id-2", usecase.UpdateUserInput{
+	_, err := uc.UpdateUser(context.Background(), "id-2", usecase.UpdateUserInput{
 		Email: &aliceEmail,
 	})
 
@@ -430,7 +430,7 @@ func TestUserUseCase_UpdateUser_NotFound(t *testing.T) {
 	uc := usecase.NewUserUseCase(repo, hasher)
 
 	name := "New Name"
-	_, err := uc.UpdateUser("nonexistent-id", usecase.UpdateUserInput{
+	_, err := uc.UpdateUser(context.Background(), "nonexistent-id", usecase.UpdateUserInput{
 		DisplayName: &name,
 	})
 
@@ -448,7 +448,7 @@ func TestUserUseCase_UpdateUser_InvalidRole(t *testing.T) {
 	uc := usecase.NewUserUseCase(repo, hasher)
 
 	invalidRole := domain.Role("superuser")
-	_, err := uc.UpdateUser("id-1", usecase.UpdateUserInput{
+	_, err := uc.UpdateUser(context.Background(), "id-1", usecase.UpdateUserInput{
 		Role: &invalidRole,
 	})
 
@@ -465,7 +465,7 @@ func TestUserUseCase_DeleteUser_Success(t *testing.T) {
 	hasher := &mockPasswordHasher{}
 	uc := usecase.NewUserUseCase(repo, hasher)
 
-	if err := uc.DeleteUser("id-1"); err != nil {
+	if err := uc.DeleteUser(context.Background(), "id-1"); err != nil {
 		t.Fatalf("ユーザー削除に失敗しました: %v", err)
 	}
 
@@ -481,7 +481,7 @@ func TestUserUseCase_DeleteUser_NotFound(t *testing.T) {
 	hasher := &mockPasswordHasher{}
 	uc := usecase.NewUserUseCase(repo, hasher)
 
-	err := uc.DeleteUser("nonexistent-id")
+	err := uc.DeleteUser(context.Background(), "nonexistent-id")
 	if !errors.Is(err, domain.ErrUserNotFound) {
 		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrUserNotFound)
 	}
@@ -495,7 +495,7 @@ func TestUserUseCase_UpdateUserStatus_Deactivate(t *testing.T) {
 	hasher := &mockPasswordHasher{}
 	uc := usecase.NewUserUseCase(repo, hasher)
 
-	got, err := uc.UpdateUserStatus("id-1", false)
+	got, err := uc.UpdateUserStatus(context.Background(), "id-1", false)
 	if err != nil {
 		t.Fatalf("ユーザーステータス更新に失敗しました: %v", err)
 	}
@@ -513,7 +513,7 @@ func TestUserUseCase_UpdateUserStatus_Reactivate(t *testing.T) {
 	hasher := &mockPasswordHasher{}
 	uc := usecase.NewUserUseCase(repo, hasher)
 
-	got, err := uc.UpdateUserStatus("id-1", true)
+	got, err := uc.UpdateUserStatus(context.Background(), "id-1", true)
 	if err != nil {
 		t.Fatalf("ユーザーステータス更新に失敗しました: %v", err)
 	}
@@ -527,7 +527,7 @@ func TestUserUseCase_UpdateUserStatus_NotFound(t *testing.T) {
 	hasher := &mockPasswordHasher{}
 	uc := usecase.NewUserUseCase(repo, hasher)
 
-	_, err := uc.UpdateUserStatus("nonexistent-id", false)
+	_, err := uc.UpdateUserStatus(context.Background(), "nonexistent-id", false)
 	if !errors.Is(err, domain.ErrUserNotFound) {
 		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrUserNotFound)
 	}
@@ -543,7 +543,7 @@ func TestUserUseCase_UpdateProfile_Success(t *testing.T) {
 	hasher := &mockPasswordHasher{}
 	uc := usecase.NewUserUseCase(repo, hasher)
 
-	got, err := uc.UpdateProfile(usecase.UpdateProfileInput{
+	got, err := uc.UpdateProfile(context.Background(), usecase.UpdateProfileInput{
 		UserID:      "id-1",
 		DisplayName: "Alice New Name",
 	})
@@ -564,7 +564,7 @@ func TestUserUseCase_UpdateProfile_EmptyDisplayName(t *testing.T) {
 	hasher := &mockPasswordHasher{}
 	uc := usecase.NewUserUseCase(repo, hasher)
 
-	_, err := uc.UpdateProfile(usecase.UpdateProfileInput{
+	_, err := uc.UpdateProfile(context.Background(), usecase.UpdateProfileInput{
 		UserID:      "id-1",
 		DisplayName: "", // 空文字は不可
 	})
@@ -579,7 +579,7 @@ func TestUserUseCase_UpdateProfile_UserNotFound(t *testing.T) {
 	hasher := &mockPasswordHasher{}
 	uc := usecase.NewUserUseCase(repo, hasher)
 
-	_, err := uc.UpdateProfile(usecase.UpdateProfileInput{
+	_, err := uc.UpdateProfile(context.Background(), usecase.UpdateProfileInput{
 		UserID:      "nonexistent-id",
 		DisplayName: "New Name",
 	})
@@ -600,7 +600,7 @@ func TestUserUseCase_ChangePassword_Success(t *testing.T) {
 	hasher := &mockPasswordHasher{verifyResult: true}
 	uc := usecase.NewUserUseCase(repo, hasher)
 
-	err := uc.ChangePassword(usecase.ChangePasswordInput{
+	err := uc.ChangePassword(context.Background(), usecase.ChangePasswordInput{
 		UserID:          "id-1",
 		CurrentPassword: "currentpassword123",
 		NewPassword:     "newpassword456",
@@ -627,7 +627,7 @@ func TestUserUseCase_ChangePassword_WrongCurrentPassword(t *testing.T) {
 	hasher := &mockPasswordHasher{verifyResult: false}
 	uc := usecase.NewUserUseCase(repo, hasher)
 
-	err := uc.ChangePassword(usecase.ChangePasswordInput{
+	err := uc.ChangePassword(context.Background(), usecase.ChangePasswordInput{
 		UserID:          "id-1",
 		CurrentPassword: "wrongpassword",
 		NewPassword:     "newpassword456",
@@ -643,7 +643,7 @@ func TestUserUseCase_ChangePassword_UserNotFound(t *testing.T) {
 	hasher := &mockPasswordHasher{}
 	uc := usecase.NewUserUseCase(repo, hasher)
 
-	err := uc.ChangePassword(usecase.ChangePasswordInput{
+	err := uc.ChangePassword(context.Background(), usecase.ChangePasswordInput{
 		UserID:          "nonexistent-id",
 		CurrentPassword: "currentpassword123",
 		NewPassword:     "newpassword456",
@@ -666,7 +666,7 @@ func TestUserUseCase_ChangePassword_HashError(t *testing.T) {
 	}
 	uc := usecase.NewUserUseCase(repo, hasher)
 
-	err := uc.ChangePassword(usecase.ChangePasswordInput{
+	err := uc.ChangePassword(context.Background(), usecase.ChangePasswordInput{
 		UserID:          "id-1",
 		CurrentPassword: "currentpassword123",
 		NewPassword:     "newpassword456",
@@ -687,7 +687,7 @@ func TestUserUseCase_UpdateTeamOwnerStatus_Success(t *testing.T) {
 	hasher := &mockPasswordHasher{}
 	uc := usecase.NewUserUseCase(userRepo, hasher)
 
-	updated, err := uc.UpdateTeamOwnerStatus(usecase.UpdateTeamOwnerStatusInput{
+	updated, err := uc.UpdateTeamOwnerStatus(context.Background(), usecase.UpdateTeamOwnerStatusInput{
 		UserID:      "user-1",
 		IsTeamOwner: true,
 		MaxTeams:    3,
@@ -713,7 +713,7 @@ func TestUserUseCase_UpdateTeamOwnerStatus_Revoke(t *testing.T) {
 	hasher := &mockPasswordHasher{}
 	uc := usecase.NewUserUseCase(userRepo, hasher)
 
-	updated, err := uc.UpdateTeamOwnerStatus(usecase.UpdateTeamOwnerStatusInput{
+	updated, err := uc.UpdateTeamOwnerStatus(context.Background(), usecase.UpdateTeamOwnerStatusInput{
 		UserID:      "user-1",
 		IsTeamOwner: false,
 		MaxTeams:    0,
@@ -735,7 +735,7 @@ func TestUserUseCase_UpdateTeamOwnerStatus_UserNotFound(t *testing.T) {
 	hasher := &mockPasswordHasher{}
 	uc := usecase.NewUserUseCase(userRepo, hasher)
 
-	_, err := uc.UpdateTeamOwnerStatus(usecase.UpdateTeamOwnerStatusInput{
+	_, err := uc.UpdateTeamOwnerStatus(context.Background(), usecase.UpdateTeamOwnerStatusInput{
 		UserID:      "nonexistent-id",
 		IsTeamOwner: true,
 		MaxTeams:    3,
@@ -762,7 +762,7 @@ func TestAuthUseCase_Login_UpdatesLastLoginAt(t *testing.T) {
 	uc := usecase.NewAuthUseCase(repo, hasher, tokenGen)
 
 	beforeLogin := time.Now()
-	out, err := uc.Login(usecase.LoginInput{
+	out, err := uc.Login(context.Background(), usecase.LoginInput{
 		Username: "alice",
 		Password: "password123",
 	})
@@ -802,7 +802,7 @@ func TestAuthUseCase_Login_LastLoginAt_SaveError(t *testing.T) {
 	tokenGen := &mockTokenGenerator{token: "jwt-token"}
 	uc := usecase.NewAuthUseCase(repo, hasher, tokenGen)
 
-	out, err := uc.Login(usecase.LoginInput{
+	out, err := uc.Login(context.Background(), usecase.LoginInput{
 		Username: "alice",
 		Password: "password123",
 	})
