@@ -20,16 +20,27 @@ make hooks
 cp .env.example .env
 ```
 
-`.env` を編集して各値を設定してください（`.env` は git 管理外です）:
+`.env` を編集して各値を設定してください（`.env` は `.gitignore` により git 管理外です）:
 
 | 変数 | 説明 |
 |---|---|
-| `JWT_SECRET` | JWT署名用シークレットキー（`openssl rand -base64 32` で生成）|
+| `JWT_SECRET` | JWT署名用シークレットキー（下記コマンドで生成）|
+| `GCP_PROJECT_ID` | GCP プロジェクト ID（Firestore 接続に必要）|
 | `GCS_BUCKET` | GCSバケット名 |
 | `SEED_ADMIN_USERNAME` | 初回起動時に作成する admin のユーザー名 |
 | `SEED_ADMIN_PASSWORD` | 初回起動時に作成する admin のパスワード |
 | `SEED_ADMIN_EMAIL` | 初回起動時に作成する admin のメールアドレス |
 | `SEED_ADMIN_DISPLAY_NAME` | 初回起動時に作成する admin の表示名（省略時: `Administrator`）|
+
+`JWT_SECRET` はランダムな値を生成して設定します:
+
+```bash
+openssl rand -base64 32
+```
+
+> **セキュリティ上の注意**: `.env` ファイルには実際のシークレット（JWT_SECRET、パスワードなど）が含まれます。
+> `.gitignore` によって git 管理外になっていることを必ず確認し、絶対にリポジトリにコミットしないでください。
+> 本番環境では環境変数を GCP Secret Manager で管理し、Cloud Run に注入してください。
 
 ### 2. アプリを起動
 

@@ -9,6 +9,21 @@ on:
       - main
 
 jobs:
+  secret-scan:
+    name: シークレット検出（gitleaks）
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: コードをチェックアウト
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: gitleaks でシークレットを検出
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   test-backend:
     name: バックエンドテスト
     runs-on: ubuntu-latest
@@ -72,6 +87,50 @@ jobs:
         with:
           version: v2.12.2
           working-directory: backend
+
+  security-scan:
+    name: セキュリティスキャン（Trivy + gosec）
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: コードをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Go をセットアップ
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: backend/go.sum
+
+      - name: gosec で Go ソースコードの SAST スキャンを実行
+        working-directory: backend
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -fmt sarif -out gosec-results.sarif ./... || true
+
+      - name: gosec の SARIF 結果を GitHub Security タブにアップロード
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: backend/gosec-results.sarif
+          category: gosec
+
+      - name: Trivy で Go の依存関係脆弱性スキャンを実行
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: backend
+          scanners: vuln
+          format: sarif
+          output: trivy-results.sarif
+          exit-code: '0'
+
+      - name: Trivy の SARIF 結果を GitHub Security タブにアップロード
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy
 
   test-frontend:
     name: フロントエンドテスト
