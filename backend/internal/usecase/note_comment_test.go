@@ -96,9 +96,22 @@ func testNoteComment(id, noteID, createdBy, body string) *domain.NoteComment {
 	}
 }
 
+// newMockUserRepositoryWithCallerID は testCallerID に対応するユーザーが登録済みの
+// mockUserRepository を返します。
+func newMockUserRepositoryWithCallerID() *mockUserRepository {
+	uRepo := newMockUserRepository()
+	uRepo.addUser(&domain.User{
+		ID:          testCallerID,
+		Username:    "test-caller",
+		Email:       "test-caller@example.com",
+		DisplayName: "テストユーザー",
+	})
+	return uRepo
+}
+
 // newNoteCommentUseCase はテスト用の NoteCommentUseCase を生成します。
-// testCallerID が testTeamID のメンバーとして登録されたチームリポジトリを使います。
-// userRepo は nil を渡し、テスト内では display_name の解決をスキップします。
+// testCallerID が testTeamID のメンバーとして登録されたチームリポジトリと、
+// testCallerID に対応するユーザーが登録済みの userRepo を使います。
 func newNoteCommentUseCase(
 	ncRepo *mockNoteCommentRepository,
 	nRepo *mockNoteRepository,
@@ -109,17 +122,17 @@ func newNoteCommentUseCase(
 		UserID: testCallerID,
 		Role:   domain.MemberRoleMember,
 	})
-	return usecase.NewNoteCommentUseCase(ncRepo, nRepo, tRepo, nil)
+	return usecase.NewNoteCommentUseCase(ncRepo, nRepo, tRepo, newMockUserRepositoryWithCallerID())
 }
 
 // newNoteCommentUseCaseWithTeam は自由にチームリポジトリを指定できる NoteCommentUseCase を生成します。
-// userRepo は nil を渡し、テスト内では display_name の解決をスキップします。
+// testCallerID に対応するユーザーが登録済みの userRepo を使います。
 func newNoteCommentUseCaseWithTeam(
 	ncRepo *mockNoteCommentRepository,
 	nRepo *mockNoteRepository,
 	tRepo *mockTeamRepository,
 ) *usecase.NoteCommentUseCase {
-	return usecase.NewNoteCommentUseCase(ncRepo, nRepo, tRepo, nil)
+	return usecase.NewNoteCommentUseCase(ncRepo, nRepo, tRepo, newMockUserRepositoryWithCallerID())
 }
 
 // --- CreateNoteComment テスト ---
@@ -395,5 +408,116 @@ func TestDeleteNoteComment_NotOwnerForbidden(t *testing.T) {
 
 	if !errors.Is(err, domain.ErrPermissionDenied) {
 		t.Errorf("エラーが期待値と異なります: got %v, want %v", err, domain.ErrPermissionDenied)
+	}
+}
+
+// --- resolveNoteCommentDisplayName テスト ---
+
+// TestResolveDisplayName_Success はユーザー取得成功時に display_name が返ることのテストです。
+func TestResolveDisplayName_Success(t *testing.T) {
+	nRepo := newMockNoteRepository()
+	nRepo.addNote(testPublishedNote("note-1", "owner-1"))
+
+	ncRepo := newMockNoteCommentRepository()
+
+	uRepo := newMockUserRepository()
+	uRepo.addUser(&domain.User{
+		ID:          testCallerID,
+		Username:    "alice",
+		Email:       "alice@example.com",
+		DisplayName: "Alice",
+	})
+
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{
+		TeamID: testTeamID,
+		UserID: testCallerID,
+		Role:   domain.MemberRoleMember,
+	})
+	uc := usecase.NewNoteCommentUseCase(ncRepo, nRepo, tRepo, uRepo)
+
+	result, err := uc.CreateNoteComment(context.Background(), usecase.CreateNoteCommentInput{
+		TeamID:     testTeamID,
+		NoteID:     "note-1",
+		Body:       "コメント",
+		CallerID:   testCallerID,
+		CallerRole: domain.RoleUser,
+	})
+
+	if err != nil {
+		t.Fatalf("コメント投稿に失敗しました: %v", err)
+	}
+	if result.DisplayName != "Alice" {
+		t.Errorf("DisplayName が期待値と異なります: got %s, want Alice", result.DisplayName)
+	}
+}
+
+// TestResolveDisplayName_ErrUserNotFound はユーザーが存在しない場合にユーザーIDにフォールバックするテストです。
+func TestResolveDisplayName_ErrUserNotFound(t *testing.T) {
+	nRepo := newMockNoteRepository()
+	nRepo.addNote(testPublishedNote("note-1", "owner-1"))
+
+	ncRepo := newMockNoteCommentRepository()
+
+	// ユーザーを登録しない → FindByID が ErrUserNotFound を返す
+	uRepo := newMockUserRepository()
+
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{
+		TeamID: testTeamID,
+		UserID: testCallerID,
+		Role:   domain.MemberRoleMember,
+	})
+	uc := usecase.NewNoteCommentUseCase(ncRepo, nRepo, tRepo, uRepo)
+
+	result, err := uc.CreateNoteComment(context.Background(), usecase.CreateNoteCommentInput{
+		TeamID:     testTeamID,
+		NoteID:     "note-1",
+		Body:       "コメント",
+		CallerID:   testCallerID,
+		CallerRole: domain.RoleUser,
+	})
+
+	if err != nil {
+		t.Fatalf("ErrUserNotFound 時でもエラーを返すべきではありません: %v", err)
+	}
+	// ユーザーIDをそのまま DisplayName として返すことを確認
+	if result.DisplayName != testCallerID {
+		t.Errorf("DisplayName が期待値と異なります: got %s, want %s", result.DisplayName, testCallerID)
+	}
+}
+
+// TestResolveDisplayName_UnexpectedError は想定外エラー時にユースケースがエラーを伝播するテストです。
+func TestResolveDisplayName_UnexpectedError(t *testing.T) {
+	nRepo := newMockNoteRepository()
+	nRepo.addNote(testPublishedNote("note-1", "owner-1"))
+
+	ncRepo := newMockNoteCommentRepository()
+
+	unexpectedErr := errors.New("データベース接続エラー")
+	uRepo := newMockUserRepository()
+	uRepo.findErr = unexpectedErr
+
+	tRepo := newMockTeamRepository()
+	_ = tRepo.AddMember(context.Background(), &domain.TeamMember{
+		TeamID: testTeamID,
+		UserID: testCallerID,
+		Role:   domain.MemberRoleMember,
+	})
+	uc := usecase.NewNoteCommentUseCase(ncRepo, nRepo, tRepo, uRepo)
+
+	_, err := uc.CreateNoteComment(context.Background(), usecase.CreateNoteCommentInput{
+		TeamID:     testTeamID,
+		NoteID:     "note-1",
+		Body:       "コメント",
+		CallerID:   testCallerID,
+		CallerRole: domain.RoleUser,
+	})
+
+	if err == nil {
+		t.Fatal("想定外エラー時はエラーを返すべきです")
+	}
+	if !errors.Is(err, unexpectedErr) {
+		t.Errorf("エラーが期待値と異なります: got %v, want wrapped %v", err, unexpectedErr)
 	}
 }
