@@ -31,19 +31,19 @@
 
 ## 受け入れ条件
 
-- [ ] `note_comment.go` の `if uc.userRepo == nil` ガードを除去する
-- [ ] `note_comment_test.go` に `mockUserRepo` 構造体を追加し、`nil` の代わりに注入する形に修正する
-- [ ] `resolveNoteCommentDisplayName` の正常系（ユーザー取得成功・display_name 返却）をテストする
-- [ ] `ErrUserNotFound` 時のフォールバック（userID を返す）をテストする
-- [ ] その他エラー時の挙動をテストする
-- [ ] `make test` が全てパスすることを確認する
+- [x] `note_comment.go` の `if uc.userRepo == nil` ガードを除去する
+- [x] `note_comment_test.go` に `mockUserRepo` 構造体を追加し、`nil` の代わりに注入する形に修正する
+- [x] `resolveNoteCommentDisplayName` の正常系（ユーザー取得成功・display_name 返却）をテストする
+- [x] `ErrUserNotFound` 時のフォールバック（userID を返す）をテストする
+- [x] その他エラー時の挙動をテストする
+- [x] `make test` が全てパスすることを確認する
 
 ---
 
 ## サブチケット（コミット単位）
 
-- [ ] `refactor(usecase): NoteCommentUseCase の userRepo nil ガードを除去`
-- [ ] `test(usecase): mockUserRepo を追加し display_name 解決パスのテストを実装`
+- [x] `refactor(usecase): NoteCommentUseCase の userRepo nil ガードを除去`
+- [x] `test(usecase): mockUserRepo を追加し display_name 解決パスのテストを実装`
 
 ---
 
