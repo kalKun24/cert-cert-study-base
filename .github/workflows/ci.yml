@@ -9,6 +9,21 @@ on:
       - main
 
 jobs:
+  secret-scan:
+    name: シークレット検出（gitleaks）
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: コードをチェックアウト
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: gitleaks でシークレットを検出
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   test-backend:
     name: バックエンドテスト
     runs-on: ubuntu-latest
