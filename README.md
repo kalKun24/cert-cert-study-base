@@ -313,20 +313,29 @@ gcloud iam workload-identity-pools providers describe "${PROVIDER_ID}" \
 
 | ロール | 用途 |
 |---|---|
-| `roles/run.admin` | Cloud Run サービスのデプロイ |
+| `roles/run.developer` | Cloud Run サービスのデプロイ（IAM 変更は含まない最小権限） |
 | `roles/artifactregistry.writer` | Artifact Registry へのイメージプッシュ |
 | `roles/secretmanager.secretAccessor` | Secret Manager からシークレットを取得 |
 | `roles/iam.serviceAccountUser` | Cloud Run のランタイム SA として自身を使用 |
 
 ---
 
-### GitHub Secrets の登録
+### GitHub Secrets / Variables の登録
 
-リポジトリの **Settings > Secrets and variables > Actions** に以下の 3 つを登録してください。
+リポジトリの **Settings > Secrets and variables > Actions** に以下を登録してください。
+
+#### Variables タブ（平文で記録してよい値）
+
+| 変数名 | 説明 | 例 |
+|---|---|---|
+| `GCP_PROJECT_ID` | GCP プロジェクト ID | `cert-study-base` |
+
+> Variables はログに表示されるため、デバッグ時にどのプロジェクトへデプロイされたか確認しやすくなります。
+
+#### Secrets タブ（機密値）
 
 | シークレット名 | 説明 | 例 |
 |---|---|---|
-| `GCP_PROJECT_ID` | GCP プロジェクト ID | `cert-study-base` |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | 上記セットアップで確認した Provider のリソース名 | `projects/123456789/locations/global/workloadIdentityPools/github-actions/providers/github` |
 | `GCP_SERVICE_ACCOUNT` | デプロイに使用するサービスアカウントのメールアドレス | `cert-study-backend@cert-study-base.iam.gserviceaccount.com` |
 

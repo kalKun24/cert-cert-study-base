@@ -1,14 +1,21 @@
 name: CD
 
+# CI（テスト・Lint・セキュリティスキャン）が main ブランチで成功した後にのみ実行する。
+# push: branches: [main] の代わりに workflow_run を使用することで、
+# テストが通っていない状態のコードが本番へデプロイされることを防ぐ。
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
 
 jobs:
   deploy-backend:
     name: バックエンドビルド・デプロイ
     runs-on: ubuntu-latest
+    # CI が成功した場合のみデプロイを実行する
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    timeout-minutes: 30
     permissions:
       contents: read
       id-token: write
@@ -17,10 +24,12 @@ jobs:
 
     steps:
       - name: コードをチェックアウト
-        uses: actions/checkout@v4
+        # actions/checkout v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: GCP 認証（Workload Identity Federation）
-        uses: google-github-actions/auth@v2
+        # google-github-actions/auth v2.1.7
+        uses: google-github-actions/auth@6fc4af4b145ae7821d527454aa9bd537d1f2dc5f
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
@@ -30,46 +39,50 @@ jobs:
 
       - name: バックエンド Docker イメージをビルド・プッシュ
         run: |
-          IMAGE="asia-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cert-study/backend"
+          IMAGE="asia-northeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/cert-study/backend"
           docker build \
             -t "${IMAGE}:${{ github.sha }}" \
-            -t "${IMAGE}:latest" \
             ./backend
           docker push "${IMAGE}:${{ github.sha }}"
-          docker push "${IMAGE}:latest"
 
       - name: バックエンドを Cloud Run へデプロイ
         id: deploy
-        uses: google-github-actions/deploy-cloudrun@v2
+        # google-github-actions/deploy-cloudrun v2.9.0
+        uses: google-github-actions/deploy-cloudrun@9792a4cfe42a0d64b6e17a7cf6b1e75ee6a44f1
         with:
           service: cert-study-backend
           region: asia-northeast1
-          image: asia-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cert-study/backend:${{ github.sha }}
+          image: asia-northeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/cert-study/backend:${{ github.sha }}
           secrets: |
             JWT_SECRET=jwt-secret:latest
             SEED_ADMIN_PASSWORD=seed-admin-password:latest
 
       - name: デプロイ結果をジョブサマリーへ出力
         run: |
-          echo "## バックエンド デプロイ完了" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **サービス URL**: ${{ steps.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **イメージタグ**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          cat >> "$GITHUB_STEP_SUMMARY" << 'EOF'
+          ## バックエンド デプロイ完了
+          EOF
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **サービス URL**: ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **イメージタグ**: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
 
   deploy-frontend:
     name: フロントエンドビルド・デプロイ
     runs-on: ubuntu-latest
     needs: deploy-backend
+    timeout-minutes: 30
     permissions:
       contents: read
       id-token: write
 
     steps:
       - name: コードをチェックアウト
-        uses: actions/checkout@v4
+        # actions/checkout v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: GCP 認証（Workload Identity Federation）
-        uses: google-github-actions/auth@v2
+        # google-github-actions/auth v2.1.7
+        uses: google-github-actions/auth@6fc4af4b145ae7821d527454aa9bd537d1f2dc5f
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
@@ -77,41 +90,53 @@ jobs:
       - name: Docker を Artifact Registry へ認証
         run: gcloud auth configure-docker asia-northeast1-docker.pkg.dev --quiet
 
-      - name: バックエンド URL からホスト名を抽出
+      - name: BACKEND_URL と BACKEND_HOST を設定
+        # deploy-backend ジョブの Cloud Run URL（https:// 付き）を取得し、
+        # nginx が必要とする BACKEND_URL（フル URL）と BACKEND_HOST（ホスト名のみ）を導出する
         id: backend
         run: |
           BACKEND_URL="${{ needs.deploy-backend.outputs.url }}"
-          # "https://" プレフィックスを除いたホスト名を抽出
+          if [ -z "${BACKEND_URL}" ]; then
+            echo "ERROR: BACKEND_URL が空です。deploy-backend ジョブの出力を確認してください。"
+            exit 1
+          fi
+          # "https://" プレフィックスを除いたホスト名を抽出（nginx の proxy_pass Host ヘッダー用）
           BACKEND_HOST="${BACKEND_URL#https://}"
-          echo "url=${BACKEND_URL}" >> $GITHUB_OUTPUT
-          echo "host=${BACKEND_HOST}" >> $GITHUB_OUTPUT
+          # GITHUB_OUTPUT インジェクション対策として EOF デリミタ形式を使用する
+          {
+            echo "url<<GITHUB_OUTPUT_EOF"
+            echo "${BACKEND_URL}"
+            echo "GITHUB_OUTPUT_EOF"
+            echo "host<<GITHUB_OUTPUT_EOF"
+            echo "${BACKEND_HOST}"
+            echo "GITHUB_OUTPUT_EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: フロントエンド Docker イメージをビルド・プッシュ
         run: |
-          IMAGE="asia-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cert-study/frontend"
+          IMAGE="asia-northeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/cert-study/frontend"
           docker build \
             -t "${IMAGE}:${{ github.sha }}" \
-            -t "${IMAGE}:latest" \
             ./frontend
           docker push "${IMAGE}:${{ github.sha }}"
-          docker push "${IMAGE}:latest"
 
       - name: フロントエンドを Cloud Run へデプロイ
         id: deploy
-        uses: google-github-actions/deploy-cloudrun@v2
+        # google-github-actions/deploy-cloudrun v2.9.0
+        uses: google-github-actions/deploy-cloudrun@9792a4cfe42a0d64b6e17a7cf6b1e75ee6a44f1
         with:
           service: cert-study-frontend
           region: asia-northeast1
-          image: asia-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cert-study/frontend:${{ github.sha }}
+          image: asia-northeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/cert-study/frontend:${{ github.sha }}
           env_vars: |
             BACKEND_URL=${{ steps.backend.outputs.url }}
             BACKEND_HOST=${{ steps.backend.outputs.host }}
 
       - name: デプロイ結果をジョブサマリーへ出力
         run: |
-          echo "## フロントエンド デプロイ完了" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **サービス URL**: ${{ steps.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **イメージタグ**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **BACKEND_URL**: ${{ steps.backend.outputs.url }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **BACKEND_HOST**: ${{ steps.backend.outputs.host }}" >> $GITHUB_STEP_SUMMARY
+          cat >> "$GITHUB_STEP_SUMMARY" << 'EOF'
+          ## フロントエンド デプロイ完了
+          EOF
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **サービス URL**: ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **イメージタグ**: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"

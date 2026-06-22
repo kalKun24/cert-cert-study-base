@@ -77,7 +77,7 @@ TICKET-071 で手動デプロイが完了した後、毎回手動でビルド・
   - `GCP_WORKLOAD_IDENTITY_PROVIDER` : Workload Identity Provider のリソース名
   - `GCP_SERVICE_ACCOUNT` : サービスアカウントのメールアドレス
 
-- [ ] `chore(ci): GitHub Actions に CD ワークフロー（.github/workflows/cd.yml）を追加`
+- [x] `chore(ci): GitHub Actions に CD ワークフロー（.github/workflows/cd.yml）を追加`
 
   ワークフローの骨格:
 
@@ -127,7 +127,7 @@ TICKET-071 で手動デプロイが完了した後、毎回手動でビルド・
         # deploy-backend の出力 URL を BACKEND_URL として渡す
   ```
 
-- [ ] `docs: CD パイプラインの設定手順を README に追記`
+- [x] `docs: CD パイプラインの設定手順を README に追記`
 
 ---
 
