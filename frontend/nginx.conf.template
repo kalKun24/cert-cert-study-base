@@ -21,8 +21,16 @@ server {
     # API へのプロキシ（BACKEND_URL 環境変数で切り替え可能）
     # BACKEND_URL の値は末尾スラッシュなしで設定すること（例: http://backend:8080）
     # 末尾スラッシュありにすると /api/ プレフィックスが除去されてバックエンドのルーティングが崩れる
+    #
+    # resolver を設定してリクエストごとに DNS 再解決する。
+    # proxy_pass に直接ホスト名を書くと起動時の 1 回解決・IP キャッシュになり
+    # Cloud Run が IP ローテーションした際に "upstream temporarily disabled" で 502 が続く。
+    # 変数経由にすることで resolver が毎回解決するためこの問題を回避できる。
+    resolver 8.8.8.8 valid=30s ipv6=off;
+
     location /api/ {
-        proxy_pass ${BACKEND_URL};
+        set $backend "${BACKEND_URL}";
+        proxy_pass $backend;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         # クライアント実 IP をバックエンドのレート制限で利用できるよう転送
