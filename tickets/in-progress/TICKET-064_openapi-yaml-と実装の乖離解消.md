@@ -5,13 +5,13 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-064 |
-| ステータス | 🔴 未着手 |
+| ステータス | 🟡 作業中 |
 | 作成日 | 2026-06-22 |
-| 着手日 | - |
+| 着手日 | 2026-06-22 |
 | 完了日 | - |
-| ブランチ名 | - |
-| PR番号 | - |
-| PRリンク | - |
+| ブランチ名 | feature/TICKET-064 |
+| PR番号 | #49 |
+| PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/49 |
 
 ---
 
@@ -42,8 +42,8 @@ CLAUDE.md は「新しいAPIを追加・変更する場合は、必ず openapi.y
 
 ## サブチケット（コミット単位）
 
-- [ ] `docs(api): NoteComment スキーマに display_name を追加`
-- [ ] `fix(handler): response struct の omitempty を除去してエラーレスポンス形式を仕様に合わせる`
+- [x] `docs(api): NoteComment スキーマに display_name を追加`
+- [x] `fix(handler): response struct の omitempty を除去してエラーレスポンス形式を仕様に合わせる`
 - [ ] `fix(handler): UserDTO に last_login_at フィールドを追加`
 - [ ] `docs(api): InvitationDTO の invitee_identifier 除外方針を仕様にコメント追記`
 
