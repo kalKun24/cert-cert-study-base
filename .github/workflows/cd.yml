@@ -48,7 +48,7 @@ jobs:
       - name: バックエンドを Cloud Run へデプロイ
         id: deploy
         # google-github-actions/deploy-cloudrun v2.9.0
-        uses: google-github-actions/deploy-cloudrun@9792a4cfe42a0d64b6e17a7cf6b1e75ee6a44f1
+        uses: google-github-actions/deploy-cloudrun@251330ba9a8a34bfbc1622895f42e1d53fd14522
         with:
           service: cert-study-backend
           region: asia-northeast1
@@ -123,7 +123,7 @@ jobs:
       - name: フロントエンドを Cloud Run へデプロイ
         id: deploy
         # google-github-actions/deploy-cloudrun v2.9.0
-        uses: google-github-actions/deploy-cloudrun@9792a4cfe42a0d64b6e17a7cf6b1e75ee6a44f1
+        uses: google-github-actions/deploy-cloudrun@251330ba9a8a34bfbc1622895f42e1d53fd14522
         with:
           service: cert-study-frontend
           region: asia-northeast1
