@@ -182,7 +182,8 @@ func (r *FirestoreNoteRepository) Save(ctx context.Context, note *domain.Note) e
 	return nil
 }
 
-// Delete はチームIDとIDで指定したノートを削除します。
+// Delete はチームIDとIDで指定したノートとそのコメントサブコレクションを削除します。
+// Firestoreはドキュメント削除時にサブコレクションを自動削除しないため、明示的に削除します。
 func (r *FirestoreNoteRepository) Delete(ctx context.Context, teamID, id string) error {
 	ref := r.notesCol(teamID).Doc(id)
 
@@ -192,6 +193,10 @@ func (r *FirestoreNoteRepository) Delete(ctx context.Context, teamID, id string)
 			return domain.ErrNoteNotFound
 		}
 		return fmt.Errorf("ノートの存在確認に失敗しました: %w", err)
+	}
+
+	if err := deleteSubCollection(ctx, ref.Collection("comments")); err != nil {
+		return fmt.Errorf("ノートコメントの削除に失敗しました: %w", err)
 	}
 
 	_, err = ref.Delete(ctx)
