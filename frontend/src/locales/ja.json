@@ -449,5 +449,23 @@
     "visibility": {
       "changeButton": "ステータスを変更"
     }
+  },
+  "editor": {
+    "toolbar": {
+      "bold": "太字",
+      "italic": "斜体",
+      "link": "リンク",
+      "table": "テーブル",
+      "codeBlock": "コードブロック",
+      "checklist": "チェックリスト"
+    },
+    "viewMode": {
+      "edit": "編集",
+      "preview": "プレビュー",
+      "split": "分割"
+    },
+    "preview": {
+      "empty": "（プレビューするテキストがありません）"
+    }
   }
 }
