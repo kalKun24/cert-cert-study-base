@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -52,11 +53,12 @@ func getLimiter(ip string) *rate.Limiter {
 
 func getClientIP(r *http.Request) string {
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		// 最初のアドレスが元クライアント
-		if host, _, err := net.SplitHostPort(xff); err == nil {
-			return host
+		// XFF は "IP1, IP2, ..." 形式。最初のアドレスが元クライアント。
+		// Cloud Run 等のプロキシが末尾に自身の IP を追加するため、先頭要素のみ使用する。
+		first := strings.TrimSpace(strings.SplitN(xff, ",", 2)[0])
+		if net.ParseIP(first) != nil {
+			return first
 		}
-		return xff
 	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
