@@ -25,4 +25,4 @@ COPY nginx.conf.template /tmp/nginx.conf.template
 EXPOSE 8080
 
 # 起動時に PORT と BACKEND_URL のみを展開し、nginx 変数（$uri/$host 等）は保護する。
-CMD ["/bin/sh", "-c", "RESOLVER=${RESOLVER:-8.8.8.8}; envsubst '${PORT} ${BACKEND_URL} ${BACKEND_HOST} ${RESOLVER}' < /tmp/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+CMD ["/bin/sh", "-c", "export RESOLVER=${RESOLVER:-8.8.8.8}; envsubst '${PORT} ${BACKEND_URL} ${BACKEND_HOST} ${RESOLVER}' < /tmp/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
