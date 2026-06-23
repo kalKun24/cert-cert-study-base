@@ -53,6 +53,9 @@ jobs:
           service: cert-study-backend
           region: asia-northeast1
           image: asia-northeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/cert-study/backend:${{ github.sha }}
+          env_vars: |
+            GCP_PROJECT_ID=${{ vars.GCP_PROJECT_ID }}
+            CORS_ALLOWED_ORIGINS=${{ vars.FRONTEND_URL }}
           secrets: |
             JWT_SECRET=jwt-secret:latest
             SEED_ADMIN_PASSWORD=seed-admin-password:latest
