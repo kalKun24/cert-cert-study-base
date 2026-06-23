@@ -40,9 +40,9 @@
 
 ## サブチケット（コミット単位）
 
-- [ ] `docs(api): Invitationスキーマにteam_nameとinviter_display_nameを追加`
-- [ ] `feat(invitation): ListMyInvitationsの出力にチーム名・招待者表示名を追加`
-- [ ] `feat(invitation): 招待一覧UIをUUID表示から表示名表示に変更`
+- [x] `docs(api): Invitationスキーマにteam_nameとinviter_display_nameを追加`
+- [x] `feat(invitation): ListMyInvitationsの出力にチーム名・招待者表示名を追加`
+- [x] `feat(invitation): 招待一覧UIをUUID表示から表示名表示に変更`
 
 ---
 
