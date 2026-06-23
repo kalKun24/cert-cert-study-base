@@ -22,7 +22,7 @@ set -euo pipefail
 PROJECT_ID="cert-study-base-dev"
 REGION="asia-northeast1"
 REPO_NAME="cert-study"
-GITHUB_REPO="kalKun24/cert-study-base"
+GITHUB_REPO="kalKun24/cert-cert-study-base"
 SERVICE_ACCOUNT_NAME="github-actions-sa"
 SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 POOL_NAME="github-actions-pool"
@@ -208,14 +208,28 @@ setup_workload_identity() {
     log "    ${ROLE} を付与しました。"
   done
 
-  # Workload Identity バインディングの設定
+  # Workload Identity バインディングの設定（workloadIdentityUser + serviceAccountTokenCreator）
   POOL_RESOURCE="projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_NAME}"
-  gcloud iam service-accounts add-iam-policy-binding "${SERVICE_ACCOUNT_EMAIL}" \
-    --project="${PROJECT_ID}" \
-    --role=roles/iam.workloadIdentityUser \
-    --member="principalSet://iam.googleapis.com/${POOL_RESOURCE}/attribute.repository/${GITHUB_REPO}" \
-    --quiet
+  for WI_ROLE in roles/iam.workloadIdentityUser roles/iam.serviceAccountTokenCreator; do
+    gcloud iam service-accounts add-iam-policy-binding "${SERVICE_ACCOUNT_EMAIL}" \
+      --project="${PROJECT_ID}" \
+      --role="${WI_ROLE}" \
+      --member="principalSet://iam.googleapis.com/${POOL_RESOURCE}/attribute.repository/${GITHUB_REPO}" \
+      --quiet
+    log "    ${WI_ROLE} を付与しました。"
+  done
   log "  Workload Identity バインディングを設定しました。"
+
+  # Cloud Run のデフォルト compute SA に Firestore・Secret Manager アクセス権を付与
+  # Cloud Run はデフォルトでこのサービスアカウントでコンテナを実行する
+  COMPUTE_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+  for ROLE in roles/datastore.user roles/secretmanager.secretAccessor; do
+    gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+      --member="serviceAccount:${COMPUTE_SA}" \
+      --role="${ROLE}" \
+      --quiet
+    log "    Cloud Run compute SA: ${ROLE} を付与しました。"
+  done
 }
 
 # ステップ7: Secret Manager シークレット作成
