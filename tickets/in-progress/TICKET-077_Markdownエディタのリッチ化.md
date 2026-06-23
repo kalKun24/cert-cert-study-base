@@ -91,13 +91,13 @@
 
 ## サブチケット（コミット単位）
 
-- [ ] `chore(deps): react-md-editor を削除し @uiw/react-codemirror と関連拡張を追加`
-- [ ] `feat(editor): MarkdownEditor 共通コンポーネントを実装（CodeMirror 6 + プレビュー分割）`
-- [ ] `feat(editor): MarkdownEditor にツールバー（テーブル・コードブロック・チェックリスト）を追加`
-- [ ] `refactor(question): QuestionCreatePage・QuestionEditPage を MarkdownEditor に切り替え`
-- [ ] `refactor(note): NoteCreatePage・NoteEditPage を MarkdownEditor に切り替え`
-- [ ] `style(editor): Teal テーマとの整合スタイルを適用し旧 MDEditor CSS オーバーライドを削除`
-- [ ] `test(editor): MarkdownEditor のユニットテストを追加`
+- [x] `chore(deps): react-md-editor を削除し @uiw/react-codemirror と関連拡張を追加`
+- [x] `feat(editor): MarkdownEditor 共通コンポーネントを実装（CodeMirror 6 + プレビュー分割）`
+- [x] `feat(editor): MarkdownEditor にツールバー（テーブル・コードブロック・チェックリスト）を追加`
+- [x] `refactor(question): QuestionCreatePage・QuestionEditPage を MarkdownEditor に切り替え`
+- [x] `refactor(note): NoteCreatePage・NoteEditPage を MarkdownEditor に切り替え`
+- [x] `style(editor): Teal テーマとの整合スタイルを適用し旧 MDEditor CSS オーバーライドを削除`
+- [x] `test(editor): MarkdownEditor のユニットテストを追加`
 
 ---
 
