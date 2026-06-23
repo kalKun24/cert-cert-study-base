@@ -32,7 +32,11 @@ jobs:
     steps:
       - name: コードをチェックアウト
         # actions/checkout v4.2.2
+        # workflow_run トリガーでは ref を明示しないとデフォルトブランチ（main）が
+        # チェックアウトされるため、CI をトリガーした develop のコミット SHA を指定する
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: GCP 認証（Workload Identity Federation）
         # google-github-actions/auth v2.1.7
@@ -128,7 +132,11 @@ jobs:
     steps:
       - name: コードをチェックアウト
         # actions/checkout v4.2.2
+        # workflow_run トリガーでは ref を明示しないとデフォルトブランチ（main）が
+        # チェックアウトされるため、CI をトリガーした develop のコミット SHA を指定する
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: GCP 認証（Workload Identity Federation）
         # google-github-actions/auth v2.1.7
