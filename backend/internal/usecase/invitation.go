@@ -175,36 +175,47 @@ func (uc *InvitationUseCase) ListMyInvitations(ctx context.Context, input ListMy
 		return nil, fmt.Errorf("招待一覧取得に失敗しました: %w", err)
 	}
 
+	// 現時点では TeamRepository・UserRepository に FindByIDs（複数ID一括取得）がないため、
+	// List で全件取得してマップを構築する。
+	// 招待件数・チーム数・ユーザー数が小規模なうちは問題ないが、
+	// スケール時は FindByIDs メソッドの追加を検討すること。
+
+	// チーム一覧を全件取得してIDをキーにしたマップを構築する。
+	// 失敗時はWARNログを出して空マップで続行する（招待一覧自体はエラーにしない）。
+	teamMap := make(map[string]*domain.Team)
+	teams, err := uc.teamRepo.List(ctx)
+	if err != nil {
+		slog.Warn("招待一覧のチーム一覧取得に失敗しました", "error", err)
+	} else {
+		for _, t := range teams {
+			teamMap[t.ID] = t
+		}
+	}
+
+	// ユーザー一覧を全件取得してIDをキーにしたマップを構築する。
+	// 失敗時はWARNログを出して空マップで続行する（招待一覧自体はエラーにしない）。
+	userMap := make(map[string]*domain.User)
+	users, err := uc.userRepo.List(ctx)
+	if err != nil {
+		slog.Warn("招待一覧のユーザー一覧取得に失敗しました", "error", err)
+	} else {
+		for _, u := range users {
+			userMap[u.ID] = u
+		}
+	}
+
+	// マップから各招待のチーム名・招待者表示名を取得する。
 	results := make([]*InvitationWithMeta, 0, len(invitations))
 	for _, inv := range invitations {
 		meta := &InvitationWithMeta{
 			Invitation: inv,
 		}
-
-		// チーム名を取得。失敗時はWARNログを出して空文字のまま続行する。
-		team, err := uc.teamRepo.FindByID(ctx, inv.TeamID)
-		if err != nil {
-			slog.Warn("招待一覧のチーム名取得に失敗しました",
-				"invitation_id", inv.ID,
-				"team_id", inv.TeamID,
-				"error", err,
-			)
-		} else {
-			meta.TeamName = team.Name
+		if t, ok := teamMap[inv.TeamID]; ok {
+			meta.TeamName = t.Name
 		}
-
-		// 招待者の表示名を取得。失敗時はWARNログを出して空文字のまま続行する。
-		inviter, err := uc.userRepo.FindByID(ctx, inv.InvitedBy)
-		if err != nil {
-			slog.Warn("招待一覧の招待者表示名取得に失敗しました",
-				"invitation_id", inv.ID,
-				"invited_by", inv.InvitedBy,
-				"error", err,
-			)
-		} else {
-			meta.InviterDisplayName = inviter.DisplayName
+		if u, ok := userMap[inv.InvitedBy]; ok {
+			meta.InviterDisplayName = u.DisplayName
 		}
-
 		results = append(results, meta)
 	}
 
