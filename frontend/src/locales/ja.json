@@ -185,7 +185,7 @@
     },
     "invitation": {
       "pageTitle": "チームへの招待",
-      "teamId": "チームID",
+      "teamName": "チーム名",
       "invitedBy": "招待者",
       "invitedAt": "招待日",
       "acceptButton": "参加する",
