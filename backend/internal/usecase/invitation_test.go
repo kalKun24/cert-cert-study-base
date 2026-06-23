@@ -395,6 +395,141 @@ func TestInvitationUseCase_ListMyInvitations_Empty(t *testing.T) {
 	}
 }
 
+// TestInvitationUseCase_ListMyInvitations_WithMeta_Success は
+// チーム名・招待者表示名が正しく付与されることを検証します。
+func TestInvitationUseCase_ListMyInvitations_WithMeta_Success(t *testing.T) {
+	teamRepo := newMockTeamRepository()
+	userRepo := newMockUserRepository()
+	invRepo := newMockInvitationRepository()
+
+	// チームと招待者ユーザーを登録する
+	teamRepo.addTeam(testTeam("team-1", "CISSPチーム", "owner-1"))
+	inviter := testUser("owner-1", "alice", "alice@example.com", domain.RoleUser, true)
+	inviter.DisplayName = "Alice"
+	userRepo.addUser(inviter)
+
+	// 自分宛の招待を1件追加する
+	inv := testInvitation(uuid.NewString(), "team-1", "owner-1", "user-1", domain.StatusPending)
+	invRepo.invitations[inv.ID] = inv
+
+	uc := usecase.NewInvitationUseCase(invRepo, teamRepo, userRepo)
+
+	results, err := uc.ListMyInvitations(context.Background(), usecase.ListMyInvitationsInput{
+		CallerID: "user-1",
+	})
+
+	if err != nil {
+		t.Fatalf("招待一覧取得に失敗しました: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("取得件数が期待値と異なります: got %d, want 1", len(results))
+	}
+	got := results[0]
+	if got.TeamName != "CISSPチーム" {
+		t.Errorf("TeamName が期待値と異なります: got %q, want %q", got.TeamName, "CISSPチーム")
+	}
+	if got.InviterDisplayName != "Alice" {
+		t.Errorf("InviterDisplayName が期待値と異なります: got %q, want %q", got.InviterDisplayName, "Alice")
+	}
+}
+
+// TestInvitationUseCase_ListMyInvitations_TeamNotFound は
+// 招待の TeamID に対応するチームが存在しない場合、TeamName が空文字にフォールバックされることを検証します。
+func TestInvitationUseCase_ListMyInvitations_TeamNotFound(t *testing.T) {
+	teamRepo := newMockTeamRepository()
+	userRepo := newMockUserRepository()
+	invRepo := newMockInvitationRepository()
+
+	// チームは登録しない（招待の TeamID "team-unknown" は teamRepo に存在しない）
+	inviter := testUser("owner-1", "alice", "alice@example.com", domain.RoleUser, true)
+	inviter.DisplayName = "Alice"
+	userRepo.addUser(inviter)
+
+	inv := testInvitation(uuid.NewString(), "team-unknown", "owner-1", "user-1", domain.StatusPending)
+	invRepo.invitations[inv.ID] = inv
+
+	uc := usecase.NewInvitationUseCase(invRepo, teamRepo, userRepo)
+
+	results, err := uc.ListMyInvitations(context.Background(), usecase.ListMyInvitationsInput{
+		CallerID: "user-1",
+	})
+
+	if err != nil {
+		t.Fatalf("チームが存在しなくても招待一覧取得はエラーにならないはず: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("取得件数が期待値と異なります: got %d, want 1", len(results))
+	}
+	// チームが見つからない場合は TeamName が空文字になる
+	if results[0].TeamName != "" {
+		t.Errorf("TeamName はチーム未登録時に空文字を期待しますが got %q", results[0].TeamName)
+	}
+	// 招待者は登録済みのため InviterDisplayName は正しく設定される
+	if results[0].InviterDisplayName != "Alice" {
+		t.Errorf("InviterDisplayName が期待値と異なります: got %q, want %q", results[0].InviterDisplayName, "Alice")
+	}
+}
+
+// TestInvitationUseCase_ListMyInvitations_InviterNotFound は
+// 招待の InvitedBy に対応するユーザーが存在しない場合、InviterDisplayName が空文字にフォールバックされることを検証します。
+func TestInvitationUseCase_ListMyInvitations_InviterNotFound(t *testing.T) {
+	teamRepo := newMockTeamRepository()
+	userRepo := newMockUserRepository()
+	invRepo := newMockInvitationRepository()
+
+	// チームは登録するが、招待者ユーザーは登録しない
+	teamRepo.addTeam(testTeam("team-1", "CISSPチーム", "owner-unknown"))
+
+	inv := testInvitation(uuid.NewString(), "team-1", "owner-unknown", "user-1", domain.StatusPending)
+	invRepo.invitations[inv.ID] = inv
+
+	uc := usecase.NewInvitationUseCase(invRepo, teamRepo, userRepo)
+
+	results, err := uc.ListMyInvitations(context.Background(), usecase.ListMyInvitationsInput{
+		CallerID: "user-1",
+	})
+
+	if err != nil {
+		t.Fatalf("招待者が存在しなくても招待一覧取得はエラーにならないはず: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("取得件数が期待値と異なります: got %d, want 1", len(results))
+	}
+	// チームは登録済みのため TeamName は正しく設定される
+	if results[0].TeamName != "CISSPチーム" {
+		t.Errorf("TeamName が期待値と異なります: got %q, want %q", results[0].TeamName, "CISSPチーム")
+	}
+	// 招待者が見つからない場合は InviterDisplayName が空文字になる
+	if results[0].InviterDisplayName != "" {
+		t.Errorf("InviterDisplayName は招待者未登録時に空文字を期待しますが got %q", results[0].InviterDisplayName)
+	}
+}
+
+// TestInvitationUseCase_ListMyInvitations_ZeroInvitations は
+// 自分宛の招待が0件の場合、空スライスが返されることを検証します。
+func TestInvitationUseCase_ListMyInvitations_ZeroInvitations(t *testing.T) {
+	teamRepo := newMockTeamRepository()
+	userRepo := newMockUserRepository()
+	invRepo := newMockInvitationRepository()
+
+	// 別ユーザー宛の招待は存在するが、user-1 宛はない
+	otherInv := testInvitation(uuid.NewString(), "team-1", "owner-1", "user-2", domain.StatusPending)
+	invRepo.invitations[otherInv.ID] = otherInv
+
+	uc := usecase.NewInvitationUseCase(invRepo, teamRepo, userRepo)
+
+	results, err := uc.ListMyInvitations(context.Background(), usecase.ListMyInvitationsInput{
+		CallerID: "user-1",
+	})
+
+	if err != nil {
+		t.Fatalf("招待一覧取得に失敗しました: %v", err)
+	}
+	if len(results) != 0 {
+		t.Errorf("user-1 宛の招待は0件のはずですが %d 件取得されました", len(results))
+	}
+}
+
 // --- RespondInvitation（accept）のテスト ---
 
 func TestInvitationUseCase_RespondInvitation_Accept_Success(t *testing.T) {
