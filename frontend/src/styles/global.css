@@ -1582,28 +1582,22 @@ img {
 .markdown-content h1 {
   font-size: 1.875rem;
   font-weight: 700;
-  color: var(--color-text-primary);
-  margin-top: var(--space-6);
-  margin-bottom: 1rem;
   padding-bottom: 0.4em;
   border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 1rem;
 }
 
 .markdown-content h2 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--color-text-primary);
-  margin-top: var(--space-6);
-  margin-bottom: 0.875rem;
   padding-bottom: 0.3em;
   border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 0.875rem;
 }
 
 .markdown-content h3 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--color-text-primary);
-  margin-top: var(--space-6);
   margin-bottom: 0.75rem;
 }
 
