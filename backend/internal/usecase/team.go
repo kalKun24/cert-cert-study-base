@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -540,7 +541,13 @@ func (uc *TeamUseCase) ListMemberStats(ctx context.Context, callerID string, cal
 	for _, m := range members {
 		user, ok := userByID[m.UserID]
 		if !ok {
-			return nil, fmt.Errorf("データ整合性エラー: チームメンバーに対応するユーザーが存在しません（user_id=%s）", m.UserID)
+			// members に存在するが users に存在しない孤立レコードはスキップして継続する。
+			// 500 でリクエスト全体を落とすより、データ不整合を警告ログに残す方が運用上安全。
+			slog.Warn("データ整合性: members に対応する users ドキュメントが存在しません",
+				"team_id", teamID,
+				"user_id", m.UserID,
+			)
+			continue
 		}
 
 		stats = append(stats, &MemberStats{
