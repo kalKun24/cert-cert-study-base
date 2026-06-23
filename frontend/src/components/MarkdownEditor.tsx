@@ -1,12 +1,13 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { languages } from '@codemirror/language-data';
-import { EditorView } from '@codemirror/view';
-import { EditorSelection } from '@codemirror/state';
+import { EditorView, keymap } from '@codemirror/view';
+import { EditorSelection, Prec } from '@codemirror/state';
 import { useTranslation } from 'react-i18next';
-import ReactMarkdown from 'react-markdown';
-import rehypeSanitize from 'rehype-sanitize';
+import MarkdownPreviewContent from './MarkdownPreviewContent';
+import 'highlight.js/styles/github-dark-dimmed.css';
+import 'katex/dist/katex.min.css';
 
 /* =============================================================================
    型定義
@@ -93,33 +94,29 @@ interface InsertOptions {
   block?: boolean;
 }
 
-function buildInsertion(
-  currentValue: string,
-  selectionFrom: number,
-  selectionTo: number,
+/** 挿入文字列と選択範囲オフセットを計算する純粋ヘルパー */
+function buildInsertString(
+  text: string,
   options: InsertOptions,
-): { newValue: string; cursorFrom: number; cursorTo: number } {
-  const { prefix, suffix = '', defaultText = '', block = false } = options;
-  const selected = currentValue.slice(selectionFrom, selectionTo);
-  const text = selected || defaultText;
-
+  atStart: boolean,
+): { insert: string; prefixOffset: number; textLen: number } {
+  const { prefix, suffix = '', block = false } = options;
   if (block) {
-    // ブロック要素: 選択範囲の前後に改行を入れる
-    const before = selectionFrom > 0 ? '\n\n' : '';
+    const before = atStart ? '' : '\n\n';
     const after = '\n\n';
-    const inserted = `${before}${prefix}${text}${suffix}${after}`;
-    const newValue = currentValue.slice(0, selectionFrom) + inserted + currentValue.slice(selectionTo);
-    const start = selectionFrom + before.length + prefix.length;
-    const end = start + text.length;
-    return { newValue, cursorFrom: start, cursorTo: end };
+    return {
+      insert: `${before}${prefix}${text}${suffix}${after}`,
+      prefixOffset: before.length + prefix.length,
+      textLen: text.length,
+    };
   }
-
-  const inserted = `${prefix}${text}${suffix}`;
-  const newValue = currentValue.slice(0, selectionFrom) + inserted + currentValue.slice(selectionTo);
-  const start = selectionFrom + prefix.length;
-  const end = start + text.length;
-  return { newValue, cursorFrom: start, cursorTo: end };
+  return {
+    insert: `${prefix}${text}${suffix}`,
+    prefixOffset: prefix.length,
+    textLen: text.length,
+  };
 }
+
 
 /* =============================================================================
    MarkdownEditor コンポーネント
@@ -130,74 +127,93 @@ export default function MarkdownEditor({ value, onChange, height = '100%' }: Mar
   const [viewMode, setViewMode] = useState<ViewMode>('split');
   const editorViewRef = useRef<EditorView | null>(null);
 
-  // CodeMirror インスタンスの参照を保持・解放
+  // CodeMirror インスタンスの参照を保持
   const handleEditorCreate = useCallback((view: EditorView) => {
     editorViewRef.current = view;
   }, []);
 
-  // プレビューモードに切り替わり CodeMirror がアンマウントされる際に参照をクリア
-  const handleEditorDestroy = useCallback(() => {
-    editorViewRef.current = null;
-  }, []);
+  // preview モードへ切り替わると CodeMirror がアンマウントされるため参照をクリア
+  useEffect(() => {
+    if (viewMode === 'preview') {
+      editorViewRef.current = null;
+    }
+  }, [viewMode]);
 
   // ツールバーから挿入を実行
   const insertMarkdown = useCallback(
     (options: InsertOptions) => {
       const view = editorViewRef.current;
-      if (!view) {
-        // エディタが非表示の場合は値を直接更新（フォールバック）
-        const { newValue } = buildInsertion(value, value.length, value.length, options);
-        onChange(newValue);
+      if (!view || !view.dom.isConnected) {
+        // プレビューモード時はエディタが非表示のため split モードへ切り替える
+        setViewMode('split');
         return;
       }
 
-      const { prefix, suffix = '', defaultText = '', block = false } = options;
+      const { defaultText = '' } = options;
       const state = view.state;
       const range = state.selection.main;
       const selected = state.doc.sliceString(range.from, range.to);
       const text = selected || defaultText;
+      const atStart = range.from === 0;
 
-      if (block) {
-        // ブロック要素: 選択範囲の前後に改行を付けて range のみ置き換える
-        const before = range.from > 0 ? '\n\n' : '';
-        const after = '\n\n';
-        const insert = `${before}${prefix}${text}${suffix}${after}`;
-        view.dispatch({
-          changes: { from: range.from, to: range.to, insert },
-          selection: EditorSelection.range(
-            range.from + before.length + prefix.length,
-            range.from + before.length + prefix.length + text.length,
-          ),
-          userEvent: 'input',
-        });
-      } else {
-        // インライン要素: 選択範囲のみ置き換える
-        const insert = `${prefix}${text}${suffix}`;
-        view.dispatch({
-          changes: { from: range.from, to: range.to, insert },
-          selection: EditorSelection.range(
-            range.from + prefix.length,
-            range.from + prefix.length + text.length,
-          ),
-          userEvent: 'input',
-        });
-      }
+      const { insert, prefixOffset, textLen } = buildInsertString(text, options, atStart);
+      view.dispatch({
+        changes: { from: range.from, to: range.to, insert },
+        selection: EditorSelection.range(
+          range.from + prefixOffset,
+          range.from + prefixOffset + textLen,
+        ),
+        userEvent: 'input',
+      });
       view.focus();
     },
     [value, onChange],
   );
 
+  // キーマップからの stale closure を防ぐため ref 経由で最新の insertMarkdown を参照
+  const insertMarkdownRef = useRef(insertMarkdown);
+  insertMarkdownRef.current = insertMarkdown;
+
+  const shortcutKeymap = useMemo(
+    () =>
+      Prec.high(
+        keymap.of([
+          { key: 'Mod-b', run: () => { insertMarkdownRef.current({ prefix: '**', suffix: '**', defaultText: '太字テキスト' }); return true; } },
+          { key: 'Mod-i', run: () => { insertMarkdownRef.current({ prefix: '*', suffix: '*', defaultText: '下線テキスト' }); return true; } },
+          { key: 'Mod-k', run: () => { insertMarkdownRef.current({ prefix: '[', suffix: '](URL)', defaultText: 'リンクテキスト' }); return true; } },
+          { key: 'Mod-e', run: () => { insertMarkdownRef.current({ prefix: '`', suffix: '`', defaultText: 'コード' }); return true; } },
+          { key: 'Mod-Shift-b', run: () => { insertMarkdownRef.current({ prefix: '> ', defaultText: '引用テキスト', block: true }); return true; } },
+          { key: 'Mod-Shift-7', run: () => { insertMarkdownRef.current({ prefix: '1. ', defaultText: 'リスト項目', block: true }); return true; } },
+          { key: 'Mod-Shift-8', run: () => { insertMarkdownRef.current({ prefix: '- ', defaultText: 'リスト項目', block: true }); return true; } },
+          { key: 'Mod-Shift-.', run: () => { insertMarkdownRef.current({ prefix: '- [ ] ', defaultText: 'タスク', block: true }); return true; } },
+          { key: 'Mod-Shift-k', run: () => { insertMarkdownRef.current({ prefix: '```\n', suffix: '\n```', defaultText: 'コード', block: true }); return true; } },
+          { key: 'Mod-Shift-m', run: () => { insertMarkdownRef.current({ prefix: '$', suffix: '$', defaultText: '数式' }); return true; } },
+        ]),
+      ),
+    [],
+  );
+
   const handleBold = () => insertMarkdown({ prefix: '**', suffix: '**', defaultText: '太字テキスト' });
-  const handleItalic = () => insertMarkdown({ prefix: '*', suffix: '*', defaultText: '斜体テキスト' });
+  const handleItalic = () => insertMarkdown({ prefix: '*', suffix: '*', defaultText: '下線テキスト' });
+  const handleStrikethrough = () => insertMarkdown({ prefix: '~~', suffix: '~~', defaultText: '取り消し線' });
+  const handleHeading1 = () => insertMarkdown({ prefix: '# ', defaultText: '見出し1', block: true });
+  const handleHeading2 = () => insertMarkdown({ prefix: '## ', defaultText: '見出し2', block: true });
+  const handleHeading3 = () => insertMarkdown({ prefix: '### ', defaultText: '見出し3', block: true });
+  const handleQuote = () => insertMarkdown({ prefix: '> ', defaultText: '引用テキスト', block: true });
+  const handleBulletList = () => insertMarkdown({ prefix: '- ', defaultText: 'リスト項目', block: true });
+  const handleOrderedList = () => insertMarkdown({ prefix: '1. ', defaultText: 'リスト項目', block: true });
+  const handleInlineCode = () => insertMarkdown({ prefix: '`', suffix: '`', defaultText: 'コード' });
+  const handleCodeBlock = () =>
+    insertMarkdown({ prefix: '```\n', suffix: '\n```', defaultText: 'コード', block: true });
+  const handleMath = () => insertMarkdown({ prefix: '$', suffix: '$', defaultText: '数式' });
   const handleLink = () => insertMarkdown({ prefix: '[', suffix: '](URL)', defaultText: 'リンクテキスト' });
+  const handleImage = () => insertMarkdown({ prefix: '![', suffix: '](URL)', defaultText: '代替テキスト' });
   const handleTable = () =>
     insertMarkdown({
       prefix: '| 列1 | 列2 | 列3 |\n| --- | --- | --- |\n| セル | セル | セル |',
       block: true,
       defaultText: '',
     });
-  const handleCodeBlock = () =>
-    insertMarkdown({ prefix: '```\n', suffix: '\n```', defaultText: 'コード', block: true });
   const handleChecklist = () =>
     insertMarkdown({ prefix: '- [ ] ', defaultText: 'タスク', block: true });
 
@@ -211,6 +227,29 @@ export default function MarkdownEditor({ value, onChange, height = '100%' }: Mar
     >
       {/* ツールバー */}
       <div className="md-editor-toolbar" role="toolbar" aria-label="Markdownツールバー">
+        {/* 見出し */}
+        <div className="md-editor-toolbar-group">
+          {[
+            { onClick: handleHeading1, label: t('editor.toolbar.heading1'), icon: 'H1' },
+            { onClick: handleHeading2, label: t('editor.toolbar.heading2'), icon: 'H2' },
+            { onClick: handleHeading3, label: t('editor.toolbar.heading3'), icon: 'H3' },
+          ].map(({ onClick, label, icon }) => (
+            <button
+              key={icon}
+              type="button"
+              className="md-editor-toolbar-btn"
+              onClick={onClick}
+              title={label}
+              aria-label={label}
+            >
+              <strong style={{ fontSize: '0.75em' }}>{icon}</strong>
+            </button>
+          ))}
+        </div>
+
+        <div className="md-editor-toolbar-separator" aria-hidden="true" />
+
+        {/* インライン装飾 */}
         <div className="md-editor-toolbar-group">
           <button
             type="button"
@@ -228,30 +267,67 @@ export default function MarkdownEditor({ value, onChange, height = '100%' }: Mar
             title={t('editor.toolbar.italic')}
             aria-label={t('editor.toolbar.italic')}
           >
-            <em>I</em>
+            <span style={{ textDecoration: 'underline' }}>I</span>
           </button>
           <button
             type="button"
             className="md-editor-toolbar-btn"
-            onClick={handleLink}
-            title={t('editor.toolbar.link')}
-            aria-label={t('editor.toolbar.link')}
+            onClick={handleStrikethrough}
+            title={t('editor.toolbar.strikethrough')}
+            aria-label={t('editor.toolbar.strikethrough')}
           >
-            🔗
+            <span style={{ textDecoration: 'line-through' }}>S</span>
+          </button>
+          <button
+            type="button"
+            className="md-editor-toolbar-btn"
+            onClick={handleInlineCode}
+            title={t('editor.toolbar.inlineCode')}
+            aria-label={t('editor.toolbar.inlineCode')}
+          >
+            {'`c`'}
           </button>
         </div>
 
         <div className="md-editor-toolbar-separator" aria-hidden="true" />
 
+        {/* ブロック要素 */}
         <div className="md-editor-toolbar-group">
           <button
             type="button"
             className="md-editor-toolbar-btn"
-            onClick={handleTable}
-            title={t('editor.toolbar.table')}
-            aria-label={t('editor.toolbar.table')}
+            onClick={handleQuote}
+            title={t('editor.toolbar.quote')}
+            aria-label={t('editor.toolbar.quote')}
           >
-            ⊞
+            ❝
+          </button>
+          <button
+            type="button"
+            className="md-editor-toolbar-btn"
+            onClick={handleBulletList}
+            title={t('editor.toolbar.bulletList')}
+            aria-label={t('editor.toolbar.bulletList')}
+          >
+            ≡
+          </button>
+          <button
+            type="button"
+            className="md-editor-toolbar-btn"
+            onClick={handleOrderedList}
+            title={t('editor.toolbar.orderedList')}
+            aria-label={t('editor.toolbar.orderedList')}
+          >
+            1≡
+          </button>
+          <button
+            type="button"
+            className="md-editor-toolbar-btn"
+            onClick={handleChecklist}
+            title={t('editor.toolbar.checklist')}
+            aria-label={t('editor.toolbar.checklist')}
+          >
+            ☑
           </button>
           <button
             type="button"
@@ -265,11 +341,44 @@ export default function MarkdownEditor({ value, onChange, height = '100%' }: Mar
           <button
             type="button"
             className="md-editor-toolbar-btn"
-            onClick={handleChecklist}
-            title={t('editor.toolbar.checklist')}
-            aria-label={t('editor.toolbar.checklist')}
+            onClick={handleMath}
+            title={t('editor.toolbar.math')}
+            aria-label={t('editor.toolbar.math')}
           >
-            ☑
+            ∑
+          </button>
+          <button
+            type="button"
+            className="md-editor-toolbar-btn"
+            onClick={handleTable}
+            title={t('editor.toolbar.table')}
+            aria-label={t('editor.toolbar.table')}
+          >
+            ⊞
+          </button>
+        </div>
+
+        <div className="md-editor-toolbar-separator" aria-hidden="true" />
+
+        {/* 挿入 */}
+        <div className="md-editor-toolbar-group">
+          <button
+            type="button"
+            className="md-editor-toolbar-btn"
+            onClick={handleLink}
+            title={t('editor.toolbar.link')}
+            aria-label={t('editor.toolbar.link')}
+          >
+            🔗
+          </button>
+          <button
+            type="button"
+            className="md-editor-toolbar-btn"
+            onClick={handleImage}
+            title={t('editor.toolbar.image')}
+            aria-label={t('editor.toolbar.image')}
+          >
+            🖼
           </button>
         </div>
 
@@ -302,8 +411,8 @@ export default function MarkdownEditor({ value, onChange, height = '100%' }: Mar
               value={value}
               onChange={onChange}
               onCreateEditor={handleEditorCreate}
-              onDestroy={handleEditorDestroy}
               extensions={[
+                shortcutKeymap,
                 markdown({ base: markdownLanguage, codeLanguages: languages }),
                 tealTheme,
                 EditorView.lineWrapping,
@@ -341,12 +450,11 @@ export default function MarkdownEditor({ value, onChange, height = '100%' }: Mar
             className={`md-editor-pane md-editor-pane--preview${viewMode === 'split' ? ' md-editor-pane--preview-split' : ''}`}
             aria-label="プレビュー"
           >
-            <div className="md-editor-preview-content markdown-body">
-              {value.trim() ? (
-                <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{value}</ReactMarkdown>
-              ) : (
-                <p className="md-editor-preview-empty">{t('editor.preview.empty')}</p>
-              )}
+            <div className="md-editor-preview-content">
+              <MarkdownPreviewContent
+                value={value}
+                emptyMessage={t('editor.preview.empty')}
+              />
             </div>
           </div>
         )}

@@ -453,10 +453,20 @@
   "editor": {
     "toolbar": {
       "bold": "太字",
-      "italic": "斜体",
-      "link": "リンク",
-      "table": "テーブル",
+      "italic": "下線",
+      "strikethrough": "取り消し線",
+      "heading1": "見出し1",
+      "heading2": "見出し2",
+      "heading3": "見出し3",
+      "quote": "引用",
+      "bulletList": "箇条書き",
+      "orderedList": "番号付きリスト",
+      "inlineCode": "インラインコード",
       "codeBlock": "コードブロック",
+      "math": "数式",
+      "link": "リンク",
+      "image": "画像",
+      "table": "テーブル",
       "checklist": "チェックリスト"
     },
     "viewMode": {
