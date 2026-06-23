@@ -9,6 +9,10 @@
 # 使い方:
 #   chmod +x scripts/setup-dev-gcp.sh
 #   ./scripts/setup-dev-gcp.sh
+#
+# 注意: Cloud Run サービスの初回作成（ステップ5）には roles/run.admin が必要です。
+#       スクリプト実行者が roles/run.admin 相当の権限を持っていることを確認してください。
+#       CI/CD サービスアカウントには roles/run.developer のみが付与されます。
 
 set -euo pipefail
 
@@ -191,10 +195,10 @@ setup_workload_identity() {
   log "  サービスアカウントに IAM ロールを付与します..."
 
   for ROLE in \
-    roles/run.admin \
+    roles/run.developer \
     roles/iam.serviceAccountUser \
     roles/artifactregistry.writer \
-    roles/datastore.user \
+    roles/datastore.indexAdmin \
     roles/secretmanager.secretAccessor \
     roles/logging.logWriter; do
     gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
