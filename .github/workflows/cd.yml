@@ -37,6 +37,35 @@ jobs:
       - name: Docker を Artifact Registry へ認証
         run: gcloud auth configure-docker asia-northeast1-docker.pkg.dev --quiet
 
+      - name: Firestore インデックスをデプロイ
+        # 既に存在する場合は gcloud がエラーを返すが || true で無視する（冪等）。
+        # インデックスは非同期で構築されるため、デプロイ完了を待たずに次のステップへ進む。
+        run: |
+          PROJECT="${{ vars.GCP_PROJECT_ID }}"
+
+          gcloud firestore indexes composite create \
+            --project="${PROJECT}" \
+            --collection-group=members \
+            --query-scope=COLLECTION_GROUP \
+            --field-config=order=ASCENDING,field-path=user_id \
+            --quiet || true
+
+          gcloud firestore indexes composite create \
+            --project="${PROJECT}" \
+            --collection-group=tags \
+            --query-scope=COLLECTION_GROUP \
+            --field-config=order=ASCENDING,field-path=id \
+            --quiet || true
+
+          gcloud firestore indexes composite create \
+            --project="${PROJECT}" \
+            --collection-group=invitations \
+            --query-scope=COLLECTION \
+            --field-config=order=ASCENDING,field-path=team_id \
+            --field-config=order=ASCENDING,field-path=invitee_user_id \
+            --field-config=order=ASCENDING,field-path=status \
+            --quiet || true
+
       - name: バックエンド Docker イメージをビルド・プッシュ
         run: |
           IMAGE="asia-northeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/cert-study/backend"
