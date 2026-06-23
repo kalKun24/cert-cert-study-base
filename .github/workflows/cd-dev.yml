@@ -1,0 +1,192 @@
+name: CD（dev）
+
+# CI（テスト・Lint・セキュリティスキャン）が develop ブランチで成功した後にのみ実行する。
+# push: branches: [develop] の代わりに workflow_run を使用することで、
+# テストが通っていない状態のコードが dev 環境へデプロイされることを防ぐ。
+# dev 環境: cert-study-base-dev プロジェクト
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [develop]
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  deploy-backend:
+    name: バックエンドビルド・デプロイ（dev）
+    runs-on: ubuntu-latest
+    # CI が成功、かつ develop ブランチのワークフローの場合のみデプロイを実行する
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'develop'
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: コードをチェックアウト
+        # actions/checkout v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: GCP 認証（Workload Identity Federation）
+        # google-github-actions/auth v2.1.7
+        uses: google-github-actions/auth@6fc4af4b145ae7821d527454aa9bd537d1f2dc5f
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_DEV }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_DEV }}
+
+      - name: Docker を Artifact Registry へ認証
+        run: gcloud auth configure-docker asia-northeast1-docker.pkg.dev --quiet
+
+      - name: Firestore インデックスをデプロイ
+        # 単一フィールドの COLLECTION_GROUP インデックスは gcloud composite create ではなく
+        # Firestore REST API (PATCH fields) で作成する必要がある。
+        # 複合インデックス（invitations）は gcloud composite create で作成可能。
+        # 既存インデックスへの PATCH は冪等。非同期構築のため完了を待たずに次のステップへ進む。
+        run: |
+          PROJECT="${{ vars.GCP_PROJECT_ID_DEV }}"
+          TOKEN=$(gcloud auth print-access-token)
+          FS_BASE="https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/collectionGroups"
+
+          # members.user_id — COLLECTION_GROUP 単一フィールドインデックス
+          curl -s -X PATCH \
+            "${FS_BASE}/members/fields/user_id" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"indexConfig":{"indexes":[{"queryScope":"COLLECTION_GROUP","fields":[{"fieldPath":"user_id","order":"ASCENDING"}]}]}}' \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print('members.user_id:', d.get('name','OK') if 'name' in d else d)"
+
+          # tags.id — COLLECTION_GROUP 単一フィールドインデックス
+          curl -s -X PATCH \
+            "${FS_BASE}/tags/fields/id" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"indexConfig":{"indexes":[{"queryScope":"COLLECTION_GROUP","fields":[{"fieldPath":"id","order":"ASCENDING"}]}]}}' \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print('tags.id:', d.get('name','OK') if 'name' in d else d)"
+
+          # invitations.(team_id + invitee_user_id + status) — COLLECTION 複合インデックス
+          gcloud firestore indexes composite create \
+            --project="${PROJECT}" \
+            --collection-group=invitations \
+            --query-scope=COLLECTION \
+            --field-config=order=ASCENDING,field-path=team_id \
+            --field-config=order=ASCENDING,field-path=invitee_user_id \
+            --field-config=order=ASCENDING,field-path=status \
+            --quiet || true
+
+      - name: バックエンド Docker イメージをビルド・プッシュ
+        run: |
+          IMAGE="asia-northeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID_DEV }}/cert-study/backend"
+          docker build \
+            -t "${IMAGE}:${{ github.event.workflow_run.head_sha }}" \
+            ./backend
+          docker push "${IMAGE}:${{ github.event.workflow_run.head_sha }}"
+
+      - name: バックエンドを Cloud Run へデプロイ（dev 環境）
+        id: deploy
+        # google-github-actions/deploy-cloudrun v2.9.0
+        uses: google-github-actions/deploy-cloudrun@251330ba9a8a34bfbc1622895f42e1d53fd14522
+        with:
+          service: cert-study-backend
+          region: asia-northeast1
+          image: asia-northeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID_DEV }}/cert-study/backend:${{ github.event.workflow_run.head_sha }}
+          env_vars: |
+            GCP_PROJECT_ID=${{ vars.GCP_PROJECT_ID_DEV }}
+            CORS_ALLOWED_ORIGINS=${{ vars.FRONTEND_URL_DEV }}
+            SEED_ADMIN_USERNAME=${{ vars.SEED_ADMIN_USERNAME }}
+            SEED_ADMIN_EMAIL=${{ vars.SEED_ADMIN_EMAIL }}
+          secrets: |
+            JWT_SECRET=jwt-secret:latest
+            SEED_ADMIN_PASSWORD=seed-admin-password:latest
+
+      - name: デプロイ結果をジョブサマリーへ出力（dev 環境）
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" << 'EOF'
+          ## バックエンド デプロイ完了（dev 環境）
+          EOF
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **サービス URL**: ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **イメージタグ**: \`${{ github.event.workflow_run.head_sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **環境**: dev（\`${{ vars.GCP_PROJECT_ID_DEV }}\`）" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-frontend:
+    name: フロントエンドビルド・デプロイ（dev）
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: コードをチェックアウト
+        # actions/checkout v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: GCP 認証（Workload Identity Federation）
+        # google-github-actions/auth v2.1.7
+        uses: google-github-actions/auth@6fc4af4b145ae7821d527454aa9bd537d1f2dc5f
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_DEV }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_DEV }}
+
+      - name: Docker を Artifact Registry へ認証
+        run: gcloud auth configure-docker asia-northeast1-docker.pkg.dev --quiet
+
+      - name: BACKEND_URL と BACKEND_HOST を設定
+        # deploy-backend ジョブの Cloud Run URL（https:// 付き）を取得し、
+        # nginx が必要とする BACKEND_URL（フル URL）と BACKEND_HOST（ホスト名のみ）を導出する
+        id: backend
+        run: |
+          BACKEND_URL="${{ needs.deploy-backend.outputs.url }}"
+          if [ -z "${BACKEND_URL}" ]; then
+            echo "ERROR: BACKEND_URL が空です。deploy-backend ジョブの出力を確認してください。"
+            exit 1
+          fi
+          # "https://" プレフィックスを除いたホスト名を抽出（nginx の proxy_pass Host ヘッダー用）
+          BACKEND_HOST="${BACKEND_URL#https://}"
+          # GITHUB_OUTPUT インジェクション対策として EOF デリミタ形式を使用する
+          {
+            echo "url<<GITHUB_OUTPUT_EOF"
+            echo "${BACKEND_URL}"
+            echo "GITHUB_OUTPUT_EOF"
+            echo "host<<GITHUB_OUTPUT_EOF"
+            echo "${BACKEND_HOST}"
+            echo "GITHUB_OUTPUT_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: フロントエンド Docker イメージをビルド・プッシュ
+        run: |
+          IMAGE="asia-northeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID_DEV }}/cert-study/frontend"
+          docker build \
+            -t "${IMAGE}:${{ github.event.workflow_run.head_sha }}" \
+            ./frontend
+          docker push "${IMAGE}:${{ github.event.workflow_run.head_sha }}"
+
+      - name: フロントエンドを Cloud Run へデプロイ（dev 環境）
+        id: deploy
+        # google-github-actions/deploy-cloudrun v2.9.0
+        uses: google-github-actions/deploy-cloudrun@251330ba9a8a34bfbc1622895f42e1d53fd14522
+        with:
+          service: cert-study-frontend
+          region: asia-northeast1
+          image: asia-northeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID_DEV }}/cert-study/frontend:${{ github.event.workflow_run.head_sha }}
+          env_vars: |
+            BACKEND_URL=${{ steps.backend.outputs.url }}
+            BACKEND_HOST=${{ steps.backend.outputs.host }}
+
+      - name: デプロイ結果をジョブサマリーへ出力（dev 環境）
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" << 'EOF'
+          ## フロントエンド デプロイ完了（dev 環境）
+          EOF
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **サービス URL**: ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **イメージタグ**: \`${{ github.event.workflow_run.head_sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **環境**: dev（\`${{ vars.GCP_PROJECT_ID_DEV }}\`）" >> "$GITHUB_STEP_SUMMARY"
