@@ -140,25 +140,43 @@ export default function MarkdownEditor({ value, onChange, height = '100%' }: Mar
     (options: InsertOptions) => {
       const view = editorViewRef.current;
       if (!view) {
-        // エディタが非表示の場合は値を直接更新
+        // エディタが非表示の場合は値を直接更新（フォールバック）
         const { newValue } = buildInsertion(value, value.length, value.length, options);
         onChange(newValue);
         return;
       }
 
+      const { prefix, suffix = '', defaultText = '', block = false } = options;
       const state = view.state;
       const range = state.selection.main;
-      const { newValue, cursorFrom, cursorTo } = buildInsertion(
-        state.doc.toString(),
-        range.from,
-        range.to,
-        options,
-      );
+      const selected = state.doc.sliceString(range.from, range.to);
+      const text = selected || defaultText;
 
-      view.dispatch({
-        changes: { from: 0, to: state.doc.length, insert: newValue },
-        selection: EditorSelection.range(cursorFrom, cursorTo),
-      });
+      if (block) {
+        // ブロック要素: 選択範囲の前後に改行を付けて range のみ置き換える
+        const before = range.from > 0 ? '\n\n' : '';
+        const after = '\n\n';
+        const insert = `${before}${prefix}${text}${suffix}${after}`;
+        view.dispatch({
+          changes: { from: range.from, to: range.to, insert },
+          selection: EditorSelection.range(
+            range.from + before.length + prefix.length,
+            range.from + before.length + prefix.length + text.length,
+          ),
+          userEvent: 'input',
+        });
+      } else {
+        // インライン要素: 選択範囲のみ置き換える
+        const insert = `${prefix}${text}${suffix}`;
+        view.dispatch({
+          changes: { from: range.from, to: range.to, insert },
+          selection: EditorSelection.range(
+            range.from + prefix.length,
+            range.from + prefix.length + text.length,
+          ),
+          userEvent: 'input',
+        });
+      }
       view.focus();
     },
     [value, onChange],

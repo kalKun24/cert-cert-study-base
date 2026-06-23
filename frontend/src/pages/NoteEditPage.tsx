@@ -265,6 +265,7 @@ export default function NoteEditPage() {
           aria-labelledby={`tab-${activeTab}`}
         >
           <MarkdownEditor
+            key={activeTab}
             value={form[activeTab]}
             onChange={handleEditorChange}
             height="100%"
