@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import ReactMarkdown from 'react-markdown';
-import rehypeSanitize from 'rehype-sanitize';
 import { fetchQuestion, deleteQuestion } from '../utils/questionApi';
 import { fetchTags } from '../utils/tagApi';
 import { Tag } from '../types/tag';
@@ -12,11 +10,14 @@ import { Question } from '../types/question';
 import CommentSection from '../components/CommentSection';
 import AccordionSection from '../components/AccordionSection';
 import { QuestionDetailSkeleton } from '../components/Skeleton';
+import MarkdownPreviewContent from '../components/MarkdownPreviewContent';
+import 'highlight.js/styles/github-dark-dimmed.css';
+import 'katex/dist/katex.min.css';
 
 function MarkdownContent({ source }: { source: string }) {
   return (
     <div className="markdown-content">
-      <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{source}</ReactMarkdown>
+      <MarkdownPreviewContent value={source} />
     </div>
   );
 }

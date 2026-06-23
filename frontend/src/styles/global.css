@@ -1579,56 +1579,91 @@ img {
   line-height: var(--line-height-relaxed);
 }
 
-.markdown-content h1 {
-  font-size: 1.875rem;
-  font-weight: 700;
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
   color: var(--color-text-primary);
-  margin-top: var(--space-6);
-  margin-bottom: 1rem;
-  padding-bottom: 0.4em;
-  border-bottom: 2px solid #e5e7eb;
+  font-weight: var(--font-weight-bold);
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+  line-height: var(--line-height-tight);
+}
+
+.markdown-content h1 {
+  font-size: var(--font-size-2xl);
+  padding-bottom: 0.25em;
+  border-bottom: 2px solid var(--color-border-default);
 }
 
 .markdown-content h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin-top: var(--space-6);
-  margin-bottom: 0.875rem;
-  padding-bottom: 0.3em;
-  border-bottom: 1px solid #e5e7eb;
+  font-size: var(--font-size-xl);
+  padding-bottom: 0.2em;
+  border-bottom: var(--border-width-base) solid var(--color-border-default);
 }
 
 .markdown-content h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin-top: var(--space-6);
-  margin-bottom: 0.75rem;
+  font-size: var(--font-size-lg);
 }
 
 .markdown-content p {
-  margin-bottom: var(--space-3);
+  margin-top: 0;
+  margin-bottom: 0.875em;
 }
 
 .markdown-content ul,
 .markdown-content ol {
-  padding-left: var(--space-6);
-  margin-bottom: var(--space-3);
-  list-style: revert;
+  padding-left: 1.75em;
+  margin-bottom: 0.875em;
+}
+
+.markdown-content ul {
+  list-style-type: disc;
+}
+
+.markdown-content ul ul {
+  list-style-type: circle;
+}
+
+.markdown-content ul ul ul {
+  list-style-type: square;
+}
+
+.markdown-content ol {
+  list-style-type: decimal;
+}
+
+.markdown-content li {
+  display: list-item;
+}
+
+.markdown-content li input[type="checkbox"] {
+  margin-right: 0.375em;
+}
+
+.markdown-content em {
+  font-style: normal;
+  text-decoration: underline;
+}
+
+.markdown-content del {
+  text-decoration: line-through;
 }
 
 .markdown-content code {
-  background-color: rgba(13, 148, 136, 0.08);
-  padding: 0.1em 0.4em;
-  border-radius: var(--border-radius-sm);
-  font-family: 'Courier New', Courier, monospace;
+  font-family: Consolas, 'Cascadia Code', 'Fira Code', monospace;
   font-size: 0.875em;
+  background-color: rgba(0, 0, 0, 0.05);
+  border: var(--border-width-base) solid var(--color-border-default);
+  border-radius: var(--border-radius-sm);
+  padding: 0.1em 0.35em;
+  color: #b71c1c;
 }
 
 .markdown-content pre {
-  background-color: #f6f8fa;
-  border: var(--border-width-base) solid var(--color-border-default);
+  background-color: #1e293b;
   border-radius: var(--border-radius-base);
   padding: var(--space-4);
   overflow-x: auto;
@@ -1636,15 +1671,60 @@ img {
 }
 
 .markdown-content pre code {
-  background: none;
+  background: transparent;
+  border: none;
   padding: 0;
+  color: #e2e8f0;
+  font-size: var(--font-size-sm);
 }
 
 .markdown-content blockquote {
-  border-left: 3px solid var(--color-accent);
-  padding-left: var(--space-4);
+  border-left: 4px solid var(--color-accent);
+  background-color: #f1f5f9;
+  padding: var(--space-3) var(--space-4);
+  margin: 0 0 1em;
+  border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
   color: var(--color-text-muted);
-  margin: var(--space-4) 0;
+  font-style: italic;
+}
+
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1em;
+  font-size: var(--font-size-sm);
+}
+
+.markdown-content th,
+.markdown-content td {
+  border: var(--border-width-base) solid var(--color-border-default);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+}
+
+.markdown-content th {
+  background-color: var(--color-primary-light);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.markdown-content tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.markdown-content a {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.markdown-content a:hover {
+  color: var(--color-primary-dark);
+}
+
+.markdown-content hr {
+  border: none;
+  border-top: 2px solid var(--color-border-default);
+  margin: 1.5em 0;
 }
 
 /* =============================================================================
@@ -2415,46 +2495,171 @@ img {
 }
 
 /* =============================================================================
-   MDEditor ライトモード調整（Ocean Teal パレットとの視覚的一致）
+   MarkdownEditor（CodeMirror 6 ベース）スタイル
    ============================================================================= */
 
-[data-color-mode="light"] .w-md-editor {
-  background-color: var(--color-bg-card) !important;
-  border: var(--border-width-base) solid var(--color-border-default) !important;
-  border-radius: var(--border-radius-base) !important;
-  color: var(--color-text-body) !important;
-  box-shadow: var(--shadow-sm) !important;
+/* コンテナ: flex 縦並びで全高さを使う */
+.md-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--color-bg-card);
+  overflow: hidden;
 }
 
-[data-color-mode="light"] .w-md-editor-toolbar {
-  background-color: #f8fafc !important;
-  border-bottom: var(--border-width-base) solid var(--color-border-default) !important;
-  border-radius: var(--border-radius-base) var(--border-radius-base) 0 0 !important;
+/* ツールバー */
+.md-editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  background-color: #f8fafc;
+  border-bottom: var(--border-width-base) solid var(--color-border-default);
+  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
-[data-color-mode="light"] .w-md-editor-toolbar button {
-  color: var(--color-text-muted) !important;
+.md-editor-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 
-[data-color-mode="light"] .w-md-editor-toolbar button:hover {
-  color: var(--color-accent) !important;
-  background-color: rgba(13, 148, 136, 0.08) !important;
+.md-editor-toolbar-separator {
+  width: 1px;
+  height: 18px;
+  background-color: var(--color-border-default);
+  margin: 0 var(--space-1);
+  flex-shrink: 0;
 }
 
-[data-color-mode="light"] .w-md-editor-text {
-  color: var(--color-text-body) !important;
-  background-color: var(--color-bg-card) !important;
+.md-editor-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  transition: color 150ms ease, background-color 150ms ease;
 }
 
-[data-color-mode="light"] .w-md-editor-text-input {
-  color: var(--color-text-body) !important;
-  /* background は設定しない: textarea は透明のまま pre 要素を覗かせる必要がある */
+.md-editor-toolbar-btn:hover {
+  color: var(--color-accent);
+  background-color: rgba(0, 137, 123, 0.08);
 }
 
-[data-color-mode="light"] .w-md-editor-preview {
-  background-color: #f8fafc !important;
-  color: var(--color-text-body) !important;
-  border-left: var(--border-width-base) solid var(--color-border-default) !important;
+.md-editor-toolbar-btn:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 1px;
+}
+
+/* ビューモードボタングループ（ツールバー右端） */
+.md-editor-toolbar-mode {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  gap: 2px;
+  background-color: var(--color-border-default);
+  border-radius: var(--border-radius-sm);
+  padding: 2px;
+}
+
+.md-editor-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  border: none;
+  background: transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  transition: color 150ms ease, background-color 150ms ease;
+  white-space: nowrap;
+}
+
+.md-editor-mode-btn--active {
+  background-color: var(--color-bg-card);
+  color: var(--color-accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.md-editor-mode-btn:hover:not(.md-editor-mode-btn--active) {
+  color: var(--color-text-body);
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.md-editor-mode-btn:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 1px;
+}
+
+/* エディタ本体: 横並びペイン */
+.md-editor-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 編集のみ */
+.md-editor-body--edit .md-editor-pane--edit {
+  flex: 1;
+}
+
+/* プレビューのみ */
+.md-editor-body--preview .md-editor-pane--preview {
+  flex: 1;
+}
+
+/* 分割（デフォルト） */
+.md-editor-body--split .md-editor-pane--edit {
+  flex: 1;
+  border-right: var(--border-width-base) solid var(--color-border-default);
+}
+
+.md-editor-body--split .md-editor-pane--preview {
+  flex: 1;
+}
+
+/* 各ペイン */
+.md-editor-pane {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* プレビューコンテンツ */
+.md-editor-preview-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-5);
+  height: 100%;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-body);
+}
+
+.md-editor-preview-empty {
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin: 0;
+}
+
+/* CodeMirror エディタが全高さを使うように */
+.md-editor-pane--edit .cm-editor {
+  height: 100%;
+}
+
+.md-editor-pane--edit .cm-scroller {
+  overflow-y: auto;
 }
 
 /* =============================================================================
@@ -2734,24 +2939,11 @@ img {
   flex-shrink: 0;
 }
 
-/* MDEditor ラッパー（残り全高さを使う） */
+/* MarkdownEditor ラッパー（残り全高さを使う） */
 .editor-wrapper {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-}
-
-/* MDEditor を全幅・全高さに伸張させる */
-.editor-wrapper .w-md-editor {
-  height: 100% !important;
-  border-radius: 0 !important;
-  border-left: none !important;
-  border-right: none !important;
-  border-bottom: none !important;
-}
-
-.editor-wrapper .w-md-editor-content {
-  height: calc(100% - 30px) !important; /* ツールバー分を引く */
 }
 
 /* =============================================================================
@@ -2818,9 +3010,26 @@ img {
     flex-shrink: 0;
   }
 
-  /* モバイルでは MDEditor の高さをビューポートベースで制御（プレビューなし） */
-  .editor-wrapper .w-md-editor {
-    height: calc(100vh - var(--topbar-height) - var(--editor-meta-bar-height) - 100px) !important;
+  /* モバイルでは MarkdownEditor の分割表示を縦積みに切り替え */
+  .md-editor-body--split {
+    flex-direction: column;
+  }
+
+  .md-editor-body--split .md-editor-pane--edit {
+    border-right: none;
+    border-bottom: var(--border-width-base) solid var(--color-border-default);
+    flex: 0 0 50%;
+  }
+
+  .md-editor-body--split .md-editor-pane--preview {
+    flex: 0 0 50%;
+    overflow-y: auto;
+  }
+
+  /* モバイルではツールバーのビューモードボタンを縮小 */
+  .md-editor-mode-btn {
+    font-size: 0.7rem;
+    padding: 2px var(--space-1);
   }
 
   /* モバイルではタブを横スクロール可能に */

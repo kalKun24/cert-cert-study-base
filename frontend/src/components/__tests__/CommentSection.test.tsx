@@ -32,14 +32,9 @@ vi.mock('react-i18next', () => {
   };
 });
 
-// react-markdown をモック（テスト環境でのESM互換性対応）
-vi.mock('react-markdown', () => ({
-  default: ({ children }: { children: string }) => <div>{children}</div>,
-}));
-
-// rehype-sanitize をモック
-vi.mock('rehype-sanitize', () => ({
-  default: {},
+// MarkdownPreviewContent をモック（react-markdown / rehype-sanitize の ESM 互換性問題を回避）
+vi.mock('../MarkdownPreviewContent', () => ({
+  default: ({ value }: { value: string }) => <div>{value}</div>,
 }));
 
 const mockFetchComments = vi.mocked(commentApi.fetchComments);

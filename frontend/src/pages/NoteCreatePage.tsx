@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import MDEditor from '@uiw/react-md-editor';
-import rehypeSanitize from 'rehype-sanitize';
+import MarkdownEditor from '../components/MarkdownEditor';
 import { createNote } from '../utils/noteApi';
 import { fetchTags } from '../utils/tagApi';
 import { useTeam } from '../context/TeamContext';
@@ -70,8 +69,8 @@ export default function NoteCreatePage() {
     }));
   };
 
-  const handleEditorChange = (value: string | undefined) => {
-    setForm((prev) => ({ ...prev, [activeTab]: value ?? '' }));
+  const handleEditorChange = (value: string) => {
+    setForm((prev) => ({ ...prev, [activeTab]: value }));
   };
 
   const validate = (): boolean => {
@@ -201,22 +200,17 @@ export default function NoteCreatePage() {
           ))}
         </div>
 
-        {/* MDEditor（全幅・全高さ） */}
+        {/* MarkdownEditor（全幅・全高さ） */}
         <div
           className="editor-wrapper"
-          data-color-mode="light"
           role="tabpanel"
           id={`tabpanel-${activeTab}`}
           aria-labelledby={`tab-${activeTab}`}
         >
-          <MDEditor
+          <MarkdownEditor
             value={form[activeTab]}
             onChange={handleEditorChange}
             height="100%"
-            preview="live"
-            previewOptions={{
-              rehypePlugins: [[rehypeSanitize]],
-            }}
           />
         </div>
       </div>
