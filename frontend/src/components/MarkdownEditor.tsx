@@ -130,9 +130,14 @@ export default function MarkdownEditor({ value, onChange, height = '100%' }: Mar
   const [viewMode, setViewMode] = useState<ViewMode>('split');
   const editorViewRef = useRef<EditorView | null>(null);
 
-  // CodeMirror インスタンスの参照を保持
+  // CodeMirror インスタンスの参照を保持・解放
   const handleEditorCreate = useCallback((view: EditorView) => {
     editorViewRef.current = view;
+  }, []);
+
+  // プレビューモードに切り替わり CodeMirror がアンマウントされる際に参照をクリア
+  const handleEditorDestroy = useCallback(() => {
+    editorViewRef.current = null;
   }, []);
 
   // ツールバーから挿入を実行
@@ -297,6 +302,7 @@ export default function MarkdownEditor({ value, onChange, height = '100%' }: Mar
               value={value}
               onChange={onChange}
               onCreateEditor={handleEditorCreate}
+              onDestroy={handleEditorDestroy}
               extensions={[
                 markdown({ base: markdownLanguage, codeLanguages: languages }),
                 tealTheme,
