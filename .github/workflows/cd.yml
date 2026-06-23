@@ -38,25 +38,32 @@ jobs:
         run: gcloud auth configure-docker asia-northeast1-docker.pkg.dev --quiet
 
       - name: Firestore インデックスをデプロイ
-        # 既に存在する場合は gcloud がエラーを返すが || true で無視する（冪等）。
-        # インデックスは非同期で構築されるため、デプロイ完了を待たずに次のステップへ進む。
+        # 単一フィールドの COLLECTION_GROUP インデックスは gcloud composite create ではなく
+        # Firestore REST API (PATCH fields) で作成する必要がある。
+        # 複合インデックス（invitations）は gcloud composite create で作成可能。
+        # 既存インデックスへの PATCH は冪等。非同期構築のため完了を待たずに次のステップへ進む。
         run: |
           PROJECT="${{ vars.GCP_PROJECT_ID }}"
+          TOKEN=$(gcloud auth print-access-token)
+          FS_BASE="https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/collectionGroups"
 
-          gcloud firestore indexes composite create \
-            --project="${PROJECT}" \
-            --collection-group=members \
-            --query-scope=COLLECTION_GROUP \
-            --field-config=order=ASCENDING,field-path=user_id \
-            --quiet || true
+          # members.user_id — COLLECTION_GROUP 単一フィールドインデックス
+          curl -s -X PATCH \
+            "${FS_BASE}/members/fields/user_id" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"indexConfig":{"indexes":[{"queryScope":"COLLECTION_GROUP","fields":[{"fieldPath":"user_id","order":"ASCENDING"}]}]}}' \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print('members.user_id:', d.get('name','OK') if 'name' in d else d)"
 
-          gcloud firestore indexes composite create \
-            --project="${PROJECT}" \
-            --collection-group=tags \
-            --query-scope=COLLECTION_GROUP \
-            --field-config=order=ASCENDING,field-path=id \
-            --quiet || true
+          # tags.id — COLLECTION_GROUP 単一フィールドインデックス
+          curl -s -X PATCH \
+            "${FS_BASE}/tags/fields/id" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"indexConfig":{"indexes":[{"queryScope":"COLLECTION_GROUP","fields":[{"fieldPath":"id","order":"ASCENDING"}]}]}}' \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print('tags.id:', d.get('name','OK') if 'name' in d else d)"
 
+          # invitations.(team_id + invitee_user_id + status) — COLLECTION 複合インデックス
           gcloud firestore indexes composite create \
             --project="${PROJECT}" \
             --collection-group=invitations \
