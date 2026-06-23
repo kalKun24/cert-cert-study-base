@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import ReactMarkdown from 'react-markdown';
-import rehypeSanitize from 'rehype-sanitize';
 import { fetchNote, deleteNote, updateNoteVisibility } from '../utils/noteApi';
 import { fetchTags } from '../utils/tagApi';
 import { Tag } from '../types/tag';
@@ -12,6 +10,9 @@ import { Note, NoteStatus } from '../types/note';
 import NoteCommentSection from '../components/NoteCommentSection';
 import AccordionSection from '../components/AccordionSection';
 import { QuestionDetailSkeleton } from '../components/Skeleton';
+import MarkdownPreviewContent from '../components/MarkdownPreviewContent';
+import 'highlight.js/styles/github-dark-dimmed.css';
+import 'katex/dist/katex.min.css';
 
 const STATUS_CYCLE: Record<NoteStatus, NoteStatus> = {
   draft: 'private',
@@ -22,7 +23,7 @@ const STATUS_CYCLE: Record<NoteStatus, NoteStatus> = {
 function MarkdownContent({ source }: { source: string }) {
   return (
     <div className="markdown-content">
-      <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{source}</ReactMarkdown>
+      <MarkdownPreviewContent value={source} />
     </div>
   );
 }
