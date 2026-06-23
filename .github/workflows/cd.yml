@@ -85,6 +85,8 @@ jobs:
           env_vars: |
             GCP_PROJECT_ID=${{ vars.GCP_PROJECT_ID }}
             CORS_ALLOWED_ORIGINS=${{ vars.FRONTEND_URL }}
+            SEED_ADMIN_USERNAME=${{ vars.SEED_ADMIN_USERNAME }}
+            SEED_ADMIN_EMAIL=${{ vars.SEED_ADMIN_EMAIL }}
           secrets: |
             JWT_SECRET=jwt-secret:latest
             SEED_ADMIN_PASSWORD=seed-admin-password:latest
