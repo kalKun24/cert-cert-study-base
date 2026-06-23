@@ -3101,6 +3101,28 @@ img {
     height: calc(100vh - var(--topbar-height) - var(--editor-meta-bar-height) - 100px) !important;
   }
 
+  /* モバイルでは MarkdownEditor の分割表示を縦積みに切り替え */
+  .md-editor-body--split {
+    flex-direction: column;
+  }
+
+  .md-editor-body--split .md-editor-pane--edit {
+    border-right: none;
+    border-bottom: var(--border-width-base) solid var(--color-border-default);
+    flex: 0 0 50%;
+  }
+
+  .md-editor-body--split .md-editor-pane--preview {
+    flex: 0 0 50%;
+    overflow-y: auto;
+  }
+
+  /* モバイルではツールバーのビューモードボタンを縮小 */
+  .md-editor-mode-btn {
+    font-size: 0.7rem;
+    padding: 2px var(--space-1);
+  }
+
   /* モバイルではタブを横スクロール可能に */
   .editor-tabs--fullwidth {
     overflow-x: auto;
