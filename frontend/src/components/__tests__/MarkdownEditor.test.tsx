@@ -36,11 +36,17 @@ vi.mock('@codemirror/view', () => ({
     theme: vi.fn(() => []),
     lineWrapping: [],
   },
+  keymap: {
+    of: vi.fn(() => []),
+  },
 }));
 
 vi.mock('@codemirror/state', () => ({
   EditorSelection: {
     range: vi.fn(),
+  },
+  Prec: {
+    high: vi.fn((x) => x),
   },
 }));
 
@@ -55,14 +61,12 @@ vi.mock('react-i18next', () => {
   };
 });
 
-// react-markdown をモック（ESM 互換性）
-vi.mock('react-markdown', () => ({
-  default: ({ children }: { children: string }) => <div data-testid="markdown-preview">{children}</div>,
-}));
-
-// rehype-sanitize をモック
-vi.mock('rehype-sanitize', () => ({
-  default: {},
+// MarkdownPreviewContent をモック（react-markdown / rehype-sanitize の ESM 互換性問題を回避）
+vi.mock('../MarkdownPreviewContent', () => ({
+  default: ({ value, emptyMessage }: { value: string; emptyMessage?: string }) => {
+    if (!value.trim()) return <p>{emptyMessage}</p>;
+    return <div data-testid="markdown-preview">{value}</div>;
+  },
 }));
 
 const NOOP = () => {};
@@ -74,15 +78,40 @@ describe('MarkdownEditor', () => {
     expect(screen.getByTestId('markdown-editor')).toBeInTheDocument();
   });
 
-  it('ツールバーの各ボタンが存在すること', () => {
+  it('インライン装飾ボタンが存在すること', () => {
     render(<MarkdownEditor value="" onChange={NOOP} />);
 
     expect(screen.getByLabelText('editor.toolbar.bold')).toBeInTheDocument();
     expect(screen.getByLabelText('editor.toolbar.italic')).toBeInTheDocument();
-    expect(screen.getByLabelText('editor.toolbar.link')).toBeInTheDocument();
-    expect(screen.getByLabelText('editor.toolbar.table')).toBeInTheDocument();
-    expect(screen.getByLabelText('editor.toolbar.codeBlock')).toBeInTheDocument();
+    expect(screen.getByLabelText('editor.toolbar.strikethrough')).toBeInTheDocument();
+    expect(screen.getByLabelText('editor.toolbar.inlineCode')).toBeInTheDocument();
+  });
+
+  it('見出しボタンが存在すること', () => {
+    render(<MarkdownEditor value="" onChange={NOOP} />);
+
+    expect(screen.getByLabelText('editor.toolbar.heading1')).toBeInTheDocument();
+    expect(screen.getByLabelText('editor.toolbar.heading2')).toBeInTheDocument();
+    expect(screen.getByLabelText('editor.toolbar.heading3')).toBeInTheDocument();
+  });
+
+  it('ブロック要素ボタンが存在すること', () => {
+    render(<MarkdownEditor value="" onChange={NOOP} />);
+
+    expect(screen.getByLabelText('editor.toolbar.quote')).toBeInTheDocument();
+    expect(screen.getByLabelText('editor.toolbar.bulletList')).toBeInTheDocument();
+    expect(screen.getByLabelText('editor.toolbar.orderedList')).toBeInTheDocument();
     expect(screen.getByLabelText('editor.toolbar.checklist')).toBeInTheDocument();
+    expect(screen.getByLabelText('editor.toolbar.codeBlock')).toBeInTheDocument();
+    expect(screen.getByLabelText('editor.toolbar.math')).toBeInTheDocument();
+    expect(screen.getByLabelText('editor.toolbar.table')).toBeInTheDocument();
+  });
+
+  it('挿入ボタンが存在すること', () => {
+    render(<MarkdownEditor value="" onChange={NOOP} />);
+
+    expect(screen.getByLabelText('editor.toolbar.link')).toBeInTheDocument();
+    expect(screen.getByLabelText('editor.toolbar.image')).toBeInTheDocument();
   });
 
   it('ビューモードの切り替えボタンが 3 つ存在すること', () => {
