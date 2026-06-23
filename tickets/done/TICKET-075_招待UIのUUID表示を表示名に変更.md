@@ -5,10 +5,10 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-075 |
-| ステータス | 🟡 作業中 |
+| ステータス | ✅ 完了 |
 | 作成日 | 2026-06-23 |
 | 着手日 | 2026-06-23 |
-| 完了日 | - |
+| 完了日 | 2026-06-23 |
 | ブランチ名 | `feature/TICKET-075` |
 | PR番号 | #73 |
 | PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/73 |
@@ -30,11 +30,11 @@
 
 ## 受け入れ条件
 
-- [ ] `GET /api/v1/invitations/me` のレスポンスに `team_name`（チームの表示名）が含まれる
-- [ ] `GET /api/v1/invitations/me` のレスポンスに `inviter_display_name`（招待者の DisplayName）が含まれる
-- [ ] `api/openapi.yaml` の `Invitation` スキーマに上記2フィールドが追加されている
-- [ ] フロントエンドの招待一覧画面でUUIDの代わりにチーム名・招待者の表示名が表示される
-- [ ] チーム名・招待者名の取得に失敗した場合もAPIはエラーにならず、フォールバック値（空文字またはUUID）を返す
+- [x] `GET /api/v1/invitations/me` のレスポンスに `team_name`（チームの表示名）が含まれる
+- [x] `GET /api/v1/invitations/me` のレスポンスに `inviter_display_name`（招待者の DisplayName）が含まれる
+- [x] `api/openapi.yaml` の `Invitation` スキーマに上記2フィールドが追加されている
+- [x] フロントエンドの招待一覧画面でUUIDの代わりにチーム名・招待者の表示名が表示される
+- [x] チーム名・招待者名の取得に失敗した場合もAPIはエラーにならず、フォールバック値（空文字またはUUID）を返す
 
 ---
 
