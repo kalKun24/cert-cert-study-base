@@ -158,13 +158,68 @@ type ListMyInvitationsInput struct {
 	CallerID string
 }
 
-// ListMyInvitations はログインユーザー宛の招待一覧を返します。
-func (uc *InvitationUseCase) ListMyInvitations(ctx context.Context, input ListMyInvitationsInput) ([]*domain.Invitation, error) {
+// InvitationWithMeta は招待エンティティにチーム名・招待者表示名を付加した出力型です。
+type InvitationWithMeta struct {
+	*domain.Invitation
+	// TeamName は招待先チームの表示名。取得失敗時は空文字。
+	TeamName string
+	// InviterDisplayName は招待者（InvitedBy）の表示名。取得失敗時は空文字。
+	InviterDisplayName string
+}
+
+// ListMyInvitations はログインユーザー宛の招待一覧をチーム名・招待者表示名付きで返します。
+// チーム名または招待者表示名の取得に失敗した場合もエラーにならず、空文字をフォールバック値として使用します。
+func (uc *InvitationUseCase) ListMyInvitations(ctx context.Context, input ListMyInvitationsInput) ([]*InvitationWithMeta, error) {
 	invitations, err := uc.invitationRepo.ListByInvitee(ctx, input.CallerID)
 	if err != nil {
 		return nil, fmt.Errorf("招待一覧取得に失敗しました: %w", err)
 	}
-	return invitations, nil
+
+	// 現時点では TeamRepository・UserRepository に FindByIDs（複数ID一括取得）がないため、
+	// List で全件取得してマップを構築する。
+	// 招待件数・チーム数・ユーザー数が小規模なうちは問題ないが、
+	// スケール時は FindByIDs メソッドの追加を検討すること。
+
+	// チーム一覧を全件取得してIDをキーにしたマップを構築する。
+	// 失敗時はWARNログを出して空マップで続行する（招待一覧自体はエラーにしない）。
+	teamMap := make(map[string]*domain.Team)
+	teams, err := uc.teamRepo.List(ctx)
+	if err != nil {
+		slog.Warn("招待一覧のチーム一覧取得に失敗しました", "error", err)
+	} else {
+		for _, t := range teams {
+			teamMap[t.ID] = t
+		}
+	}
+
+	// ユーザー一覧を全件取得してIDをキーにしたマップを構築する。
+	// 失敗時はWARNログを出して空マップで続行する（招待一覧自体はエラーにしない）。
+	userMap := make(map[string]*domain.User)
+	users, err := uc.userRepo.List(ctx)
+	if err != nil {
+		slog.Warn("招待一覧のユーザー一覧取得に失敗しました", "error", err)
+	} else {
+		for _, u := range users {
+			userMap[u.ID] = u
+		}
+	}
+
+	// マップから各招待のチーム名・招待者表示名を取得する。
+	results := make([]*InvitationWithMeta, 0, len(invitations))
+	for _, inv := range invitations {
+		meta := &InvitationWithMeta{
+			Invitation: inv,
+		}
+		if t, ok := teamMap[inv.TeamID]; ok {
+			meta.TeamName = t.Name
+		}
+		if u, ok := userMap[inv.InvitedBy]; ok {
+			meta.InviterDisplayName = u.DisplayName
+		}
+		results = append(results, meta)
+	}
+
+	return results, nil
 }
 
 // RespondInvitationInput は招待受諾/拒否ユースケースの入力です。

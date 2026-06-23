@@ -3046,11 +3046,19 @@ components:
           format: uuid
           description: 招待先チームID
           example: "770e8400-e29b-41d4-a716-446655440001"
+        team_name:
+          type: string
+          description: 招待先チームの表示名
+          example: "CISSPチーム"
         invited_by:
           type: string
           format: uuid
           description: 招待したユーザーのID
           example: "550e8400-e29b-41d4-a716-446655440000"
+        inviter_display_name:
+          type: string
+          description: 招待者の表示名（User.DisplayName）
+          example: "山田太郎"
         invitee_identifier:
           type: string
           description: 招待時に指定した識別子（UUID / ユーザー名 / メールアドレス）

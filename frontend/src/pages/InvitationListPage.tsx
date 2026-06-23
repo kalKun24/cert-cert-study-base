@@ -81,14 +81,14 @@ export default function InvitationListPage() {
             <li key={inv.id} className="card" style={{ marginBottom: 0 }}>
               <dl style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '0.5rem 1rem', marginBottom: '1rem' }}>
                 <dt className="form-label" style={{ margin: 0 }}>
-                  {t('team.invitation.teamId')}
+                  {t('team.invitation.teamName')}
                 </dt>
-                <dd style={{ margin: 0 }}>{inv.team_id}</dd>
+                <dd style={{ margin: 0 }}>{inv.team_name || inv.team_id}</dd>
 
                 <dt className="form-label" style={{ margin: 0 }}>
                   {t('team.invitation.invitedBy')}
                 </dt>
-                <dd style={{ margin: 0 }}>{inv.invited_by}</dd>
+                <dd style={{ margin: 0 }}>{inv.inviter_display_name || inv.invited_by}</dd>
 
                 <dt className="form-label" style={{ margin: 0 }}>
                   {t('team.invitation.invitedAt')}

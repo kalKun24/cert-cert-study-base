@@ -428,12 +428,14 @@ type UpdateNoteVisibilityRequestDTO struct {
 // InvitationDTO はAPIレスポンス用の招待DTOです。
 // invitee_identifier はメールアドレス等の個人情報を含む可能性があるためレスポンスに含めません。
 type InvitationDTO struct {
-	ID            string    `json:"id"`
-	TeamID        string    `json:"team_id"`
-	InvitedBy     string    `json:"invited_by"`
-	InviteeUserID string    `json:"invitee_user_id"`
-	Status        string    `json:"status"`
-	CreatedAt     time.Time `json:"created_at"`
+	ID                 string    `json:"id"`
+	TeamID             string    `json:"team_id"`
+	TeamName           string    `json:"team_name"`
+	InvitedBy          string    `json:"invited_by"`
+	InviterDisplayName string    `json:"inviter_display_name"`
+	InviteeUserID      string    `json:"invitee_user_id"`
+	Status             string    `json:"status"`
+	CreatedAt          time.Time `json:"created_at"`
 }
 
 // SendInvitationRequestDTO は招待送信リクエストのDTOです。
@@ -448,6 +450,7 @@ type RespondInvitationRequestDTO struct {
 }
 
 // toInvitationDTO はドメインエンティティをAPIレスポンス用DTOに変換します。
+// チーム名・招待者表示名は含まれないため、SendInvitation / RespondInvitation レスポンスで使用します。
 func toInvitationDTO(inv *domain.Invitation) InvitationDTO {
 	return InvitationDTO{
 		ID:            inv.ID,
@@ -456,5 +459,20 @@ func toInvitationDTO(inv *domain.Invitation) InvitationDTO {
 		InviteeUserID: inv.InviteeUserID,
 		Status:        string(inv.Status),
 		CreatedAt:     inv.CreatedAt,
+	}
+}
+
+// toInvitationDTOWithMeta はメタ情報付き招待をAPIレスポンス用DTOに変換します。
+// ListMyInvitations レスポンスで使用します。
+func toInvitationDTOWithMeta(m *usecase.InvitationWithMeta) InvitationDTO {
+	return InvitationDTO{
+		ID:                 m.ID,
+		TeamID:             m.TeamID,
+		TeamName:           m.TeamName,
+		InvitedBy:          m.InvitedBy,
+		InviterDisplayName: m.InviterDisplayName,
+		InviteeUserID:      m.InviteeUserID,
+		Status:             string(m.Status),
+		CreatedAt:          m.CreatedAt,
 	}
 }

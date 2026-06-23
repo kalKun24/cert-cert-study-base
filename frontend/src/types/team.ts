@@ -17,7 +17,9 @@ export interface TeamMember {
 export interface Invitation {
   id: string;
   team_id: string;
+  team_name: string;
   invited_by: string;
+  inviter_display_name: string;
   invitee_identifier: string;
   invitee_user_id: string;
   status: 'pending' | 'accepted' | 'rejected';

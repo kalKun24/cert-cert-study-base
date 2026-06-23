@@ -85,7 +85,7 @@ func (h *InvitationHandler) HandleListMyInvitations(w http.ResponseWriter, r *ht
 
 	dtos := make([]InvitationDTO, 0, len(invitations))
 	for _, inv := range invitations {
-		dtos = append(dtos, toInvitationDTO(inv))
+		dtos = append(dtos, toInvitationDTOWithMeta(inv))
 	}
 
 	writeJSON(w, http.StatusOK, response{Data: dtos})
