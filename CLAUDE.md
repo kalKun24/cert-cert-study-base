@@ -26,7 +26,7 @@ CISSPや情報処理安全確保支援士などのセキュリティ資格取得
 | API設計 | REST API / Swagger (OpenAPI 3.0) |
 | 永続化 | Google Cloud Storage（GCS） |
 | インフラ | GCP Cloud Run |
-| CI/CD | GitHub Actions（mainマージトリガー） |
+| CI/CD | GitHub Actions（main / develop マージトリガー、2環境デプロイ） |
 
 ---
 
@@ -41,6 +41,8 @@ CISSPや情報処理安全確保支援士などのセキュリティ資格取得
 │   └── infrastructure/  # インフラ層: GCS・認証・ルーティングの具体実装
 ├── frontend/src/
 ├── api/openapi.yaml     # OpenAPI 3.0 仕様書（API定義の単一管理元）
+├── docs/                # ドキュメント・手順書
+├── scripts/             # セットアップ・運用スクリプト
 ├── tickets/             # チケット管理（backlog/ in-progress/ done/）
 ├── .github/workflows/
 └── CLAUDE.md
@@ -103,9 +105,10 @@ CISSPや情報処理安全確保支援士などのセキュリティ資格取得
 
 ## ブランチ戦略
 
-2層構成（`main` / `feature/*`）。`main` への直接pushは禁止。
+3層構成（`main` / `develop` / `feature/*`）。`main`・`develop` への直接pushは禁止。
 
-- `feature/*` ブランチで開発し、PRを作成してマージする
+- `feature/*` ブランチで開発し、`develop` へ PR を作成してマージする（dev 環境へデプロイ）
+- `develop` → `main` への PR をマージすると prod 環境へデプロイされる
 - PRは承認者（リポジトリオーナー）による **1名承認が必須**
 - セルフマージ禁止。PRタイトルはコミットメッセージ規約に準拠
 
@@ -113,8 +116,13 @@ CISSPや情報処理安全確保支援士などのセキュリティ資格取得
 
 ## CI/CD
 
-`main` マージをトリガーに、テスト → ビルド → Cloud Run デプロイ の順で実行。
-シークレットは GCP Secret Manager で管理。
+| ブランチ | トリガー | 動作 | 環境 |
+|---|---|---|---|
+| `feature/*` | PR作成/更新 | テスト・Lint・セキュリティスキャン（ci.yml） | - |
+| `develop` | マージ | CI 通過後にビルド → Cloud Run デプロイ（cd-dev.yml） | dev（`cert-study-base-dev`） |
+| `main` | マージ | CI 通過後にビルド → Cloud Run デプロイ（cd.yml） | prod（`cert-study-base`） |
+
+シークレットは GCP Secret Manager で管理。GCP 認証は Workload Identity Federation を使用。
 
 ---
 
