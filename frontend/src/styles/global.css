@@ -2693,49 +2693,6 @@ img {
 }
 
 /* =============================================================================
-   MDEditor ライトモード調整（Ocean Teal パレットとの視覚的一致）
-   ============================================================================= */
-
-[data-color-mode="light"] .w-md-editor {
-  background-color: var(--color-bg-card) !important;
-  border: var(--border-width-base) solid var(--color-border-default) !important;
-  border-radius: var(--border-radius-base) !important;
-  color: var(--color-text-body) !important;
-  box-shadow: var(--shadow-sm) !important;
-}
-
-[data-color-mode="light"] .w-md-editor-toolbar {
-  background-color: #f8fafc !important;
-  border-bottom: var(--border-width-base) solid var(--color-border-default) !important;
-  border-radius: var(--border-radius-base) var(--border-radius-base) 0 0 !important;
-}
-
-[data-color-mode="light"] .w-md-editor-toolbar button {
-  color: var(--color-text-muted) !important;
-}
-
-[data-color-mode="light"] .w-md-editor-toolbar button:hover {
-  color: var(--color-accent) !important;
-  background-color: rgba(13, 148, 136, 0.08) !important;
-}
-
-[data-color-mode="light"] .w-md-editor-text {
-  color: var(--color-text-body) !important;
-  background-color: var(--color-bg-card) !important;
-}
-
-[data-color-mode="light"] .w-md-editor-text-input {
-  color: var(--color-text-body) !important;
-  /* background は設定しない: textarea は透明のまま pre 要素を覗かせる必要がある */
-}
-
-[data-color-mode="light"] .w-md-editor-preview {
-  background-color: #f8fafc !important;
-  color: var(--color-text-body) !important;
-  border-left: var(--border-width-base) solid var(--color-border-default) !important;
-}
-
-/* =============================================================================
    エディタメタバー（sticky 上部バー）
    ============================================================================= */
 
@@ -3012,24 +2969,11 @@ img {
   flex-shrink: 0;
 }
 
-/* MDEditor ラッパー（残り全高さを使う） */
+/* MarkdownEditor ラッパー（残り全高さを使う） */
 .editor-wrapper {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-}
-
-/* MDEditor を全幅・全高さに伸張させる */
-.editor-wrapper .w-md-editor {
-  height: 100% !important;
-  border-radius: 0 !important;
-  border-left: none !important;
-  border-right: none !important;
-  border-bottom: none !important;
-}
-
-.editor-wrapper .w-md-editor-content {
-  height: calc(100% - 30px) !important; /* ツールバー分を引く */
 }
 
 /* =============================================================================
@@ -3094,11 +3038,6 @@ img {
   .editor-meta-actions {
     order: 3;
     flex-shrink: 0;
-  }
-
-  /* モバイルでは MDEditor の高さをビューポートベースで制御（プレビューなし） */
-  .editor-wrapper .w-md-editor {
-    height: calc(100vh - var(--topbar-height) - var(--editor-meta-bar-height) - 100px) !important;
   }
 
   /* モバイルでは MarkdownEditor の分割表示を縦積みに切り替え */
