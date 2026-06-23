@@ -1,8 +1,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import ReactMarkdown from 'react-markdown';
-import rehypeSanitize from 'rehype-sanitize';
 import { useAuth } from '../context/AuthContext';
+import MarkdownPreviewContent from './MarkdownPreviewContent';
 import { NoteComment } from '../types/noteComment';
 import {
   fetchNoteComments,
@@ -234,9 +233,7 @@ export default function NoteCommentSection({ teamId, noteId }: Props) {
                     {editPreview ? (
                       <div className="comment-preview-body">
                         {editBody ? (
-                          <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
-                            {editBody}
-                          </ReactMarkdown>
+                          <MarkdownPreviewContent value={editBody} />
                         ) : (
                           <span className="comment-preview-empty">
                             {t('comment.form.previewEmpty')}
@@ -281,9 +278,7 @@ export default function NoteCommentSection({ teamId, noteId }: Props) {
                   </div>
                 ) : (
                   <div className="comment-body">
-                    <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
-                      {comment.body}
-                    </ReactMarkdown>
+                    <MarkdownPreviewContent value={comment.body} />
                   </div>
                 )}
               </li>
@@ -316,7 +311,7 @@ export default function NoteCommentSection({ teamId, noteId }: Props) {
           {newPreview ? (
             <div className="comment-preview-body">
               {newBody ? (
-                <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{newBody}</ReactMarkdown>
+                <MarkdownPreviewContent value={newBody} />
               ) : (
                 <span className="comment-preview-empty">{t('comment.form.previewEmpty')}</span>
               )}
