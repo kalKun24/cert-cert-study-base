@@ -43,12 +43,12 @@ GCP プロジェクトを prod / dev の2環境に分離し、ブランチ戦略
 
 ## サブチケット（コミット単位）
 
-- [ ] `docs(claude): CLAUDE.md のブランチ戦略・CI/CD セクションを3層構成に更新`
-- [ ] `chore(ci): ci.yml を develop ブランチにも対応`
-- [ ] `chore(cd): cd.yml を prod 専用に整理`
-- [ ] `chore(cd): cd-dev.yml を新規作成（develop トリガー・dev 環境）`
-- [ ] `docs(infra): GCP dev 環境セットアップ手順書を作成`
-- [ ] `chore(infra): GCP dev 環境セットアップスクリプトを作成`
+- [x] `docs(claude): CLAUDE.md のブランチ戦略・CI/CD セクションを3層構成に更新`
+- [x] `chore(ci): ci.yml を develop ブランチにも対応`
+- [x] `chore(cd): cd.yml を prod 専用に整理`
+- [x] `chore(cd): cd-dev.yml を新規作成（develop トリガー・dev 環境）`
+- [x] `docs(infra): GCP dev 環境セットアップ手順書を作成`
+- [x] `chore(infra): GCP dev 環境セットアップスクリプトを作成`
 
 ---
 
