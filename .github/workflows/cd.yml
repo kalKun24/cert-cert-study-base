@@ -1,8 +1,9 @@
-name: CD
+name: CD（prod）
 
 # CI（テスト・Lint・セキュリティスキャン）が main ブランチで成功した後にのみ実行する。
 # push: branches: [main] の代わりに workflow_run を使用することで、
 # テストが通っていない状態のコードが本番へデプロイされることを防ぐ。
+# prod 環境: cert-study-base プロジェクト
 on:
   workflow_run:
     workflows: ["CI"]
