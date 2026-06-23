@@ -187,7 +187,7 @@ export default function MarkdownEditor({ value, onChange, height = '100%' }: Mar
       data-testid="markdown-editor"
     >
       {/* ツールバー */}
-      <div className="md-editor-toolbar" role="toolbar" aria-label={t('editor.toolbar.bold')}>
+      <div className="md-editor-toolbar" role="toolbar" aria-label="Markdownツールバー">
         <div className="md-editor-toolbar-group">
           <button
             type="button"
