@@ -26,7 +26,7 @@ server {
     # proxy_pass に直接ホスト名を書くと起動時の 1 回解決・IP キャッシュになり
     # Cloud Run が IP ローテーションした際に "upstream temporarily disabled" で 502 が続く。
     # 変数経由にすることで resolver が毎回解決するためこの問題を回避できる。
-    resolver 8.8.8.8 valid=30s ipv6=off;
+    resolver ${RESOLVER} valid=30s ipv6=off;
 
     location /api/ {
         set $backend "${BACKEND_URL}";
