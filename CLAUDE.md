@@ -26,7 +26,7 @@ CISSPや情報処理安全確保支援士などのセキュリティ資格取得
 | API設計 | REST API / Swagger (OpenAPI 3.0) |
 | 永続化 | Google Cloud Storage（GCS） |
 | インフラ | GCP Cloud Run |
-| CI/CD | GitHub Actions（mainマージトリガー） |
+| CI/CD | GitHub Actions（main / develop マージトリガー、2環境デプロイ） |
 
 ---
 
@@ -41,6 +41,8 @@ CISSPや情報処理安全確保支援士などのセキュリティ資格取得
 │   └── infrastructure/  # インフラ層: GCS・認証・ルーティングの具体実装
 ├── frontend/src/
 ├── api/openapi.yaml     # OpenAPI 3.0 仕様書（API定義の単一管理元）
+├── docs/                # ドキュメント・手順書
+├── scripts/             # セットアップ・運用スクリプト
 ├── tickets/             # チケット管理（backlog/ in-progress/ done/）
 ├── .github/workflows/
 └── CLAUDE.md
