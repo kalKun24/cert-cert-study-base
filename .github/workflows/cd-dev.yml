@@ -78,9 +78,9 @@ jobs:
         run: |
           IMAGE="asia-northeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID_DEV }}/cert-study/backend"
           docker build \
-            -t "${IMAGE}:${{ github.sha }}" \
+            -t "${IMAGE}:${{ github.event.workflow_run.head_sha }}" \
             ./backend
-          docker push "${IMAGE}:${{ github.sha }}"
+          docker push "${IMAGE}:${{ github.event.workflow_run.head_sha }}"
 
       - name: バックエンドを Cloud Run へデプロイ（dev 環境）
         id: deploy
@@ -89,7 +89,7 @@ jobs:
         with:
           service: cert-study-backend
           region: asia-northeast1
-          image: asia-northeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID_DEV }}/cert-study/backend:${{ github.sha }}
+          image: asia-northeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID_DEV }}/cert-study/backend:${{ github.event.workflow_run.head_sha }}
           env_vars: |
             GCP_PROJECT_ID=${{ vars.GCP_PROJECT_ID_DEV }}
             CORS_ALLOWED_ORIGINS=${{ vars.FRONTEND_URL_DEV }}
@@ -106,7 +106,7 @@ jobs:
           EOF
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "- **サービス URL**: ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **イメージタグ**: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **イメージタグ**: \`${{ github.event.workflow_run.head_sha }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- **環境**: dev（\`${{ vars.GCP_PROJECT_ID_DEV }}\`）" >> "$GITHUB_STEP_SUMMARY"
 
   deploy-frontend:
@@ -159,9 +159,9 @@ jobs:
         run: |
           IMAGE="asia-northeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID_DEV }}/cert-study/frontend"
           docker build \
-            -t "${IMAGE}:${{ github.sha }}" \
+            -t "${IMAGE}:${{ github.event.workflow_run.head_sha }}" \
             ./frontend
-          docker push "${IMAGE}:${{ github.sha }}"
+          docker push "${IMAGE}:${{ github.event.workflow_run.head_sha }}"
 
       - name: フロントエンドを Cloud Run へデプロイ（dev 環境）
         id: deploy
@@ -170,7 +170,7 @@ jobs:
         with:
           service: cert-study-frontend
           region: asia-northeast1
-          image: asia-northeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID_DEV }}/cert-study/frontend:${{ github.sha }}
+          image: asia-northeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID_DEV }}/cert-study/frontend:${{ github.event.workflow_run.head_sha }}
           env_vars: |
             BACKEND_URL=${{ steps.backend.outputs.url }}
             BACKEND_HOST=${{ steps.backend.outputs.host }}
@@ -182,5 +182,5 @@ jobs:
           EOF
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "- **サービス URL**: ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **イメージタグ**: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **イメージタグ**: \`${{ github.event.workflow_run.head_sha }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- **環境**: dev（\`${{ vars.GCP_PROJECT_ID_DEV }}\`）" >> "$GITHUB_STEP_SUMMARY"
