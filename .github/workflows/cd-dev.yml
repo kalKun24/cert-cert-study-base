@@ -10,12 +10,18 @@ on:
     types: [completed]
     branches: [develop]
 
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
 jobs:
   deploy-backend:
     name: バックエンドビルド・デプロイ（dev）
     runs-on: ubuntu-latest
-    # CI が成功した場合のみデプロイを実行する
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # CI が成功、かつ develop ブランチのワークフローの場合のみデプロイを実行する
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'develop'
     timeout-minutes: 30
     permissions:
       contents: read
