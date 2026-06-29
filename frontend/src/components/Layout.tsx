@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router-dom';
 import NavBar from './NavBar';
 import { useAuth } from '../context/AuthContext';
+import { useTeam } from '../context/TeamContext';
 import { useInvitationCount } from '../hooks/useInvitationCount';
 import apiClient from '../utils/apiClient';
 
@@ -28,6 +29,7 @@ const FOCUSABLE_SELECTORS =
 export default function Layout() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
+  const { teams, activeTeam, setActiveTeam } = useTeam();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -49,6 +51,14 @@ export default function Layout() {
 
   const handleMobileMenuToggle = () => {
     setIsMobileMenuOpen((prev) => !prev);
+  };
+
+  // モバイルドロワー内のチーム切り替え（NavBar のデスクトップセレクトと同じロジック）
+  const handleTeamChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selected = teams.find((team) => team.id === e.target.value);
+    if (selected) {
+      setActiveTeam(selected);
+    }
   };
 
   // ESCキーでドロワーを閉じる
@@ -253,6 +263,28 @@ export default function Layout() {
             )}
           </ul>
         </nav>
+
+        {/* モバイルドロワー内チーム切り替え（所属チームが2つ以上のときのみ表示） */}
+        {teams.length > 1 && (
+          <div className="mobile-drawer-team">
+            <label htmlFor="mobile-team-select" className="mobile-drawer-team-label">
+              {t('nav.activeTeam')}
+            </label>
+            <select
+              id="mobile-team-select"
+              className="mobile-drawer-team-select"
+              value={activeTeam?.id ?? ''}
+              onChange={handleTeamChange}
+              aria-label={t('nav.switchTeam')}
+            >
+              {teams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* モバイルドロワー内ユーザー情報・ログアウト */}
         {user && (
