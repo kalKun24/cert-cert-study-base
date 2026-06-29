@@ -5,10 +5,10 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-080 |
-| ステータス | 🟡 作業中 |
+| ステータス | 🟢 完了 |
 | 作成日 | 2026-06-29 |
 | 着手日 | 2026-06-29 |
-| 完了日 | YYYY-MM-DD |
+| 完了日 | 2026-06-29 |
 | ブランチ名 | `feature/TICKET-080` |
 | PR番号 | #82 |
 | PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/82 |
