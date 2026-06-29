@@ -123,8 +123,8 @@ export default function NavBar({ isMobileMenuOpen, onMobileMenuToggle, invitatio
           )}
         </ul>
 
-        {/* チーム切り替えエリア（デスクトップのみ） */}
-        {teams.length > 0 && (
+        {/* チーム切り替えエリア（デスクトップのみ・所属チームが2つ以上のとき表示） */}
+        {teams.length > 1 && (
           <div className="topbar-team-area">
             <label htmlFor="topbar-team-select" className="topbar-team-label">
               {t('nav.activeTeam')}
