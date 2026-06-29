@@ -10,8 +10,8 @@
 | 着手日 | 2026-06-29 |
 | 完了日 | YYYY-MM-DD |
 | ブランチ名 | `feature/TICKET-080` |
-| PR番号 | #xx |
-| PRリンク | （PR作成後に記入） |
+| PR番号 | #82 |
+| PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/82 |
 
 ---
 
