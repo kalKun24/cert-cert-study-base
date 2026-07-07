@@ -46,8 +46,8 @@
 
 ## サブチケット（コミット単位）
 
-- [ ] `docs(claude): CLAUDE.mdを実態に合わせて更新（Firestore・make表・TODO整理）`
-- [ ] `refactor(claude): 専門エージェント6件をプロジェクト特化にスリム化`
+- [x] `docs(claude): CLAUDE.mdを実態に合わせて更新（Firestore・make表・TODO整理）`
+- [x] `refactor(claude): 専門エージェント6件をプロジェクト特化にスリム化`
 - [ ] `refactor(claude): Design Teamを提案専任化しDev Teamに実装を一本化`
 - [ ] `chore(claude): project-setupエージェントを削除`
 - [ ] `feat(claude): チケット管理スキルを追加`
