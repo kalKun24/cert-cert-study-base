@@ -13,7 +13,7 @@ tools: Bash, Read, ToolSearch
 ## このプロジェクトの前提（毎回の再調査は不要）
 
 - ベースURL: `http://localhost:8080`（docker compose の backend サービス。frontend は 3000、Firestore エミュレータはホスト 8808）
-- API 契約: `api/openapi.yaml`（29 パス・約49 オペレーション）が唯一の正
+- API 契約: `api/openapi.yaml`（約30パス・約50オペレーション）が唯一の正
 - 全レスポンスは `{ "data": ..., "error": ... }` 統一フォーマット（`error` は文字列 / null）
 - ページネーションはオフセット方式: `page` / `per_page`、レスポンスに `total_pages`
 - 認証: `POST /api/v1/auth/login` に `{"username": ..., "password": ...}` → `data.token` の JWT を `Authorization: Bearer` で付与
@@ -25,12 +25,12 @@ tools: Bash, Read, ToolSearch
 
 1. **起動状態確認**: `curl -sf http://localhost:8080/health`
    - 成功 → 既存環境を再利用する（**この場合、最後に `make down` してはならない**）
-   - 失敗 → `make up` で起動し、「自分が起動した」ことを記録する
+   - 失敗 → `docker compose ps` で既存コンテナの有無を確認する。**既存コンテナが1つでも残っている場合（半起動状態）は「自分が起動した」とみなさず**、初期化（down→up）してよいか呼び出し元に確認する。コンテナが無ければ `make up` で起動し、「自分が起動した」ことを記録する
 2. **起動待ち**: `curl -sf --retry 15 --retry-delay 2 --retry-all-errors http://localhost:8080/health`
    - 初回はイメージビルドで数分かかることがある。失敗したら `docker compose ps` / `docker compose logs backend` で原因を確認する
 3. **認証情報取得**: リポジトリ直下の `.env` を Read し `SEED_ADMIN_USERNAME` / `SEED_ADMIN_PASSWORD` を得る
    - 未設定なら「API 実行不可（SEED_ADMIN_* 未設定）」として報告する
-   - **パスワード等の実値はレポートに書かない（`<masked>` と表記する）**
+   - **パスワード・`.env` の実値・JWT（Bearer トークン）はレポートに書かない（`<masked>` と表記する）。ログインの curl コマンドを証拠として添付するときも認証情報は必ず `<masked>` にする**
 4. **ログイン**:
    ```bash
    TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
@@ -40,8 +40,11 @@ tools: Bash, Read, ToolSearch
    ```
    （この環境に `jq` は無い。抽出は `sed` / `grep` で行う）
    - ログイン失敗時: 既存環境に別データが残っていて admin のパスワードが `.env` と異なる可能性がある。**勝手に `make down` で初期化せず**、「down→up で初期化してよいか」を呼び出し元に確認する
-5. **検証実行**: 検証に必要なデータ（チーム・問題・ノート等）は API 経由で自分で作成して使う。一般ユーザー権限の検証が必要な場合は、admin で `user` ロールのユーザーを作成し、そのユーザーでログインし直して実挙動を確認する
-6. **片付け**: 自分が `make up` した場合のみ `make down`（エミュレータデータごと消えるので掃除完了）。既存環境を再利用した場合は down せず、**自分が作成していないデータへの破壊的操作（DELETE / PUT）は禁止**
+5. **検証実行**: 検証に必要なデータ（チーム・問題・ノート等）は API 経由で自分で作成して使う。一般ユーザー権限の検証が必要な場合は、admin で `user` ロールのユーザーを作成し、そのユーザーでログインし直して実挙動を確認する。**作成するテストユーザーのパスワードはランダム生成**とし、既存環境を再利用した場合は残置したテストデータの一覧をレポート末尾に記載する（掃除は呼び出し元が判断する）
+6. **片付け**:
+   - **QA Team のフロー内で呼ばれた場合は down しない**。「自分が起動した（down 未実施）」と報告し、片付けはオーケストレーターが Phase 3（Reality Checker の抜き取り検証）完了後に行う
+   - 単独で呼ばれた場合のみ、自分が `make up` したときに `make down` する（エミュレータデータごと消えるので掃除完了）
+   - 既存環境を再利用した場合は down せず、**自分が作成していないデータへの破壊的操作（DELETE / PUT）は禁止**
 
 ## 検証観点（優先度順）
 
@@ -72,4 +75,4 @@ tools: Bash, Read, ToolSearch
 - ファイルの作成・変更・削除（レポートはテキストで返す）
 - 既存起動環境の `make down`、および自分が作成していないデータへの破壊的操作
 - レート制限を枯渇させる連打（認証失敗系は 2〜3 回まで）
-- `.env` の実値（パスワード・シークレット）のレポートへの転記
+- パスワード・`.env` の実値・JWT（Bearer トークン）のレポートへの転記

@@ -31,7 +31,8 @@
 
 ## 受け入れ条件
 
-- [ ] `.claude/settings.json` の permissions に `Bash(curl:*)` / `Bash(docker compose ps:*)` / `Bash(docker compose logs:*)` が追加されている
+- [ ] `.claude/settings.json` の permissions に curl（**localhost 限定を推奨**）/ `Bash(docker compose ps:*)` / `Bash(docker compose logs:*)` が追加されている
+  - ※保留中: Claude 自身による permissions 変更は auto モード分類器に拒否されるため、ユーザーの手動対応が必要。また Security Engineer のレビューにより `Bash(curl:*)` 全開放は「.env 読取 + 任意外部送信」が揃うリスクが指摘されており、localhost 限定（例: ベースURLを強制するラッパースクリプト経由）での許可を推奨
 - [ ] `testing-api-tester.md` が日本語・プロジェクト固有（openapi.yaml 契約検証・実行手順・読み取り専用 tools）に書き換えられている
 - [ ] `testing-reality-checker.md` が日本語・証拠ベース最終判定役（デフォルト NEEDS WORK・make test / make lint 実行・抜き取り検証）に書き換えられている
 - [ ] `qa-team.md` オーケストレーターが新設され、Phase 2 並列検証（Code Reviewer ‖ Security Engineer ‖ API Tester）→ Phase 3 Reality Checker 最終判定のフローが定義されている
@@ -42,10 +43,11 @@
 
 ## サブチケット（コミット単位）
 
-- [ ] `chore(claude): QA検証用にcurl・docker compose診断系のpermissionsを追加`
-- [ ] `feat(claude): API Testerをプロジェクト固有のAPI実挙動検証エージェントに刷新`
-- [ ] `feat(claude): Reality Checkerを証拠ベース最終判定エージェントに刷新`
-- [ ] `feat(claude): QA Teamオーケストレーターを追加`
+- [ ] `chore(claude): QA検証用にcurl・docker compose診断系のpermissionsを追加`（保留: ユーザー手動対応）
+- [x] `feat(claude): API Testerをプロジェクト固有のAPI実挙動検証エージェントに刷新`
+- [x] `feat(claude): Reality Checkerを証拠ベース最終判定エージェントに刷新`
+- [x] `feat(claude): QA Teamオーケストレーターを追加`
+- [x] `fix(claude): QAチーム初回実行レビューの指摘を反映`
 
 ---
 
@@ -54,3 +56,4 @@
 - 関連チケット: TICKET-081（Claude設定の刷新）
 - 参考: `.claude/agents/dev-team.md`（オーケストレーターのパターン参照元）、`.claude/agents/engineering-code-reviewer.md` / `engineering-security-engineer.md`（読み取り専用エージェントのスタイル参照元）
 - 備考: QA Team は読み取り専用チーム（ファイルを一切変更しない）。修正が必要な場合は Dev Team へ委譲する
+- 受容リスク（Security Engineer レビューより）: 「読み取り専用」は frontmatter の tools 制限とプロンプト上の禁止事項による運用ルールであり、Bash を持つ以上技術的な強制ではない（既存の Code Reviewer / Security Engineer と同様の前提）。permissions は settings.json 全体に適用されエージェント単位でスコープできない
