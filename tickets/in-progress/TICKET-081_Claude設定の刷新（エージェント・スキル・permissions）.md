@@ -51,7 +51,7 @@
 - [x] `refactor(claude): Design Teamを提案専任化しDev Teamに実装を一本化`
 - [x] `chore(claude): project-setupエージェントを削除`
 - [x] `feat(claude): チケット管理スキルを追加`
-- [ ] `chore(claude): permissionsの正規化と編集時整形hooksの追加`
+- [x] `chore(claude): permissionsの正規化と編集時整形hooksの追加`
 
 ---
 

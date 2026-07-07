@@ -1,33 +1,45 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git *)",
-      "Bash(ls *)",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(go:*)",
+      "Bash(golangci-lint:*)",
+      "Bash(/home/kal24hi/go/bin/go:*)",
+      "Bash(/home/kal24hi/go/bin/golangci-lint:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(make:*)",
       "Bash(ls)",
-      "Bash(cat *)",
-      "Bash(grep *)",
-      "Bash(find *)",
-      "Bash(go *)",
-      "Bash(golangci-lint *)",
-      "Bash(/home/kal24hi/go/bin/go *)",
-      "Bash(/home/kal24hi/go/bin/golangci-lint *)",
-      "Bash(npm *)",
-      "Bash(npx *)",
-      "Bash(make *)",
-      "Bash(mkdir *)",
-      "Bash(mv *)",
-      "Bash(rm *)",
-      "Bash(cp *)",
-      "Bash(echo *)",
-      "Bash(which *)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "Bash(echo:*)",
+      "Bash(which:*)",
       "Bash(pwd)",
-      "Bash(export *)",
-      "Bash(cd *)",
-      "Bash(sed *)",
-      "Bash(sort *)",
-      "Bash(gh *)",
+      "Bash(cd:*)",
+      "Bash(export:*)",
+      "Bash(sed:*)",
+      "Bash(sort:*)",
       "Edit",
       "Write"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/claude-format-hook.sh"
+          }
+        ]
+      }
     ]
   }
 }
