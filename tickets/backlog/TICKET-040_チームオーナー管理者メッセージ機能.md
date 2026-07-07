@@ -31,7 +31,7 @@
 
 ## 受け入れ条件
 
-- [ ] `team_messages` データが GCS 上で管理される
+- [ ] `team_messages` データが Firestore 上で管理される（TICKET-062 で GCS から移行済みのため）
   - フィールド: `id`, `team_id`（null = 全体向け）, `title`, `body`（Markdown）, `created_by`, `created_at`, `updated_at`
 - [ ] `POST /api/v1/teams/{id}/messages` でチームオーナーがメッセージを投稿できる
 - [ ] `GET /api/v1/teams/{id}/messages` でチームメッセージ一覧を取得できる
@@ -46,7 +46,7 @@
 
 - [ ] `feat(domain): メッセージエンティティとリポジトリインターフェースを定義`
 - [ ] `feat(usecase): メッセージ CRUD ユースケースを実装（チームオーナー・管理者権限チェック含む）`
-- [ ] `feat(infrastructure): メッセージリポジトリ（GCS）を実装`
+- [ ] `feat(infrastructure): メッセージリポジトリ（Firestore）を実装`
 - [ ] `feat(interface): メッセージエンドポイントを追加`
 - [ ] `docs(api): openapi.yaml を更新`
 - [ ] `feat(page): メッセージ作成・編集画面を実装`

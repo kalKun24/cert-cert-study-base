@@ -25,7 +25,7 @@
 ## 背景・目的
 
 チームの目的・ルールを共有できる場所として README が必要。
-ホーム画面ダッシュボード（TICKET-040）でも表示する。
+ホーム画面ダッシュボード（TICKET-041）でも表示する。
 
 ---
 
@@ -33,7 +33,7 @@
 
 - [ ] チームエンティティに `readme: string`（Markdown）フィールドが追加されている
 - [ ] `PUT /api/v1/teams/{id}` が `readme` フィールドの更新に対応している
-- [ ] チーム作成・編集画面に Markdown エディタ（`@uiw/react-md-editor`）で README を入力できる（チームオーナーのみ）
+- [ ] チーム作成・編集画面に共通 Markdown エディタ（`MarkdownEditor.tsx`・CodeMirror 6 ベース、TICKET-077 で導入）で README を入力できる（チームオーナーのみ）
 - [ ] `api/openapi.yaml` が更新されている
 
 ---

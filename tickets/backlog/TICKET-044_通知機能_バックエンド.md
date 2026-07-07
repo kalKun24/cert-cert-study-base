@@ -30,7 +30,7 @@
 
 ## 受け入れ条件
 
-- [ ] 通知データが GCS 上で管理される
+- [ ] 通知データが Firestore 上で管理される（TICKET-062 で GCS から移行済みのため）
   - フィールド: `id`, `user_id`（通知対象）, `type`（`comment_on_question` / `mention`）, `question_id`, `comment_id`, `is_read: bool`, `created_at`
 - [ ] 自分が作成した問題に他のユーザーがコメントを投稿すると通知が生成される
 - [ ] コメント本文に `@username` が含まれると対象ユーザーへメンション通知が生成される
@@ -49,7 +49,7 @@
 - [ ] `feat(usecase): コメント投稿時に問題オーナーへ通知を生成するロジックを追加`
 - [ ] `feat(usecase): @メンション解析・メンション通知生成ロジックを追加（TICKET-043 との連携）`
 - [ ] `feat(usecase): 通知取得・既読更新ユースケースを実装`
-- [ ] `feat(infrastructure): 通知リポジトリ（GCS）を実装`
+- [ ] `feat(infrastructure): 通知リポジトリ（Firestore）を実装`
 - [ ] `feat(interface): 通知エンドポイントを追加`
 - [ ] `docs(api): openapi.yaml を更新`
 - [ ] `test(usecase): 通知生成・取得ユースケースのユニットテストを作成`
