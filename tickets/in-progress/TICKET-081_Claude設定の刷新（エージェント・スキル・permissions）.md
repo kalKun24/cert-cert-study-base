@@ -50,7 +50,7 @@
 - [x] `refactor(claude): 専門エージェント6件をプロジェクト特化にスリム化`
 - [x] `refactor(claude): Design Teamを提案専任化しDev Teamに実装を一本化`
 - [x] `chore(claude): project-setupエージェントを削除`
-- [ ] `feat(claude): チケット管理スキルを追加`
+- [x] `feat(claude): チケット管理スキルを追加`
 - [ ] `chore(claude): permissionsの正規化と編集時整形hooksの追加`
 
 ---
