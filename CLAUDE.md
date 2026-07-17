@@ -12,7 +12,9 @@
 
 CISSPや情報処理安全確保支援士などのセキュリティ資格取得を目標とした勉強会を、効率的に運営・管理するためのWebアプリケーションです。
 
-主な機能: Markdown形式での"問題・解答・解説・議論点メモ(議論点・知らない知識などをメモする)"の作成・編集と、そのmarkdownテキストの共有、タグ（フラット・複数付与可）による分類・検索・フィルタリング。
+主な機能: Markdown形式での"問題・解答・解説・議論点メモ(議論点・知らない知識などをメモする)"の作成・編集と、そのmarkdownテキストの共有、タグ（フラット・複数付与可）による分類・検索・フィルタリング。チーム単位での運用（メンバー招待・チーム切り替え）、ノート・コメント機能を含む。
+
+主要エンティティ: `question` / `tag` / `team` / `user` / `invitation` / `note` / `comment`（`backend/internal/domain/` 参照）
 
 ---
 
@@ -20,12 +22,12 @@ CISSPや情報処理安全確保支援士などのセキュリティ資格取得
 
 | レイヤー | 技術 |
 |---|---|
-| バックエンド | Go |
-| フロントエンド | React |
+| バックエンド | Go 1.25 |
+| フロントエンド | React 18 + TypeScript + Vite（状態管理: React Context） |
 | データ形式 | JSON / Markdown |
 | API設計 | REST API / Swagger (OpenAPI 3.0) |
-| 永続化 | Google Cloud Storage（GCS） |
-| インフラ | GCP Cloud Run |
+| 永続化 | Cloud Firestore（全エンティティ。※`infrastructure/storage/` の GCS クライアントはインターフェース定義のみで現状未使用） |
+| インフラ | GCP Cloud Run（リージョン: asia-northeast1） |
 | CI/CD | GitHub Actions（main / develop マージトリガー、2環境デプロイ） |
 
 ---
@@ -38,7 +40,8 @@ CISSPや情報処理安全確保支援士などのセキュリティ資格取得
 │   ├── domain/          # エンティティ層: ビジネスエンティティ・ルール（依存なし）
 │   ├── usecase/         # ユースケース層: ビジネスロジック（domain のみ依存可）
 │   ├── interface/       # インターフェース層: ハンドラ・DTO・Repositoryインターフェース
-│   └── infrastructure/  # インフラ層: GCS・認証・ルーティングの具体実装
+│   ├── infrastructure/  # インフラ層: Firestore・認証・ミドルウェアの具体実装
+│   └── contextkey/      # context.Context のキー定義（層をまたぐ共有定数）
 ├── frontend/src/
 ├── api/openapi.yaml     # OpenAPI 3.0 仕様書（API定義の単一管理元）
 ├── docs/                # ドキュメント・手順書
@@ -66,18 +69,20 @@ CISSPや情報処理安全確保支援士などのセキュリティ資格取得
 ### REST API
 
 - エンドポイントは `/api/v1/` プレフィックス、リソース名は複数形・名詞
-- レスポンスは `{ "data": ..., "error": ... }` の統一フォーマット
+- レスポンスは `{ "data": ..., "error": ... }` の統一フォーマット（`error` は文字列 / null）
+- 一覧APIのページネーションはオフセット方式（`page` / `per_page`、レスポンスに `total_pages` を含む）
 - HTTPステータスコードを適切に使用（200, 201, 400, 404, 500 など）
 
 ### Swagger（OpenAPI 3.0）
 
-- **API定義は `api/openapi.yaml` で一元管理**
+- **API定義は `api/openapi.yaml` で一元管理**（手動編集で管理する）
 - 新しいエンドポイントは **Swagger定義を先に更新してから実装**（API First原則）
-- Swagger UIは開発環境の `/swagger/` で確認（`swaggo/swag` を使用）
+- Swagger UI の提供（`make swagger`）は未実装・将来対応
 
 ### 認証
 
 - 認証方式: ID / パスワード認証（JWTトークン発行）
+- ユーザデータは Firestore に永続化する
 - パスワードは **bcrypt** でハッシュ化して保存。平文保存は絶対禁止
 - ロール: `admin`（ユーザ管理・全機能） / `user`（自身の認証情報変更・問題CRUD）
 - 認証・認可はInfrastructure層の `auth/` にミドルウェアとして実装
@@ -94,12 +99,16 @@ CISSPや情報処理安全確保支援士などのセキュリティ資格取得
 
 | コマンド | 内容 |
 |---|---|
-| `make up` | バックエンド・フロントエンドをまとめて起動 |
+| `make up` | バックエンド・フロントエンドをまとめて起動（Docker Compose） |
 | `make down` | 全サービスを停止 |
 | `make test` | 全テストを実行 |
+| `make fmt` | `gofmt` でバックエンドのコードをフォーマット |
 | `make lint` | `golangci-lint` を実行 |
-| `make swagger` | Swagger UIを起動・`openapi.yaml` を反映 |
+| `make hooks` | gitフック（`.githooks/`）を有効化。初回クローン後に一度実行 |
+| `make swagger` | Swagger UIを起動・`openapi.yaml` を反映（将来実装） |
 | `make build` | 本番用Dockerイメージをビルド |
+
+Firestore を使う統合テストはエミュレータ（`FIRESTORE_EMULATOR_HOST`）を前提とする。
 
 ---
 
@@ -176,14 +185,10 @@ CISSPや情報処理安全確保支援士などのセキュリティ資格取得
 
 ## TODO / 未決定事項
 
-- [ ] GCSローカル開発時のエミュレータ方式（`fake-gcs-server` or ローカルファイルフォールバック）
-- [ ] 認証用ユーザデータの永続化先（GCS上のJSONファイル or 別途DB）
-- [ ] エラーレスポンスの統一フォーマットの詳細定義
-- [ ] ページネーションの方式（オフセット or カーソル）
-- [ ] Goのバージョン・主要ライブラリのバージョン固定
-- [ ] フロントエンドの状態管理ライブラリの選定
-- [ ] Cloud Run のリージョン・スペック設定
-- [ ] GCSバケット名・環境ごとの命名規則
+- [ ] `make swagger`（Swagger UI 起動）の実装
+- [ ] 未使用の GCS クライアント（`backend/internal/infrastructure/storage/`）の扱い（削除 or 添付ファイル用途で活用）
+
+※ 過去の未決定事項は解決済み: 永続化=Firestore・ページネーション=オフセット方式・状態管理=React Context・Go 1.25・リージョン=asia-northeast1（各セクションに反映済み）
 
 ---
 
