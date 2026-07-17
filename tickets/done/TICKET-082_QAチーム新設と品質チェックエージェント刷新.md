@@ -5,10 +5,10 @@
 | 項目 | 内容 |
 |---|---|
 | チケットID | TICKET-082 |
-| ステータス | 🟡 作業中 |
+| ステータス | 🟢 完了 |
 | 作成日 | 2026-07-07 |
 | 着手日 | 2026-07-07 |
-| 完了日 | - |
+| 完了日 | 2026-07-17 |
 | ブランチ名 | `feature/TICKET-082` |
 | PR番号 | #88 |
 | PRリンク | https://github.com/kalKun24/cert-cert-study-base/pull/88 |
@@ -70,3 +70,12 @@
 - 参考: `.claude/agents/dev-team.md`（オーケストレーターのパターン参照元）、`.claude/agents/engineering-code-reviewer.md` / `engineering-security-engineer.md`（読み取り専用エージェントのスタイル参照元）
 - 備考: QA Team は読み取り専用チーム（ファイルを一切変更しない）。修正が必要な場合は Dev Team へ委譲する
 - 受容リスク（Security Engineer レビューより）: 「読み取り専用」は frontmatter の tools 制限とプロンプト上の禁止事項による運用ルールであり、Bash を持つ以上技術的な強制ではない（既存の Code Reviewer / Security Engineer と同様の前提）。permissions は settings.json 全体に適用されエージェント単位でスコープできない
+
+---
+
+## クローズ時の残作業（2026-07-17 記載）
+
+PR #88 マージ済みのためクローズ。以下2点は未完のまま引き継ぐ（QA Team 初回起動時に対応する）:
+
+- [ ] permissions への curl（localhost 限定推奨）・`docker compose ps/logs` の追加（ユーザー手動対応が必要）
+- [ ] QA Team オーケストレーターの真の実起動確認（新セッションでの1回実行。フロー自体は代行実行で検証済み）
